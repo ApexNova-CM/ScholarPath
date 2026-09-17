@@ -1,0 +1,234 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Global Safety Net ---
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == 'admin@scholarpath.org')
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // --- Validation Helpers ---
+    function isValidUserProfile(data) {
+      return data.id is string &&
+             data.email is string && data.email.size() <= 150 &&
+             data.firstName is string && data.firstName.size() <= 100 &&
+             data.lastName is string && data.lastName.size() <= 100 &&
+             data.country is string && data.country.size() <= 100 &&
+             data.educationLevel is string && data.educationLevel.size() <= 100 &&
+             data.institution is string && data.institution.size() <= 200 &&
+             data.fieldOfStudy is string && data.fieldOfStudy.size() <= 200 &&
+             (data.role == 'student' || data.role == 'admin');
+    }
+
+    function isValidScholarship(data) {
+      return data.id is string &&
+             data.title is string && data.title.size() <= 250 &&
+             data.providerId is string && data.providerId.size() <= 128 &&
+             data.providerName is string && data.providerName.size() <= 150 &&
+             data.category is string && data.category.size() <= 100 &&
+             data.amount is number &&
+             data.currency is string && data.currency.size() <= 10 &&
+             data.deadline is string && data.deadline.size() <= 50 &&
+             data.status is string &&
+             data.verificationStatus is string;
+    }
+
+    function isValidApplication(data) {
+      return data.id is string &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.scholarshipId is string && data.scholarshipId.size() <= 128 &&
+             data.status is string && data.status.size() <= 50;
+    }
+
+    function isValidSaved(data) {
+      return data.id is string &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.scholarshipId is string && data.scholarshipId.size() <= 128 &&
+             data.savedAt is string;
+    }
+
+    function isValidDocument(data) {
+      return data.id is string &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.name is string && data.name.size() <= 200 &&
+             data.type is string && data.type.size() <= 100 &&
+             data.uploadedAt is string;
+    }
+
+    function isValidNotification(data) {
+      return data.id is string &&
+             data.userId is string &&
+             data.title is string && data.title.size() <= 200 &&
+             data.read is bool &&
+             data.createdAt is string;
+    }
+
+    // --- Collection Security Rules ---
+
+    // Admins Index
+    match /admins/{adminId} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      allow write: if false; // System provisioned only
+    }
+
+    // User Profiles
+    match /users/{userId} {
+      allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().role == 'student'; // Prevent self-elevation to admin
+      allow update: if (isOwner(userId) &&
+                        isValidUserProfile(incoming()) &&
+                        incoming().role == existing().role && // Cannot elevate role
+                        incoming().id == existing().id) ||
+                       isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Scholarships
+    match /scholarships/{scholarshipId} {
+      allow get: if isValidId(scholarshipId) && (
+        existing().verificationStatus == 'verified' ||
+        existing().status == 'verified' ||
+        isAdmin()
+      );
+      allow list: if isSignedIn();
+      allow create: if isAdmin() && isValidScholarship(incoming());
+      allow update: if isAdmin() && isValidScholarship(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Providers
+    match /providers/{providerId} {
+      allow get, list: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Categories
+    match /categories/{categoryId} {
+      allow get, list: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Applications
+    match /applications/{applicationId} {
+      allow get: if isValidId(applicationId) && (
+        existing().userId == request.auth.uid || isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isSignedIn() &&
+                       isValidId(applicationId) &&
+                       isValidApplication(incoming());
+      allow update: if isSignedIn() && (
+        (existing().userId == request.auth.uid &&
+         incoming().userId == existing().userId &&
+         incoming().scholarshipId == existing().scholarshipId &&
+         isValidApplication(incoming())) ||
+        isAdmin()
+      );
+      allow delete: if isSignedIn() && (
+        existing().userId == request.auth.uid || isAdmin()
+      );
+    }
+
+    // Saved Scholarships
+    match /saved_scholarships/{saveId} {
+      allow get: if isValidId(saveId) && (
+        existing().userId == request.auth.uid || isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isSignedIn() &&
+                       isValidId(saveId) &&
+                       isValidSaved(incoming());
+      allow delete: if isSignedIn() && (
+        existing().userId == request.auth.uid || isAdmin()
+      );
+    }
+
+    // Documents
+    match /documents/{documentId} {
+      allow get: if isValidId(documentId) && (
+        existing().userId == request.auth.uid || isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isSignedIn() &&
+                       isValidId(documentId) &&
+                       isValidDocument(incoming());
+      allow update: if isSignedIn() && (
+        (existing().userId == request.auth.uid &&
+         incoming().userId == existing().userId &&
+         isValidDocument(incoming())) ||
+        isAdmin()
+      );
+      allow delete: if isSignedIn() && (
+        existing().userId == request.auth.uid || isAdmin()
+      );
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow get: if isValidId(notificationId) && (
+        existing().userId == request.auth.uid || isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isAdmin() || (
+        isSignedIn() && incoming().userId == request.auth.uid && isValidNotification(incoming())
+      );
+      allow update: if isSignedIn() && (
+        (existing().userId == request.auth.uid &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['read'])) ||
+        isAdmin()
+      );
+      allow delete: if isSignedIn() && (
+        existing().userId == request.auth.uid || isAdmin()
+      );
+    }
+
+    // Verifications (Audit Trail)
+    match /verifications/{verificationId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin() &&
+                       isValidId(verificationId) &&
+                       incoming().adminId is string;
+      allow update, delete: if false; // Audit records are append-only and immutable
+    }
+  }
+}

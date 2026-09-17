@@ -1,0 +1,8 @@
+{
+  "name": "ScholarPath",
+  "description": "Scholarship discovery and application-management platform with student matching, eligibility engine, and administrative verification.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

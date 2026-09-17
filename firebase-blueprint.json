@@ -1,0 +1,210 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with student background, academic criteria, and role permissions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier matching the auth UID." },
+        "email": { "type": "string", "format": "email", "description": "User email address." },
+        "role": { "type": "string", "enum": ["student", "admin"], "description": "System authorization role." },
+        "firstName": { "type": "string", "description": "User given name." },
+        "lastName": { "type": "string", "description": "User family name." },
+        "phone": { "type": "string", "description": "Contact phone number." },
+        "dateOfBirth": { "type": "string", "description": "ISO date of birth." },
+        "country": { "type": "string", "description": "Country of origin/citizenship." },
+        "state": { "type": "string", "description": "State or province." },
+        "city": { "type": "string", "description": "City of residence." },
+        "educationLevel": { "type": "string", "description": "Current or targeted level of education." },
+        "institution": { "type": "string", "description": "Current school, college, or university." },
+        "fieldOfStudy": { "type": "string", "description": "Primary academic major or focus area." },
+        "gpa": { "type": "number", "description": "Cumulative GPA." },
+        "gpaScale": { "type": "number", "description": "GPA scaling factor (e.g. 4.0 or 5.0)." },
+        "financialNeed": { "type": "boolean", "description": "Self-reported demonstrated financial need indicator." },
+        "profileCompletion": { "type": "number", "description": "Percentage score (0-100) of completed profile elements." },
+        "createdAt": { "type": "string", "description": "ISO timestamp of account creation." },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update." }
+      },
+      "required": ["id", "email", "role", "firstName", "lastName", "country", "educationLevel", "institution", "fieldOfStudy"]
+    },
+    "Scholarship": {
+      "title": "Scholarship",
+      "description": "Comprehensive scholarship listing with eligibility rules, funding amounts, and administrative status.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique scholarship ID." },
+        "title": { "type": "string", "description": "Scholarship title." },
+        "providerId": { "type": "string", "description": "Reference ID to provider entity." },
+        "providerName": { "type": "string", "description": "Name of provider or foundation." },
+        "description": { "type": "string", "description": "Full markdown scholarship description." },
+        "shortDescription": { "type": "string", "description": "Brief summary for card views." },
+        "category": { "type": "string", "description": "Primary disciplinary category." },
+        "tags": { "type": "array", "description": "Keywords and search tags." },
+        "amount": { "type": "number", "description": "Funding monetary amount." },
+        "currency": { "type": "string", "description": "Currency code like USD or EUR." },
+        "fundingType": { "type": "string", "enum": ["Full Tuition", "Partial Tuition", "Stipend", "Research Grant", "One-time Award"], "description": "Type of funding provided." },
+        "eligibleCountries": { "type": "array", "description": "Countries eligible to apply." },
+        "educationLevels": { "type": "array", "description": "Eligible education tiers." },
+        "fieldsOfStudy": { "type": "array", "description": "Eligible fields of study." },
+        "minimumGPA": { "type": "number", "description": "Minimum required GPA." },
+        "deadline": { "type": "string", "description": "ISO deadline timestamp." },
+        "status": { "type": "string", "enum": ["draft", "pending_verification", "verified", "rejected", "archived"], "description": "Publication lifecycle status." },
+        "verificationStatus": { "type": "string", "enum": ["verified", "pending_verification", "rejected", "unverified"], "description": "Admin verification status." },
+        "verifiedBy": { "type": "string", "description": "Admin email or identifier who verified the listing." },
+        "verifiedAt": { "type": "string", "description": "ISO timestamp of verification." },
+        "viewCount": { "type": "number", "description": "Total view impressions." },
+        "saveCount": { "type": "number", "description": "Total user bookmarks." },
+        "createdAt": { "type": "string", "description": "Creation timestamp." },
+        "updatedAt": { "type": "string", "description": "Last update timestamp." }
+      },
+      "required": ["id", "title", "providerId", "providerName", "category", "amount", "currency", "deadline", "status", "verificationStatus"]
+    },
+    "Provider": {
+      "title": "Provider",
+      "description": "Foundations, universities, and organizations offering scholarships.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique provider ID." },
+        "name": { "type": "string", "description": "Provider organization name." },
+        "type": { "type": "string", "description": "Organization type." },
+        "website": { "type": "string", "description": "Official provider web address." },
+        "description": { "type": "string", "description": "Provider overview and mission." },
+        "contactEmail": { "type": "string", "format": "email", "description": "Contact email address." },
+        "country": { "type": "string", "description": "Country of provider headquarters." },
+        "verified": { "type": "boolean", "description": "Provider verification badge." }
+      },
+      "required": ["id", "name", "website", "contactEmail", "country"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Taxonomy category for classifying scholarships.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique category identifier." },
+        "name": { "type": "string", "description": "Category display name." },
+        "slug": { "type": "string", "description": "URL-friendly slug." },
+        "description": { "type": "string", "description": "Description of the category domain." }
+      },
+      "required": ["id", "name", "slug"]
+    },
+    "Application": {
+      "title": "Application",
+      "description": "Student scholarship application and progression record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique application ID." },
+        "userId": { "type": "string", "description": "Applicant user UID." },
+        "scholarshipId": { "type": "string", "description": "Target scholarship identifier." },
+        "scholarshipTitle": { "type": "string", "description": "Cached title of the scholarship." },
+        "providerName": { "type": "string", "description": "Cached provider name." },
+        "status": { "type": "string", "description": "Current progression status." },
+        "deadline": { "type": "string", "description": "Application deadline timestamp." },
+        "amount": { "type": "number", "description": "Monetary award amount." },
+        "currency": { "type": "string", "description": "Currency abbreviation." },
+        "appliedAt": { "type": "string", "description": "Submission timestamp if submitted." },
+        "notes": { "type": "string", "description": "Student private notes or admin comments." },
+        "createdAt": { "type": "string", "description": "Record creation timestamp." },
+        "updatedAt": { "type": "string", "description": "Last update timestamp." }
+      },
+      "required": ["id", "userId", "scholarshipId", "status"]
+    },
+    "SavedScholarship": {
+      "title": "SavedScholarship",
+      "description": "Student bookmarked scholarship reference.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique bookmark ID." },
+        "userId": { "type": "string", "description": "Owner user UID." },
+        "scholarshipId": { "type": "string", "description": "Bookmarked scholarship ID." },
+        "savedAt": { "type": "string", "description": "Timestamp when bookmarked." }
+      },
+      "required": ["id", "userId", "scholarshipId", "savedAt"]
+    },
+    "StoredDocument": {
+      "title": "StoredDocument",
+      "description": "Student locker uploaded document metadata.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique document identifier." },
+        "userId": { "type": "string", "description": "Owner student UID." },
+        "name": { "type": "string", "description": "File or document label." },
+        "type": { "type": "string", "description": "Document classification." },
+        "fileFormat": { "type": "string", "description": "File extension / MIME type." },
+        "fileSize": { "type": "number", "description": "File size in bytes." },
+        "fileUrl": { "type": "string", "description": "Secure file storage URL." },
+        "uploadedAt": { "type": "string", "description": "Upload timestamp." }
+      },
+      "required": ["id", "userId", "name", "type", "uploadedAt"]
+    },
+    "NotificationItem": {
+      "title": "NotificationItem",
+      "description": "In-app alerts and notifications for students and administrators.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique notification ID." },
+        "userId": { "type": "string", "description": "Target recipient UID." },
+        "title": { "type": "string", "description": "Short alert title." },
+        "message": { "type": "string", "description": "Alert body text." },
+        "type": { "type": "string", "description": "Category of alert (match, deadline, verification, system)." },
+        "read": { "type": "boolean", "description": "Read status flag." },
+        "createdAt": { "type": "string", "description": "Notification creation timestamp." }
+      },
+      "required": ["id", "userId", "title", "read", "createdAt"]
+    },
+    "VerificationRecord": {
+      "title": "VerificationRecord",
+      "description": "Audit trail log of admin verification reviews and decisions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique verification audit ID." },
+        "scholarshipId": { "type": "string", "description": "Reviewed scholarship identifier." },
+        "scholarshipTitle": { "type": "string", "description": "Title of reviewed scholarship." },
+        "adminId": { "type": "string", "description": "Reviewing administrator UID." },
+        "adminEmail": { "type": "string", "description": "Reviewing administrator email." },
+        "previousStatus": { "type": "string", "description": "Status before review." },
+        "newStatus": { "type": "string", "description": "Status assigned after review." },
+        "notes": { "type": "string", "description": "Internal verification or rejection justification notes." },
+        "timestamp": { "type": "string", "description": "Review timestamp." }
+      },
+      "required": ["id", "scholarshipId", "adminId", "newStatus", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile collection storing individual student and administrator records."
+    },
+    "/scholarships/{scholarshipId}": {
+      "schema": "Scholarship",
+      "description": "Public and verified scholarship directory records."
+    },
+    "/providers/{providerId}": {
+      "schema": "Provider",
+      "description": "Scholarship provider and awarding organization profiles."
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Scholarship subject and educational domain categories."
+    },
+    "/applications/{applicationId}": {
+      "schema": "Application",
+      "description": "Student scholarship applications with progression milestones."
+    },
+    "/saved_scholarships/{saveId}": {
+      "schema": "SavedScholarship",
+      "description": "Student bookmarked scholarships for quick access."
+    },
+    "/documents/{documentId}": {
+      "schema": "StoredDocument",
+      "description": "Student document locker containing transcripts, CVs, and references."
+    },
+    "/notifications/{notificationId}": {
+      "schema": "NotificationItem",
+      "description": "User notifications, matching alerts, and deadline reminders."
+    },
+    "/verifications/{verificationId}": {
+      "schema": "VerificationRecord",
+      "description": "Administrative audit trail logging scholarship approvals and rejections."
+    }
+  }
+}
