@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile, UserRole } from '../types';
 import { StorageService } from '../services/storage';
-import { api } from '../lib/apiClient';
 import {
   supabase,
   isSupabaseConfigured,
@@ -70,78 +69,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let cancelled = false;
 
-    // Check REST API session first
-    api
-      .get<{ user: UserProfile }>('/auth/me')
-      .then((res) => {
+    if (isSupabaseConfigured) {
+      supabase.auth.getSession().then(({ data: { session: s } }) => {
         if (cancelled) return;
-        if (res?.user) {
-          setUser(res.user);
-          setIsLoading(false);
-          return;
-        }
-        checkFallbackAuth();
-      })
-      .catch(() => {
-        if (cancelled) return;
-        checkFallbackAuth();
-      });
-
-    function checkFallbackAuth() {
-      if (isSupabaseConfigured) {
-        supabase.auth.getSession().then(({ data: { session: s } }) => {
-          if (cancelled) return;
-          if (s?.user) {
-            setSession(s);
-            setSupabaseUser(s.user);
-            setUser(resolveOrCreateProfile(s.user));
-          }
-          setIsLoading(false);
-        });
-
-        const {
-          data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, s) => {
-          if (cancelled) return;
+        if (s?.user) {
           setSession(s);
-          if (s?.user) {
-            setSupabaseUser(s.user);
-            setUser(resolveOrCreateProfile(s.user));
-          } else {
-            setSupabaseUser(null);
-            setUser(null);
-          }
-        });
-
-        return () => subscription.unsubscribe();
-      } else {
-        const uid = localStorage.getItem('scholarpath_active_session_uid');
-        if (uid) {
-          const found = StorageService.getUserById(uid);
-          if (found) setUser(found);
-          else localStorage.removeItem('scholarpath_active_session_uid');
+          setSupabaseUser(s.user);
+          setUser(resolveOrCreateProfile(s.user));
         }
         setIsLoading(false);
-      }
-    }
+      });
 
-    return () => {
-      cancelled = true;
-    };
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, s) => {
+        if (cancelled) return;
+        setSession(s);
+        if (s?.user) {
+          setSupabaseUser(s.user);
+          setUser(resolveOrCreateProfile(s.user));
+        } else {
+          setSupabaseUser(null);
+          setUser(null);
+        }
+      });
+
+      return () => {
+        cancelled = true;
+        subscription.unsubscribe();
+      };
+    } else {
+      const uid = localStorage.getItem('scholarpath_active_session_uid');
+      if (uid) {
+        const found = StorageService.getUserById(uid);
+        if (found) setUser(found);
+        else localStorage.removeItem('scholarpath_active_session_uid');
+      }
+      setIsLoading(false);
+    }
   }, []);
 
   const refreshUser = () => {
-    api
-      .get<{ user: UserProfile }>('/auth/me')
-      .then((res) => {
-        if (res?.user) setUser(res.user);
-      })
-      .catch(() => {
-        if (user) {
-          const fresh = StorageService.getUserById(user.id);
-          if (fresh) setUser(fresh);
+    if (isSupabaseConfigured) {
+      supabase.auth.getUser().then(({ data: { user: u } }) => {
+        if (u) {
+          setSupabaseUser(u);
+          setUser(resolveOrCreateProfile(u));
         }
       });
+    } else if (user) {
+      const fresh = StorageService.getUserById(user.id);
+      if (fresh) setUser(fresh);
+    }
   };
 
   // ── Sign in (email + password) ────────────────────────────────────────
@@ -151,39 +130,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ): Promise<{ success: boolean; role?: UserRole; error?: string }> => {
     setIsLoading(true);
     try {
-      // 1. Primary: REST API Backend
-      if (password) {
-        try {
-          const res = await api.post<{ token: string; user: UserProfile }>('/auth/login', {
-            email: email.trim(),
-            password,
-          });
-          if (res?.token && res?.user) {
-            api.setToken(res.token);
-            setUser(res.user);
-            return { success: true, role: res.user.role };
-          }
-        } catch (apiErr: any) {
-          if (apiErr?.status === 401 || apiErr?.status === 400) {
-            return { success: false, error: apiErr.message || 'Invalid email or password.' };
-          }
-          // If server is unreachable, proceed to Supabase / localStorage fallback
-        }
-      }
-
-      // 2. Supabase
+      // 1. Supabase Auth
       if (isSupabaseConfigured && password) {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
         if (error) return { success: false, error: mapAuthError(error.message) };
+        if (!data.user) return { success: false, error: 'Invalid email or password.' };
+
         const profile = resolveOrCreateProfile(data.user);
         setUser(profile);
         return { success: true, role: profile.role };
       }
 
-      // 3. Fallback: localStorage
+      // 2. Fallback: localStorage
       const found = StorageService.getUserByEmail(email.trim());
       if (!found) return { success: false, error: 'No account found with this email.' };
       setUser(found);
@@ -229,26 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     try {
-      // 1. Primary: REST API Backend
-      if (password) {
-        try {
-          const res = await api.post<{ token: string; user: UserProfile }>('/auth/register', {
-            ...profileData,
-            password,
-          });
-          if (res?.token && res?.user) {
-            api.setToken(res.token);
-            setUser(res.user);
-            return { success: true };
-          }
-        } catch (apiErr: any) {
-          if (apiErr?.status === 409 || apiErr?.status === 400) {
-            return { success: false, error: apiErr.message || 'Registration failed.' };
-          }
-        }
-      }
-
-      // 2. Supabase
+      // 1. Supabase Auth
       if (isSupabaseConfigured && password) {
         const { data, error } = await supabase.auth.signUp({
           email: profileData.email.trim(),
@@ -273,7 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: true };
       }
 
-      // 3. Fallback: localStorage
+      // 2. Fallback: localStorage
       const existing = StorageService.getUserByEmail(profileData.email);
       if (existing) return { success: false, error: 'An account with this email already exists.' };
       const newUser = StorageService.createUser({ ...profileData, role: 'student' });
@@ -287,10 +229,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // ── Sign out ──────────────────────────────────────────────────────────
   const logout = async () => {
-    try {
-      await api.post('/auth/logout');
-    } catch {}
-    api.setToken(null);
     localStorage.removeItem('scholarpath_active_session_uid');
 
     if (isSupabaseConfigured) {
@@ -308,12 +246,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const sendPasswordReset = async (
     email: string
   ): Promise<{ success: boolean; error?: string }> => {
-    try {
-      await api.post('/auth/forgot-password', { email });
-      return { success: true };
-    } catch {
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/login`,
+      });
+      if (error) return { success: false, error: error.message };
       return { success: true };
     }
+    return { success: true };
   };
 
   // ── Update profile ────────────────────────────────────────────────────
@@ -321,14 +261,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) throw new Error('Not authenticated');
     const sanitized = { ...updates };
     if (user.role === 'student') delete sanitized.role;
-
-    try {
-      const res = await api.put<UserProfile>('/student/profile', sanitized);
-      if (res && res.id) {
-        setUser(res);
-        return res;
-      }
-    } catch {}
 
     const updated = StorageService.updateUserProfile(user.id, sanitized);
     setUser(updated);
