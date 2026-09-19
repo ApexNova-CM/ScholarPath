@@ -91,9 +91,24 @@ function SectionCard({
 export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile, onUpdateProfile }) => {
   const { updateUserProfile } = useAuth();
   const [formData, setFormData] = useState<UserProfile>({ ...userProfile });
+  const [scaleOption, setScaleOption] = useState<string>(() =>
+    [5.0, 4.0, 7.0, 10.0].includes(userProfile.gpaScale) ? userProfile.gpaScale.toString() : (userProfile.gpaScale ? 'Other' : '5.0')
+  );
+  const [customScale, setCustomScale] = useState<string>(() =>
+    [5.0, 4.0, 7.0, 10.0].includes(userProfile.gpaScale) ? '' : (userProfile.gpaScale?.toString() || '')
+  );
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setFormData({ ...userProfile });
+    const option = [5.0, 4.0, 7.0, 10.0].includes(userProfile.gpaScale)
+      ? userProfile.gpaScale.toString()
+      : (userProfile.gpaScale ? 'Other' : '5.0');
+    setScaleOption(option);
+    setCustomScale([5.0, 4.0, 7.0, 10.0].includes(userProfile.gpaScale) ? '' : (userProfile.gpaScale?.toString() || ''));
+  }, [userProfile]);
 
   const completion = calcCompletion(formData);
   const missingFields = COMPLETION_FIELDS.filter((f) => !f.key(formData));
@@ -109,12 +124,41 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile, onUpdateP
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
     setSaveError(null);
+
+    let effectiveScale = 5.0;
+    if (scaleOption === 'Other') {
+      const parsedCustom = parseFloat(customScale);
+      if (isNaN(parsedCustom) || parsedCustom <= 0) {
+        setSaveError('Please enter a valid custom CGPA scale greater than 0.');
+        return;
+      }
+      effectiveScale = parsedCustom;
+    } else {
+      effectiveScale = parseFloat(scaleOption);
+    }
+
+    const parsedGpa = Number(formData.gpa);
+    if (isNaN(parsedGpa) || parsedGpa < 0) {
+      setSaveError('Please enter a valid non-negative CGPA.');
+      return;
+    }
+
+    if (parsedGpa > effectiveScale) {
+      setSaveError(`Current CGPA (${parsedGpa.toFixed(2)}) cannot be greater than your selected scale of ${effectiveScale.toFixed(2)}.`);
+      return;
+    }
+
+    setIsSaving(true);
     try {
-      const newCompletion = calcCompletion(formData);
-      const updated: UserProfile = {
+      const mergedForm: UserProfile = {
         ...formData,
+        gpa: parsedGpa,
+        gpaScale: effectiveScale,
+      };
+      const newCompletion = calcCompletion(mergedForm);
+      const updated: UserProfile = {
+        ...mergedForm,
         profileCompletion: newCompletion,
         updatedAt: new Date().toISOString(),
       };
@@ -344,22 +388,32 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile, onUpdateP
                 placeholder="e.g. Year 2, 300 Level" className={INPUT_CLASS} />
             </div>
             <div>
-              <label className={LABEL_CLASS}>GPA / CGPA <span className="text-rose-500">*</span></label>
-              <input type="number" step="0.01" min="0" max="10"
+              <label className={LABEL_CLASS}>CGPA Scale <span className="text-rose-500">*</span></label>
+              <select value={scaleOption}
+                onChange={(e) => setScaleOption(e.target.value)}
+                className={INPUT_CLASS}>
+                <option value="5.0">5.0 — Nigerian University Standard</option>
+                <option value="4.0">4.0 — 4-Point Scale</option>
+                <option value="7.0">7.0 — 7-Point Scale</option>
+                <option value="10.0">10.0 — 10-Point Scale</option>
+                <option value="Other">Other — My institution uses another scale</option>
+              </select>
+            </div>
+            {scaleOption === 'Other' && (
+              <div>
+                <label className={LABEL_CLASS}>Custom CGPA Scale <span className="text-rose-500">*</span></label>
+                <input type="number" step="0.1" min="0.1"
+                  value={customScale}
+                  onChange={(e) => setCustomScale(e.target.value)}
+                  placeholder="e.g. 6.0" className={INPUT_CLASS} />
+              </div>
+            )}
+            <div>
+              <label className={LABEL_CLASS}>Current CGPA <span className="text-rose-500">*</span></label>
+              <input type="number" step="0.01" min="0"
                 value={formData.gpa || ''}
                 onChange={(e) => set('gpa', parseFloat(e.target.value) || 0)}
-                placeholder="e.g. 3.75" className={INPUT_CLASS} />
-            </div>
-            <div>
-              <label className={LABEL_CLASS}>Grading Scale</label>
-              <select value={formData.gpaScale || 4.0}
-                onChange={(e) => set('gpaScale', parseFloat(e.target.value))}
-                className={INPUT_CLASS}>
-                <option value={4.0}>4.0 Scale</option>
-                <option value={5.0}>5.0 Scale</option>
-                <option value={7.0}>7.0 Scale</option>
-                <option value={10.0}>10.0 Scale (India / Some Universities)</option>
-              </select>
+                placeholder="e.g. 4.25" className={INPUT_CLASS} />
             </div>
             <div>
               <label className={LABEL_CLASS}>Expected Graduation Date</label>

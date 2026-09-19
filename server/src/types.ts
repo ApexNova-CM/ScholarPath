@@ -274,7 +274,7 @@ export const RegisterSchema = z.object({
   ]).default('Undergraduate'),
   institution: z.string().default(''),
   fieldOfStudy: z.string().default(''),
-  gpa: z.number().min(0).max(5).default(0),
+  gpa: z.number().min(0).max(100).default(0),
   gpaScale: z.number().default(4.0),
   phone: z.string().optional(),
   dateOfBirth: z.string().optional(),

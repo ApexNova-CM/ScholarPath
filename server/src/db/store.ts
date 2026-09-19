@@ -65,6 +65,10 @@ class Store {
       try {
         const raw = fs.readFileSync(DB_FILE, 'utf-8');
         this.state = JSON.parse(raw);
+        if (!this.state.scholarships || Object.keys(this.state.scholarships).length === 0) {
+          await this.seed();
+          this.save();
+        }
         this.initialized = true;
         return;
       } catch (err) {

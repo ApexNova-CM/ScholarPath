@@ -19,15 +19,41 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
     educationLevel: 'Undergraduate' as EducationLevel,
     institution: '',
     fieldOfStudy: '',
-    gpa: '3.70'
+    gpa: '3.50'
   });
 
+  const [gpaScaleOption, setGpaScaleOption] = useState<string>('5.0');
+  const [customGpaScale, setCustomGpaScale] = useState<string>('5.0');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    let effectiveScale = 5.0;
+    if (gpaScaleOption === 'Other') {
+      const parsedCustom = parseFloat(customGpaScale);
+      if (isNaN(parsedCustom) || parsedCustom <= 0) {
+        setError('Please enter a valid custom CGPA scale greater than 0.');
+        return;
+      }
+      effectiveScale = parsedCustom;
+    } else {
+      effectiveScale = parseFloat(gpaScaleOption);
+    }
+
+    const parsedGpa = parseFloat(formData.gpa);
+    if (isNaN(parsedGpa) || parsedGpa < 0) {
+      setError('Please enter a valid non-negative CGPA.');
+      return;
+    }
+
+    if (parsedGpa > effectiveScale) {
+      setError(`Current CGPA (${parsedGpa.toFixed(2)}) cannot be greater than your selected scale of ${effectiveScale.toFixed(2)}.`);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -39,8 +65,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
         educationLevel: formData.educationLevel,
         institution: formData.institution,
         fieldOfStudy: formData.fieldOfStudy,
-        gpa: parseFloat(formData.gpa) || 3.5,
-        gpaScale: 4.0
+        gpa: parsedGpa,
+        gpaScale: effectiveScale
       }, formData.password);
 
       if (res.success) {
@@ -172,16 +198,53 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Cumulative GPA (4.0 scale)</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              CGPA Scale <span className="text-rose-500">*</span>
+            </label>
+            <select
+              required
+              value={gpaScaleOption}
+              onChange={(e) => setGpaScaleOption(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 shadow-2xs"
+            >
+              <option value="5.0">5.0 — Nigerian University Standard</option>
+              <option value="4.0">4.0 — 4-Point Scale</option>
+              <option value="7.0">7.0 — 7-Point Scale</option>
+              <option value="10.0">10.0 — 10-Point Scale</option>
+              <option value="Other">Other — My institution uses another scale</option>
+            </select>
+          </div>
+
+          {gpaScaleOption === 'Other' && (
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Custom CGPA Scale <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                min="0.1"
+                required
+                value={customGpaScale}
+                onChange={(e) => setCustomGpaScale(e.target.value)}
+                placeholder="e.g. 6.0 or 20"
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 shadow-2xs"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              Current CGPA <span className="text-rose-500">*</span>
+            </label>
             <input
               type="number"
               step="0.01"
               min="0.0"
-              max="4.0"
               required
               value={formData.gpa}
               onChange={(e) => setFormData({ ...formData, gpa: e.target.value })}
-              placeholder="3.75"
+              placeholder="e.g. 4.25"
               className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 shadow-2xs"
             />
           </div>
