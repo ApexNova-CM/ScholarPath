@@ -59,9 +59,17 @@ function MainApp() {
   const [documents, setDocuments] = useState<StoredDocument[]>([]);
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
 
-  // Routing State
+  // Routing State Helper
+  const normalizePath = (rawPath: string): string => {
+    let path = rawPath || '/';
+    if (path.length > 1 && path.endsWith('/')) {
+      path = path.slice(0, -1);
+    }
+    return path;
+  };
+
   const [currentPath, setCurrentPath] = useState<string>(() => {
-    return window.location.pathname || '/';
+    return normalizePath(window.location.pathname);
   });
 
   // Modal State for "Start Application"
@@ -129,7 +137,7 @@ function MainApp() {
   // Handle browser popstate (back/forward)
   useEffect(() => {
     const handlePopState = () => {
-      setCurrentPath(window.location.pathname || '/');
+      setCurrentPath(normalizePath(window.location.pathname));
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -137,9 +145,10 @@ function MainApp() {
 
   // Safe client navigation
   const navigate = (path: string) => {
-    setCurrentPath(path);
+    const target = normalizePath(path);
+    setCurrentPath(target);
     try {
-      window.history.pushState({}, '', path);
+      window.history.pushState({}, '', target);
     } catch (e) {
       // In constrained iframe environments, ignore pushState errors
     }
