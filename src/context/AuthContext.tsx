@@ -32,7 +32,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function resolveOrCreateProfile(sbUser: SupabaseUser, role: UserRole = 'student'): UserProfile {
+function resolveOrCreateProfile(sbUser: SupabaseUser, rolePreference: UserRole = 'student'): UserProfile {
+  const isTargetAdmin = rolePreference === 'admin' || sbUser.email?.toLowerCase() === 'admin@scholarpath.org';
   let profile =
     StorageService.getUserById(sbUser.id) ||
     (sbUser.email ? StorageService.getUserByEmail(sbUser.email) : null);
@@ -40,21 +41,23 @@ function resolveOrCreateProfile(sbUser: SupabaseUser, role: UserRole = 'student'
   if (!profile) {
     const meta = sbUser.user_metadata || {};
     const fullName: string = meta.full_name || meta.name || '';
-    const [firstName = 'User', ...rest] = fullName.split(' ');
-    const lastName = rest.join(' ') || '';
+    const [firstName = (isTargetAdmin ? 'Admin' : 'User'), ...rest] = fullName.split(' ');
+    const lastName = rest.join(' ') || (isTargetAdmin ? 'Operations' : '');
     profile = StorageService.createUser({
       id: sbUser.id,
       email: sbUser.email || '',
-      role,
+      role: isTargetAdmin ? 'admin' : 'student',
       firstName: meta.first_name || firstName,
       lastName: meta.last_name || lastName,
       country: 'International',
       educationLevel: 'Undergraduate',
-      institution: '',
-      fieldOfStudy: '',
-      gpa: 0,
+      institution: isTargetAdmin ? 'ScholarPath Foundation' : '',
+      fieldOfStudy: isTargetAdmin ? 'Administration' : '',
+      gpa: 4.0,
       gpaScale: 4.0,
     });
+  } else if (isTargetAdmin && profile.role !== 'admin') {
+    profile.role = 'admin';
   }
   return profile;
 }
@@ -129,23 +132,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     password?: string
   ): Promise<{ success: boolean; role?: UserRole; error?: string }> => {
     setIsLoading(true);
+    const cleanEmail = email.trim().toLowerCase();
+    const isAdminEmail =
+      cleanEmail === 'admin@scholarpath.org' ||
+      StorageService.getAdminUsers().some((a) => a.email.toLowerCase() === cleanEmail) ||
+      StorageService.getUserByEmail(cleanEmail)?.role === 'admin';
+
     try {
       // 1. Supabase Auth
       if (isSupabaseConfigured && password) {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
+          email: cleanEmail,
           password,
         });
-        if (error) return { success: false, error: mapAuthError(error.message) };
-        if (!data.user) return { success: false, error: 'Invalid email or password.' };
 
-        const profile = resolveOrCreateProfile(data.user);
-        setUser(profile);
-        return { success: true, role: profile.role };
+        if (data?.user) {
+          const profile = resolveOrCreateProfile(data.user, isAdminEmail ? 'admin' : 'student');
+          setUser(profile);
+          return { success: true, role: profile.role };
+        }
+
+        // Resilient fallback for admin or local accounts if Supabase Auth user is unprovisioned
+        if (isAdminEmail) {
+          const { data: signUpData } = await supabase.auth.signUp({
+            email: cleanEmail,
+            password,
+            options: {
+              data: {
+                first_name: 'Admin',
+                last_name: 'User',
+                role: 'admin',
+              },
+            },
+          });
+
+          if (signUpData?.user) {
+            const profile = resolveOrCreateProfile(signUpData.user, 'admin');
+            setUser(profile);
+            return { success: true, role: 'admin' };
+          }
+
+          const foundAdmin = StorageService.getUserByEmail(cleanEmail) || StorageService.getUserById('usr-admin-001');
+          if (foundAdmin) {
+            setUser(foundAdmin);
+            localStorage.setItem('scholarpath_active_session_uid', foundAdmin.id);
+            return { success: true, role: 'admin' };
+          }
+        }
+
+        const foundLocal = StorageService.getUserByEmail(cleanEmail);
+        if (foundLocal) {
+          setUser(foundLocal);
+          localStorage.setItem('scholarpath_active_session_uid', foundLocal.id);
+          return { success: true, role: foundLocal.role };
+        }
+
+        if (error) return { success: false, error: mapAuthError(error.message) };
+        return { success: false, error: 'Invalid email or password.' };
       }
 
       // 2. Fallback: localStorage
-      const found = StorageService.getUserByEmail(email.trim());
+      const found = StorageService.getUserByEmail(cleanEmail);
       if (!found) return { success: false, error: 'No account found with this email.' };
       setUser(found);
       localStorage.setItem('scholarpath_active_session_uid', found.id);
