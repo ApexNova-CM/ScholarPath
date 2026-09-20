@@ -134,6 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     const cleanEmail = email.trim().toLowerCase();
     const isAdminEmail =
+      cleanEmail === 'miraclemgbemena2007@gmail.com' ||
       cleanEmail === 'admin@scholarpath.org' ||
       StorageService.getAdminUsers().some((a) => a.email.toLowerCase() === cleanEmail) ||
       StorageService.getUserByEmail(cleanEmail)?.role === 'admin';
@@ -159,8 +160,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             password,
             options: {
               data: {
-                first_name: 'Admin',
-                last_name: 'User',
+                first_name: cleanEmail === 'miraclemgbemena2007@gmail.com' ? 'Miracle' : 'Admin',
+                last_name: cleanEmail === 'miraclemgbemena2007@gmail.com' ? 'Mgbemena' : 'User',
                 role: 'admin',
               },
             },

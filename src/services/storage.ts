@@ -92,17 +92,17 @@ export const StorageService = {
     if (id === 'usr-admin-001' || id === 'usr-admin') {
       return {
         id: 'usr-admin-001',
-        email: 'admin@scholarpath.org',
-        firstName: 'System',
-        lastName: 'Administrator',
-        country: 'International',
+        email: 'miraclemgbemena2007@gmail.com',
+        firstName: 'Miracle',
+        lastName: 'Mgbemena',
+        country: 'Nigeria',
         role: 'admin',
         educationLevel: 'Postgraduate (Masters)',
         institution: 'ScholarPath Foundation',
         fieldOfStudy: 'Platform Administration',
         gpa: 4.0,
         gpaScale: 4.0,
-        leadership: ['Governance', 'Scholarship Verification'],
+        leadership: ['Super Admin', 'Scholarship Verification'],
         profileCompletion: 100,
         createdAt: '2026-09-07T10:13:39.850Z',
         updatedAt: '2026-09-07T10:13:39.850Z'
@@ -120,9 +120,9 @@ export const StorageService = {
       return {
         id: foundAdmin.id,
         email: foundAdmin.email,
-        firstName: foundAdmin.firstName || 'Admin',
-        lastName: foundAdmin.lastName || 'User',
-        country: 'United States',
+        firstName: foundAdmin.firstName || 'Miracle',
+        lastName: foundAdmin.lastName || 'Mgbemena',
+        country: 'Nigeria',
         role: 'admin',
         educationLevel: 'Postgraduate (Masters)',
         institution: 'ScholarPath Foundation',
@@ -141,20 +141,20 @@ export const StorageService = {
 
   getUserByEmail(email: string): UserProfile | null {
     const trimmed = email.trim().toLowerCase();
-    if (trimmed === 'admin@scholarpath.org') {
+    if (trimmed === 'miraclemgbemena2007@gmail.com' || trimmed === 'admin@scholarpath.org') {
       return {
         id: 'usr-admin-001',
-        email: 'admin@scholarpath.org',
-        firstName: 'System',
-        lastName: 'Administrator',
-        country: 'International',
+        email: 'miraclemgbemena2007@gmail.com',
+        firstName: 'Miracle',
+        lastName: 'Mgbemena',
+        country: 'Nigeria',
         role: 'admin',
         educationLevel: 'Postgraduate (Masters)',
         institution: 'ScholarPath Foundation',
         fieldOfStudy: 'Platform Administration',
         gpa: 4.0,
         gpaScale: 4.0,
-        leadership: ['Governance', 'Scholarship Verification'],
+        leadership: ['Super Admin', 'Scholarship Verification'],
         profileCompletion: 100,
         createdAt: '2026-09-07T10:13:39.850Z',
         updatedAt: '2026-09-07T10:13:39.850Z'
@@ -786,7 +786,24 @@ export const StorageService = {
   // ADMIN USERS MANAGEMENT
   // ----------------------------------------------------
   getAdminUsers(): AdminUser[] {
-    return read<AdminUser[]>(STORAGE_KEYS.ADMIN_USERS, []);
+    const list = read<AdminUser[]>(STORAGE_KEYS.ADMIN_USERS, []);
+    const defaultAdmin: AdminUser = {
+      id: 'usr-admin-001',
+      firstName: 'Miracle',
+      lastName: 'Mgbemena',
+      email: 'miraclemgbemena2007@gmail.com',
+      role: 'Super Admin',
+      status: 'Active',
+      assignedDepartment: 'Global Operations',
+      createdAt: '2026-09-07T10:13:39.850Z'
+    };
+    if (list.length === 0) {
+      return [defaultAdmin];
+    }
+    if (!list.some(a => a.email.toLowerCase() === 'miraclemgbemena2007@gmail.com')) {
+      return [defaultAdmin, ...list];
+    }
+    return list;
   },
 
   addAdminUser(adminData: Omit<AdminUser, 'id' | 'createdAt'>): AdminUser {
