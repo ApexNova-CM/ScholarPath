@@ -96,6 +96,20 @@ describe('Phase 4: Authentication System', () => {
     adminToken = res.body.data.token;
   });
 
+  it('POST /api/v1/auth/login — should log in successfully as secondary admin Chris Ekpe', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .send({
+        email: 'chrisekpe18@gmail.com',
+        password: 'admin123',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.user.role).toBe('admin');
+    expect(res.body.data.user.email).toBe('chrisekpe18@gmail.com');
+  });
+
   it('GET /api/v1/auth/me — should return authenticated user profile', async () => {
     const res = await request(app)
       .get('/api/v1/auth/me')

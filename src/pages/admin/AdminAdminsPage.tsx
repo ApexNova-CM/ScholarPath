@@ -4,7 +4,7 @@ import { StorageService } from '../../services/storage';
 import { api } from '../../lib/apiClient';
 import { 
   ShieldCheck, PlusCircle, Search, UserPlus, Mail, Calendar, 
-  CheckCircle2, X, AlertCircle, Info, Trash2, KeyRound 
+  CheckCircle2, X, AlertCircle, Info, Trash2, KeyRound, Eye, EyeOff, Lock 
 } from 'lucide-react';
 
 interface AdminAdminsPageProps {
@@ -34,6 +34,8 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<AdminRoleType>('Admin');
   const [department, setDepartment] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -55,6 +57,8 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
     setFirstName('');
     setLastName('');
     setEmail('');
+    setPassword('');
+    setShowPassword(false);
     setRole('Admin');
     setDepartment('');
     setFormError(null);
@@ -88,6 +92,10 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
       setFormError('Please enter a valid email address.');
       return;
     }
+    if (password.trim() && password.trim().length < 6) {
+      setFormError('Password must be at least 6 characters long.');
+      return;
+    }
 
     // Check duplicate
     if (admins.some(a => a.email.toLowerCase() === email.trim().toLowerCase())) {
@@ -100,6 +108,7 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim().toLowerCase(),
+        password: password.trim() || undefined,
         role,
         department: department.trim() || 'General Operations'
       });
@@ -396,6 +405,29 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
                   placeholder="e.g. eleanor.vance@scholarpath.org"
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 transition-colors"
                 />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                  Admin Password <span className="text-slate-400 font-normal">(Optional — defaults to admin123 if blank)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter admin password (min 6 characters)"
+                    className="w-full pl-3 pr-9 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    aria-label="Toggle password visibility"
+                  >
+                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

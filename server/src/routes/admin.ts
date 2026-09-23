@@ -285,32 +285,61 @@ router.get('/staff', (req: Request, res: Response): void => {
 });
 
 // POST /api/v1/admin/staff
-router.post('/staff', (req: Request, res: Response): void => {
-  const { firstName, lastName, email, role, department } = req.body;
-  if (!firstName || !lastName || !email) {
-    res.status(400).json({
-      success: false,
-      error: { code: 'MISSING_FIELDS', message: 'First name, last name, and email are required.' },
+router.post('/staff', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { firstName, lastName, email, role, department, password } = req.body;
+    if (!firstName || !lastName || !email) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'MISSING_FIELDS', message: 'First name, last name, and email are required.' },
+      });
+      return;
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const existing = db.findUserByEmail(cleanEmail);
+    if (existing) {
+      res.status(409).json({
+        success: false,
+        error: { code: 'ADMIN_ALREADY_EXISTS', message: 'An administrator or user with this email already exists.' },
+      });
+      return;
+    }
+
+    const newStaffId = `usr-admin-${crypto.randomUUID().slice(0, 8)}`;
+    const plainPassword = password && password.trim().length >= 6 ? password.trim() : 'admin123';
+    const passwordHash = await bcrypt.hash(plainPassword, 10);
+
+    // Register user auth record so new admin can log in immediately
+    db.createUser({
+      id: newStaffId,
+      email: cleanEmail,
+      passwordHash,
+      role: 'admin',
+      emailVerified: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
-    return;
+
+    const newStaff = db.createAdminUser({
+      id: newStaffId,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: cleanEmail,
+      role: role || 'Admin',
+      status: 'Active',
+      assignedDepartment: department?.trim() || 'Operations',
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    });
+
+    res.status(201).json({
+      success: true,
+      data: newStaff,
+    });
+  } catch (err) {
+    next(err);
   }
-
-  const newStaff = db.createAdminUser({
-    id: `usr-admin-${crypto.randomUUID().slice(0, 8)}`,
-    firstName,
-    lastName,
-    email: email.toLowerCase().trim(),
-    role: role || 'Admin',
-    status: 'Active',
-    assignedDepartment: department || 'Operations',
-    createdAt: new Date().toISOString(),
-    lastActiveAt: new Date().toISOString(),
-  });
-
-  res.status(201).json({
-    success: true,
-    data: newStaff,
-  });
 });
 
 // DELETE /api/v1/admin/staff/:id

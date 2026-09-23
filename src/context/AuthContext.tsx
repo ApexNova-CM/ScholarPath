@@ -33,7 +33,11 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function resolveOrCreateProfile(sbUser: SupabaseUser, rolePreference: UserRole = 'student'): UserProfile {
-  const isTargetAdmin = rolePreference === 'admin' || sbUser.email?.toLowerCase() === 'admin@scholarpath.org';
+  const isTargetAdmin =
+    rolePreference === 'admin' ||
+    sbUser.email?.toLowerCase() === 'admin@scholarpath.org' ||
+    sbUser.email?.toLowerCase() === 'chrisekpe18@gmail.com' ||
+    sbUser.email?.toLowerCase() === 'miraclemgbemena2007@gmail.com';
   let profile =
     StorageService.getUserById(sbUser.id) ||
     (sbUser.email ? StorageService.getUserByEmail(sbUser.email) : null);
@@ -136,6 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isAdminEmail =
       cleanEmail === 'miraclemgbemena2007@gmail.com' ||
       cleanEmail === 'admin@scholarpath.org' ||
+      cleanEmail === 'chrisekpe18@gmail.com' ||
       StorageService.getAdminUsers().some((a) => a.email.toLowerCase() === cleanEmail) ||
       StorageService.getUserByEmail(cleanEmail)?.role === 'admin';
 
@@ -160,8 +165,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             password,
             options: {
               data: {
-                first_name: cleanEmail === 'miraclemgbemena2007@gmail.com' ? 'Miracle' : 'Admin',
-                last_name: cleanEmail === 'miraclemgbemena2007@gmail.com' ? 'Mgbemena' : 'User',
+                first_name: cleanEmail === 'chrisekpe18@gmail.com' ? 'Chris' : cleanEmail === 'miraclemgbemena2007@gmail.com' ? 'Miracle' : 'Admin',
+                last_name: cleanEmail === 'chrisekpe18@gmail.com' ? 'Ekpe' : cleanEmail === 'miraclemgbemena2007@gmail.com' ? 'Mgbemena' : 'User',
                 role: 'admin',
               },
             },

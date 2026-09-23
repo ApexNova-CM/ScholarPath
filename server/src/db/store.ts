@@ -95,11 +95,13 @@ class Store {
       this.state.scholarships[s.id] = s;
     });
 
-    const { adminUser, demoStudent, demoProfile, adminDirectoryUser } = await createInitialSeedUsers();
+    const { adminUser, adminUser2, demoStudent, demoProfile, adminDirectoryUser, adminDirectoryUser2 } = await createInitialSeedUsers();
     this.state.users[adminUser.id] = adminUser;
+    this.state.users[adminUser2.id] = adminUser2;
     this.state.users[demoStudent.id] = demoStudent;
     this.state.profiles[demoProfile.userId] = demoProfile;
     this.state.adminUsers[adminDirectoryUser.id] = adminDirectoryUser;
+    this.state.adminUsers[adminDirectoryUser2.id] = adminDirectoryUser2;
   }
 
   private save(): void {

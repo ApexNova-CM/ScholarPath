@@ -3,11 +3,20 @@
     "usr-admin-001": {
       "id": "usr-admin-001",
       "email": "admin@scholarpath.org",
-      "passwordHash": "$2a$10$iny8tozNQ2mhR.4gIJcf3OVWsbKvWlcNdvls0qP3HxkFJ93v4RJk.",
+      "passwordHash": "$2a$10$w7w379lAibnfy3ZechAXT.kCR1iAB1cjq87SQX53.0mfef4oM2Hbq",
       "role": "admin",
       "emailVerified": true,
       "createdAt": "2026-09-19T08:13:55.831Z",
       "updatedAt": "2026-09-19T08:13:55.831Z"
+    },
+    "usr-admin-002": {
+      "id": "usr-admin-002",
+      "email": "chrisekpe18@gmail.com",
+      "passwordHash": "$2a$10$w7w379lAibnfy3ZechAXT.kCR1iAB1cjq87SQX53.0mfef4oM2Hbq",
+      "role": "admin",
+      "emailVerified": true,
+      "createdAt": "2026-09-23T23:40:00.000Z",
+      "updatedAt": "2026-09-23T23:40:00.000Z"
     },
     "usr-student-001": {
       "id": "usr-student-001",
@@ -26,6 +35,60 @@
       "emailVerified": false,
       "createdAt": "2026-09-19T08:13:56.259Z",
       "updatedAt": "2026-09-19T08:13:56.259Z"
+    },
+    "usr-217f4277-edf6-4eb3-9304-de3b37392648": {
+      "id": "usr-217f4277-edf6-4eb3-9304-de3b37392648",
+      "email": "test_1790203519099@example.com",
+      "passwordHash": "$2a$10$ow4UOmDZcjZfukOmAZ4pi.sFLBNnabIjt5QvlLcQw8CHSWEDeQTJO",
+      "role": "student",
+      "emailVerified": false,
+      "createdAt": "2026-09-23T22:45:20.519Z",
+      "updatedAt": "2026-09-23T22:45:20.519Z"
+    },
+    "usr-58e2de42-d283-4fe7-9e5f-6e7bd22320c9": {
+      "id": "usr-58e2de42-d283-4fe7-9e5f-6e7bd22320c9",
+      "email": "test_1790203932009@example.com",
+      "passwordHash": "$2a$10$Qu14hWGnuEI6ohUFHVusGew79TAb024Q0wWejj4JangOrT9jqicDq",
+      "role": "student",
+      "emailVerified": false,
+      "createdAt": "2026-09-23T22:52:12.757Z",
+      "updatedAt": "2026-09-23T22:52:12.757Z"
+    },
+    "usr-24177b63-9357-4ae3-80c1-7c71d45ca099": {
+      "id": "usr-24177b63-9357-4ae3-80c1-7c71d45ca099",
+      "email": "test_1790204391325@example.com",
+      "passwordHash": "$2a$10$1TlyYpbI2hx.A.ovmfebteYVUySlEeCE6lMYV7A08hLCgiDGoFGei",
+      "role": "student",
+      "emailVerified": false,
+      "createdAt": "2026-09-23T22:59:52.478Z",
+      "updatedAt": "2026-09-23T22:59:52.478Z"
+    },
+    "usr-eabe74a5-80c8-44ac-9061-1ea4ed6361e9": {
+      "id": "usr-eabe74a5-80c8-44ac-9061-1ea4ed6361e9",
+      "email": "test_1790206103035@example.com",
+      "passwordHash": "$2a$10$lugzSJIqQiAdifmKmGqyF.e22XWEggXZeFAhNZhLjK51WP3sXWNvS",
+      "role": "student",
+      "emailVerified": false,
+      "createdAt": "2026-09-23T23:28:28.702Z",
+      "updatedAt": "2026-09-23T23:28:28.702Z"
+    },
+    "usr-40877064-e87e-467d-96ce-79cb92c6563a": {
+      "id": "usr-40877064-e87e-467d-96ce-79cb92c6563a",
+      "email": "test_1790206347370@example.com",
+      "passwordHash": "$2a$10$UlNuJyaSQf0YH8r0UudeI.TMiWNbtp/yEOM7xKOgxhoWVfayhqjPy",
+      "role": "student",
+      "emailVerified": false,
+      "createdAt": "2026-09-23T23:32:28.776Z",
+      "updatedAt": "2026-09-23T23:32:28.776Z"
+    },
+    "usr-f506f296-055f-426b-981c-65f3fec9f451": {
+      "id": "usr-f506f296-055f-426b-981c-65f3fec9f451",
+      "email": "test_1790206860273@example.com",
+      "passwordHash": "$2a$10$1tR4..s.I8JGT3B1fXI.uuaOXKq6tMA2kiF2yfFjFuFlOTsgo2f.a",
+      "role": "student",
+      "emailVerified": false,
+      "createdAt": "2026-09-23T23:41:01.215Z",
+      "updatedAt": "2026-09-23T23:41:01.215Z"
     }
   },
   "profiles": {
@@ -80,6 +143,126 @@
       },
       "createdAt": "2026-09-19T08:13:56.263Z",
       "updatedAt": "2026-09-19T08:13:56.264Z"
+    },
+    "usr-217f4277-edf6-4eb3-9304-de3b37392648": {
+      "userId": "usr-217f4277-edf6-4eb3-9304-de3b37392648",
+      "firstName": "Taylor",
+      "lastName": "Swift",
+      "country": "United States",
+      "educationLevel": "Undergraduate",
+      "institution": "Stanford University",
+      "fieldOfStudy": "Computer Science",
+      "gpa": 3.9,
+      "gpaScale": 4,
+      "profileCompletion": 75,
+      "notificationPreferences": {
+        "inApp": true,
+        "email": true,
+        "deadlineAlerts": true,
+        "matchingAlerts": true
+      },
+      "createdAt": "2026-09-23T22:45:20.582Z",
+      "updatedAt": "2026-09-23T22:45:20.583Z"
+    },
+    "usr-58e2de42-d283-4fe7-9e5f-6e7bd22320c9": {
+      "userId": "usr-58e2de42-d283-4fe7-9e5f-6e7bd22320c9",
+      "firstName": "Taylor",
+      "lastName": "Swift",
+      "country": "United States",
+      "educationLevel": "Undergraduate",
+      "institution": "Stanford University",
+      "fieldOfStudy": "Computer Science",
+      "gpa": 3.9,
+      "gpaScale": 4,
+      "profileCompletion": 75,
+      "notificationPreferences": {
+        "inApp": true,
+        "email": true,
+        "deadlineAlerts": true,
+        "matchingAlerts": true
+      },
+      "createdAt": "2026-09-23T22:52:12.816Z",
+      "updatedAt": "2026-09-23T22:52:12.816Z"
+    },
+    "usr-24177b63-9357-4ae3-80c1-7c71d45ca099": {
+      "userId": "usr-24177b63-9357-4ae3-80c1-7c71d45ca099",
+      "firstName": "Taylor",
+      "lastName": "Swift",
+      "country": "United States",
+      "educationLevel": "Undergraduate",
+      "institution": "Stanford University",
+      "fieldOfStudy": "Computer Science",
+      "gpa": 3.9,
+      "gpaScale": 4,
+      "profileCompletion": 75,
+      "notificationPreferences": {
+        "inApp": true,
+        "email": true,
+        "deadlineAlerts": true,
+        "matchingAlerts": true
+      },
+      "createdAt": "2026-09-23T22:59:52.509Z",
+      "updatedAt": "2026-09-23T22:59:52.510Z"
+    },
+    "usr-eabe74a5-80c8-44ac-9061-1ea4ed6361e9": {
+      "userId": "usr-eabe74a5-80c8-44ac-9061-1ea4ed6361e9",
+      "firstName": "Taylor",
+      "lastName": "Swift",
+      "country": "United States",
+      "educationLevel": "Undergraduate",
+      "institution": "Stanford University",
+      "fieldOfStudy": "Computer Science",
+      "gpa": 3.9,
+      "gpaScale": 4,
+      "profileCompletion": 75,
+      "notificationPreferences": {
+        "inApp": true,
+        "email": true,
+        "deadlineAlerts": true,
+        "matchingAlerts": true
+      },
+      "createdAt": "2026-09-23T23:28:28.783Z",
+      "updatedAt": "2026-09-23T23:28:28.784Z"
+    },
+    "usr-40877064-e87e-467d-96ce-79cb92c6563a": {
+      "userId": "usr-40877064-e87e-467d-96ce-79cb92c6563a",
+      "firstName": "Taylor",
+      "lastName": "Swift",
+      "country": "United States",
+      "educationLevel": "Undergraduate",
+      "institution": "Stanford University",
+      "fieldOfStudy": "Computer Science",
+      "gpa": 3.9,
+      "gpaScale": 4,
+      "profileCompletion": 75,
+      "notificationPreferences": {
+        "inApp": true,
+        "email": true,
+        "deadlineAlerts": true,
+        "matchingAlerts": true
+      },
+      "createdAt": "2026-09-23T23:32:28.788Z",
+      "updatedAt": "2026-09-23T23:32:28.788Z"
+    },
+    "usr-f506f296-055f-426b-981c-65f3fec9f451": {
+      "userId": "usr-f506f296-055f-426b-981c-65f3fec9f451",
+      "firstName": "Taylor",
+      "lastName": "Swift",
+      "country": "United States",
+      "educationLevel": "Undergraduate",
+      "institution": "Stanford University",
+      "fieldOfStudy": "Computer Science",
+      "gpa": 3.9,
+      "gpaScale": 4,
+      "profileCompletion": 75,
+      "notificationPreferences": {
+        "inApp": true,
+        "email": true,
+        "deadlineAlerts": true,
+        "matchingAlerts": true
+      },
+      "createdAt": "2026-09-23T23:41:01.245Z",
+      "updatedAt": "2026-09-23T23:41:01.246Z"
     }
   },
   "providers": {
@@ -246,7 +429,7 @@
       "status": "verified",
       "verificationStatus": "verified",
       "viewCount": 1420,
-      "saveCount": 313,
+      "saveCount": 319,
       "createdAt": "2026-09-19T08:13:53.822Z",
       "updatedAt": "2026-09-19T08:13:53.822Z"
     },
@@ -513,9 +696,9 @@
       "viewCount": 310,
       "saveCount": 85,
       "createdAt": "2026-09-19T08:13:53.822Z",
-      "updatedAt": "2026-09-19T08:13:57.781Z",
+      "updatedAt": "2026-09-23T23:41:07.549Z",
       "verifiedBy": "usr-admin-001",
-      "verifiedAt": "2026-09-19T08:13:57.781Z",
+      "verifiedAt": "2026-09-23T23:41:07.549Z",
       "verificationNotes": "Verified against official foundation website."
     }
   },
@@ -559,6 +742,246 @@
       ],
       "createdAt": "2026-09-19T08:13:57.430Z",
       "updatedAt": "2026-09-19T08:13:57.430Z"
+    },
+    "app-d3b1971a-e796-4661-bdb4-aed5e8bed4ae": {
+      "id": "app-d3b1971a-e796-4661-bdb4-aed5e8bed4ae",
+      "userId": "usr-217f4277-edf6-4eb3-9304-de3b37392648",
+      "scholarshipId": "sch-001",
+      "scholarshipTitle": "Gates Cambridge Global Scholars Program",
+      "providerName": "Bill & Melinda Gates Foundation",
+      "deadline": "2026-12-05T23:59:59Z",
+      "amount": 55000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "Priority 1 application",
+      "checklist": [
+        {
+          "id": "chk-9892b217",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-5f4a8dbc",
+          "label": "Curriculum Vitae (CV)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-68b54be7",
+          "label": "Research Proposal",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-527a2a25",
+          "label": "Two Academic References",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-09-23T22:45:22.919Z",
+      "updatedAt": "2026-09-23T22:45:22.919Z"
+    },
+    "app-c8d52914-c2a4-448a-95dd-a36fe7e1ea17": {
+      "id": "app-c8d52914-c2a4-448a-95dd-a36fe7e1ea17",
+      "userId": "usr-58e2de42-d283-4fe7-9e5f-6e7bd22320c9",
+      "scholarshipId": "sch-001",
+      "scholarshipTitle": "Gates Cambridge Global Scholars Program",
+      "providerName": "Bill & Melinda Gates Foundation",
+      "deadline": "2026-12-05T23:59:59Z",
+      "amount": 55000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "Priority 1 application",
+      "checklist": [
+        {
+          "id": "chk-8dd4f581",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-99381b44",
+          "label": "Curriculum Vitae (CV)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-b999e616",
+          "label": "Research Proposal",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-a9848375",
+          "label": "Two Academic References",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-09-23T22:52:14.118Z",
+      "updatedAt": "2026-09-23T22:52:14.118Z"
+    },
+    "app-f8480015-a941-4055-8d54-73e7f04f1c3f": {
+      "id": "app-f8480015-a941-4055-8d54-73e7f04f1c3f",
+      "userId": "usr-24177b63-9357-4ae3-80c1-7c71d45ca099",
+      "scholarshipId": "sch-001",
+      "scholarshipTitle": "Gates Cambridge Global Scholars Program",
+      "providerName": "Bill & Melinda Gates Foundation",
+      "deadline": "2026-12-05T23:59:59Z",
+      "amount": 55000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "Priority 1 application",
+      "checklist": [
+        {
+          "id": "chk-c62b1f7f",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-26b2b5bd",
+          "label": "Curriculum Vitae (CV)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-ea9d2cf0",
+          "label": "Research Proposal",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-ccf03537",
+          "label": "Two Academic References",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-09-23T22:59:54.043Z",
+      "updatedAt": "2026-09-23T22:59:54.043Z"
+    },
+    "app-0ffd3e52-7a56-4ed8-b3d6-ec802e0a025f": {
+      "id": "app-0ffd3e52-7a56-4ed8-b3d6-ec802e0a025f",
+      "userId": "usr-eabe74a5-80c8-44ac-9061-1ea4ed6361e9",
+      "scholarshipId": "sch-001",
+      "scholarshipTitle": "Gates Cambridge Global Scholars Program",
+      "providerName": "Bill & Melinda Gates Foundation",
+      "deadline": "2026-12-05T23:59:59Z",
+      "amount": 55000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "Priority 1 application",
+      "checklist": [
+        {
+          "id": "chk-fcba3be6",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-fae2f9e3",
+          "label": "Curriculum Vitae (CV)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-8d4907fa",
+          "label": "Research Proposal",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-11dae873",
+          "label": "Two Academic References",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-09-23T23:28:33.519Z",
+      "updatedAt": "2026-09-23T23:28:33.519Z"
+    },
+    "app-2fec8584-0cac-49af-a07c-742c9d13be0e": {
+      "id": "app-2fec8584-0cac-49af-a07c-742c9d13be0e",
+      "userId": "usr-40877064-e87e-467d-96ce-79cb92c6563a",
+      "scholarshipId": "sch-001",
+      "scholarshipTitle": "Gates Cambridge Global Scholars Program",
+      "providerName": "Bill & Melinda Gates Foundation",
+      "deadline": "2026-12-05T23:59:59Z",
+      "amount": 55000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "Priority 1 application",
+      "checklist": [
+        {
+          "id": "chk-2b70336e",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-7e53fe73",
+          "label": "Curriculum Vitae (CV)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-88face14",
+          "label": "Research Proposal",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-2757cc0a",
+          "label": "Two Academic References",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-09-23T23:32:31.340Z",
+      "updatedAt": "2026-09-23T23:32:31.340Z"
+    },
+    "app-3d0a1f1d-1864-4850-abf6-51c1a8525df9": {
+      "id": "app-3d0a1f1d-1864-4850-abf6-51c1a8525df9",
+      "userId": "usr-f506f296-055f-426b-981c-65f3fec9f451",
+      "scholarshipId": "sch-001",
+      "scholarshipTitle": "Gates Cambridge Global Scholars Program",
+      "providerName": "Bill & Melinda Gates Foundation",
+      "deadline": "2026-12-05T23:59:59Z",
+      "amount": 55000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "Priority 1 application",
+      "checklist": [
+        {
+          "id": "chk-63fff50b",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-3a7b3450",
+          "label": "Curriculum Vitae (CV)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-67861b40",
+          "label": "Research Proposal",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-2b854e2c",
+          "label": "Two Academic References",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-09-23T23:41:03.754Z",
+      "updatedAt": "2026-09-23T23:41:03.754Z"
     }
   },
   "saved": {
@@ -567,6 +990,42 @@
       "userId": "usr-9ed1a1a9-a6e9-4b73-b76b-64b33454b43b",
       "scholarshipId": "sch-001",
       "savedAt": "2026-09-19T08:13:57.397Z"
+    },
+    "usr-217f4277-edf6-4eb3-9304-de3b37392648-sch-001": {
+      "id": "usr-217f4277-edf6-4eb3-9304-de3b37392648-sch-001",
+      "userId": "usr-217f4277-edf6-4eb3-9304-de3b37392648",
+      "scholarshipId": "sch-001",
+      "savedAt": "2026-09-23T22:45:22.855Z"
+    },
+    "usr-58e2de42-d283-4fe7-9e5f-6e7bd22320c9-sch-001": {
+      "id": "usr-58e2de42-d283-4fe7-9e5f-6e7bd22320c9-sch-001",
+      "userId": "usr-58e2de42-d283-4fe7-9e5f-6e7bd22320c9",
+      "scholarshipId": "sch-001",
+      "savedAt": "2026-09-23T22:52:14.092Z"
+    },
+    "usr-24177b63-9357-4ae3-80c1-7c71d45ca099-sch-001": {
+      "id": "usr-24177b63-9357-4ae3-80c1-7c71d45ca099-sch-001",
+      "userId": "usr-24177b63-9357-4ae3-80c1-7c71d45ca099",
+      "scholarshipId": "sch-001",
+      "savedAt": "2026-09-23T22:59:54.005Z"
+    },
+    "usr-eabe74a5-80c8-44ac-9061-1ea4ed6361e9-sch-001": {
+      "id": "usr-eabe74a5-80c8-44ac-9061-1ea4ed6361e9-sch-001",
+      "userId": "usr-eabe74a5-80c8-44ac-9061-1ea4ed6361e9",
+      "scholarshipId": "sch-001",
+      "savedAt": "2026-09-23T23:28:33.489Z"
+    },
+    "usr-40877064-e87e-467d-96ce-79cb92c6563a-sch-001": {
+      "id": "usr-40877064-e87e-467d-96ce-79cb92c6563a-sch-001",
+      "userId": "usr-40877064-e87e-467d-96ce-79cb92c6563a",
+      "scholarshipId": "sch-001",
+      "savedAt": "2026-09-23T23:32:31.226Z"
+    },
+    "usr-f506f296-055f-426b-981c-65f3fec9f451-sch-001": {
+      "id": "usr-f506f296-055f-426b-981c-65f3fec9f451-sch-001",
+      "userId": "usr-f506f296-055f-426b-981c-65f3fec9f451",
+      "scholarshipId": "sch-001",
+      "savedAt": "2026-09-23T23:41:03.707Z"
     }
   },
   "documents": {},
@@ -590,6 +1049,126 @@
       "relatedScholarshipId": "sch-001",
       "relatedApplicationId": "app-759df647-fe69-477a-b6a1-e6b2424d9fb2",
       "createdAt": "2026-09-19T08:13:57.673Z"
+    },
+    "notif-6bf55812-b7bd-40d5-9047-d9aa433911cf": {
+      "id": "notif-6bf55812-b7bd-40d5-9047-d9aa433911cf",
+      "userId": "usr-217f4277-edf6-4eb3-9304-de3b37392648",
+      "title": "Welcome to ScholarPath! 🎉",
+      "message": "Your academic profile has been created. Discover vetted scholarships that match your education path.",
+      "type": "announcement",
+      "read": false,
+      "createdAt": "2026-09-23T22:45:20.585Z"
+    },
+    "notif-fac81aba-d541-4f32-ae02-07cc991f1020": {
+      "id": "notif-fac81aba-d541-4f32-ae02-07cc991f1020",
+      "userId": "usr-217f4277-edf6-4eb3-9304-de3b37392648",
+      "title": "Started Application: Gates Cambridge Global Scholars Program",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 06/12/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-001",
+      "relatedApplicationId": "app-d3b1971a-e796-4661-bdb4-aed5e8bed4ae",
+      "createdAt": "2026-09-23T22:45:24.489Z"
+    },
+    "notif-ef688592-84e5-4ce6-b034-cc568dd9558d": {
+      "id": "notif-ef688592-84e5-4ce6-b034-cc568dd9558d",
+      "userId": "usr-58e2de42-d283-4fe7-9e5f-6e7bd22320c9",
+      "title": "Welcome to ScholarPath! 🎉",
+      "message": "Your academic profile has been created. Discover vetted scholarships that match your education path.",
+      "type": "announcement",
+      "read": false,
+      "createdAt": "2026-09-23T22:52:12.819Z"
+    },
+    "notif-a40de5f5-7c0b-474c-bfda-7ab4b32b34b4": {
+      "id": "notif-a40de5f5-7c0b-474c-bfda-7ab4b32b34b4",
+      "userId": "usr-58e2de42-d283-4fe7-9e5f-6e7bd22320c9",
+      "title": "Started Application: Gates Cambridge Global Scholars Program",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 06/12/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-001",
+      "relatedApplicationId": "app-c8d52914-c2a4-448a-95dd-a36fe7e1ea17",
+      "createdAt": "2026-09-23T22:52:14.511Z"
+    },
+    "notif-107bed45-6498-4652-9f7a-e96c81231da6": {
+      "id": "notif-107bed45-6498-4652-9f7a-e96c81231da6",
+      "userId": "usr-24177b63-9357-4ae3-80c1-7c71d45ca099",
+      "title": "Welcome to ScholarPath! 🎉",
+      "message": "Your academic profile has been created. Discover vetted scholarships that match your education path.",
+      "type": "announcement",
+      "read": false,
+      "createdAt": "2026-09-23T22:59:52.515Z"
+    },
+    "notif-d3ff28b4-6619-4c6c-9960-6890400c6961": {
+      "id": "notif-d3ff28b4-6619-4c6c-9960-6890400c6961",
+      "userId": "usr-24177b63-9357-4ae3-80c1-7c71d45ca099",
+      "title": "Started Application: Gates Cambridge Global Scholars Program",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 06/12/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-001",
+      "relatedApplicationId": "app-f8480015-a941-4055-8d54-73e7f04f1c3f",
+      "createdAt": "2026-09-23T22:59:54.450Z"
+    },
+    "notif-915af1c4-61a2-4022-9130-15e1ed42c8f0": {
+      "id": "notif-915af1c4-61a2-4022-9130-15e1ed42c8f0",
+      "userId": "usr-eabe74a5-80c8-44ac-9061-1ea4ed6361e9",
+      "title": "Welcome to ScholarPath! 🎉",
+      "message": "Your academic profile has been created. Discover vetted scholarships that match your education path.",
+      "type": "announcement",
+      "read": false,
+      "createdAt": "2026-09-23T23:28:28.787Z"
+    },
+    "notif-b200cbd8-bc6c-452e-ba61-a06b1640aae1": {
+      "id": "notif-b200cbd8-bc6c-452e-ba61-a06b1640aae1",
+      "userId": "usr-eabe74a5-80c8-44ac-9061-1ea4ed6361e9",
+      "title": "Started Application: Gates Cambridge Global Scholars Program",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 06/12/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-001",
+      "relatedApplicationId": "app-0ffd3e52-7a56-4ed8-b3d6-ec802e0a025f",
+      "createdAt": "2026-09-23T23:28:43.677Z"
+    },
+    "notif-a53e1647-d5db-429f-ae2c-bad336adac67": {
+      "id": "notif-a53e1647-d5db-429f-ae2c-bad336adac67",
+      "userId": "usr-40877064-e87e-467d-96ce-79cb92c6563a",
+      "title": "Welcome to ScholarPath! 🎉",
+      "message": "Your academic profile has been created. Discover vetted scholarships that match your education path.",
+      "type": "announcement",
+      "read": false,
+      "createdAt": "2026-09-23T23:32:28.792Z"
+    },
+    "notif-22b600b4-f750-46f6-bb02-885c758cd030": {
+      "id": "notif-22b600b4-f750-46f6-bb02-885c758cd030",
+      "userId": "usr-40877064-e87e-467d-96ce-79cb92c6563a",
+      "title": "Started Application: Gates Cambridge Global Scholars Program",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 06/12/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-001",
+      "relatedApplicationId": "app-2fec8584-0cac-49af-a07c-742c9d13be0e",
+      "createdAt": "2026-09-23T23:32:34.162Z"
+    },
+    "notif-314f3efb-f98d-4429-a6d3-4380187b6d77": {
+      "id": "notif-314f3efb-f98d-4429-a6d3-4380187b6d77",
+      "userId": "usr-f506f296-055f-426b-981c-65f3fec9f451",
+      "title": "Welcome to ScholarPath! 🎉",
+      "message": "Your academic profile has been created. Discover vetted scholarships that match your education path.",
+      "type": "announcement",
+      "read": false,
+      "createdAt": "2026-09-23T23:41:01.248Z"
+    },
+    "notif-b93d88cf-d34f-4d9d-9167-60dc4a73f7bb": {
+      "id": "notif-b93d88cf-d34f-4d9d-9167-60dc4a73f7bb",
+      "userId": "usr-f506f296-055f-426b-981c-65f3fec9f451",
+      "title": "Started Application: Gates Cambridge Global Scholars Program",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 06/12/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-001",
+      "relatedApplicationId": "app-3d0a1f1d-1864-4850-abf6-51c1a8525df9",
+      "createdAt": "2026-09-23T23:41:07.442Z"
     }
   },
   "verifications": {
@@ -603,6 +1182,72 @@
       "newStatus": "verified",
       "notes": "Verified against official foundation website.",
       "timestamp": "2026-09-19T08:13:57.785Z"
+    },
+    "vlog-601d60fb-a178-4bc0-9bd0-27bb172e9329": {
+      "id": "vlog-601d60fb-a178-4bc0-9bd0-27bb172e9329",
+      "scholarshipId": "sch-006",
+      "scholarshipTitle": "NextGen Women in Computer Science & AI Fellowship",
+      "adminId": "usr-admin-001",
+      "adminEmail": "admin@scholarpath.org",
+      "previousStatus": "verified",
+      "newStatus": "verified",
+      "notes": "Verified against official foundation website.",
+      "timestamp": "2026-09-23T22:45:24.610Z"
+    },
+    "vlog-729fdf40-4ed8-4d5b-abeb-6b563d789216": {
+      "id": "vlog-729fdf40-4ed8-4d5b-abeb-6b563d789216",
+      "scholarshipId": "sch-006",
+      "scholarshipTitle": "NextGen Women in Computer Science & AI Fellowship",
+      "adminId": "usr-admin-001",
+      "adminEmail": "admin@scholarpath.org",
+      "previousStatus": "verified",
+      "newStatus": "verified",
+      "notes": "Verified against official foundation website.",
+      "timestamp": "2026-09-23T22:52:14.678Z"
+    },
+    "vlog-05f4e828-98ea-4016-8ea6-cd9d86fc08b9": {
+      "id": "vlog-05f4e828-98ea-4016-8ea6-cd9d86fc08b9",
+      "scholarshipId": "sch-006",
+      "scholarshipTitle": "NextGen Women in Computer Science & AI Fellowship",
+      "adminId": "usr-admin-001",
+      "adminEmail": "admin@scholarpath.org",
+      "previousStatus": "verified",
+      "newStatus": "verified",
+      "notes": "Verified against official foundation website.",
+      "timestamp": "2026-09-23T22:59:54.671Z"
+    },
+    "vlog-ff982202-e504-4c34-8b43-466d7367f3b3": {
+      "id": "vlog-ff982202-e504-4c34-8b43-466d7367f3b3",
+      "scholarshipId": "sch-006",
+      "scholarshipTitle": "NextGen Women in Computer Science & AI Fellowship",
+      "adminId": "usr-admin-001",
+      "adminEmail": "admin@scholarpath.org",
+      "previousStatus": "verified",
+      "newStatus": "verified",
+      "notes": "Verified against official foundation website.",
+      "timestamp": "2026-09-23T23:28:43.892Z"
+    },
+    "vlog-dcd5938e-bbb2-4cbe-8161-f611dbe881aa": {
+      "id": "vlog-dcd5938e-bbb2-4cbe-8161-f611dbe881aa",
+      "scholarshipId": "sch-006",
+      "scholarshipTitle": "NextGen Women in Computer Science & AI Fellowship",
+      "adminId": "usr-admin-001",
+      "adminEmail": "admin@scholarpath.org",
+      "previousStatus": "verified",
+      "newStatus": "verified",
+      "notes": "Verified against official foundation website.",
+      "timestamp": "2026-09-23T23:32:34.346Z"
+    },
+    "vlog-3fa8242d-1a08-46b9-a565-95d392c81d8a": {
+      "id": "vlog-3fa8242d-1a08-46b9-a565-95d392c81d8a",
+      "scholarshipId": "sch-006",
+      "scholarshipTitle": "NextGen Women in Computer Science & AI Fellowship",
+      "adminId": "usr-admin-001",
+      "adminEmail": "admin@scholarpath.org",
+      "previousStatus": "verified",
+      "newStatus": "verified",
+      "notes": "Verified against official foundation website.",
+      "timestamp": "2026-09-23T23:41:07.554Z"
     }
   },
   "adminUsers": {
@@ -616,6 +1261,17 @@
       "assignedDepartment": "Operations & Verification",
       "createdAt": "2026-09-19T08:13:55.832Z",
       "lastActiveAt": "2026-09-19T08:13:55.832Z"
+    },
+    "usr-admin-002": {
+      "id": "usr-admin-002",
+      "firstName": "Chris",
+      "lastName": "Ekpe",
+      "email": "chrisekpe18@gmail.com",
+      "role": "Admin",
+      "status": "Active",
+      "assignedDepartment": "Scholarship Operations",
+      "createdAt": "2026-09-23T23:40:00.000Z",
+      "lastActiveAt": "2026-09-23T23:40:00.000Z"
     }
   }
 }

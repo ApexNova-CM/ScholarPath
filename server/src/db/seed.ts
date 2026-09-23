@@ -356,9 +356,11 @@ export const SEED_SCHOLARSHIPS: ScholarshipRecord[] = [
 
 export async function createInitialSeedUsers(): Promise<{
   adminUser: UserRecord;
+  adminUser2: UserRecord;
   demoStudent: UserRecord;
   demoProfile: StudentProfileRecord;
   adminDirectoryUser: AdminUserRecord;
+  adminDirectoryUser2: AdminUserRecord;
 }> {
   const adminPasswordHash = await bcrypt.hash('admin123', 10);
   const studentPasswordHash = await bcrypt.hash('student123', 10);
@@ -381,6 +383,28 @@ export async function createInitialSeedUsers(): Promise<{
     role: 'Super Admin',
     status: 'Active',
     assignedDepartment: 'Operations & Verification',
+    createdAt: new Date().toISOString(),
+    lastActiveAt: new Date().toISOString(),
+  };
+
+  const adminUser2: UserRecord = {
+    id: 'usr-admin-002',
+    email: 'chrisekpe18@gmail.com',
+    passwordHash: adminPasswordHash,
+    role: 'admin',
+    emailVerified: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const adminDirectoryUser2: AdminUserRecord = {
+    id: 'usr-admin-002',
+    firstName: 'Chris',
+    lastName: 'Ekpe',
+    email: 'chrisekpe18@gmail.com',
+    role: 'Admin',
+    status: 'Active',
+    assignedDepartment: 'Scholarship Operations',
     createdAt: new Date().toISOString(),
     lastActiveAt: new Date().toISOString(),
   };
@@ -421,5 +445,5 @@ export async function createInitialSeedUsers(): Promise<{
     updatedAt: new Date().toISOString(),
   };
 
-  return { adminUser, demoStudent, demoProfile, adminDirectoryUser };
+  return { adminUser, adminUser2, demoStudent, demoProfile, adminDirectoryUser, adminDirectoryUser2 };
 }

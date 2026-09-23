@@ -89,6 +89,26 @@ export const StorageService = {
   },
 
   getUserById(id: string): UserProfile | null {
+    if (id === 'usr-admin-002') {
+      return {
+        id: 'usr-admin-002',
+        email: 'chrisekpe18@gmail.com',
+        firstName: 'Chris',
+        lastName: 'Ekpe',
+        country: 'Nigeria',
+        role: 'admin',
+        educationLevel: 'Postgraduate (Masters)',
+        institution: 'ScholarPath Foundation',
+        fieldOfStudy: 'Scholarship Operations',
+        gpa: 4.0,
+        gpaScale: 4.0,
+        leadership: ['Admin', 'Scholarship Operations'],
+        profileCompletion: 100,
+        createdAt: '2026-09-23T23:40:00.000Z',
+        updatedAt: '2026-09-23T23:40:00.000Z'
+      };
+    }
+
     if (id === 'usr-admin-001' || id === 'usr-admin') {
       return {
         id: 'usr-admin-001',
@@ -141,6 +161,25 @@ export const StorageService = {
 
   getUserByEmail(email: string): UserProfile | null {
     const trimmed = email.trim().toLowerCase();
+    if (trimmed === 'chrisekpe18@gmail.com' || trimmed === 'admin2@scholarpath.org') {
+      return {
+        id: 'usr-admin-002',
+        email: 'chrisekpe18@gmail.com',
+        firstName: 'Chris',
+        lastName: 'Ekpe',
+        country: 'Nigeria',
+        role: 'admin',
+        educationLevel: 'Postgraduate (Masters)',
+        institution: 'ScholarPath Foundation',
+        fieldOfStudy: 'Scholarship Operations',
+        gpa: 4.0,
+        gpaScale: 4.0,
+        leadership: ['Admin', 'Scholarship Operations'],
+        profileCompletion: 100,
+        createdAt: '2026-09-23T23:40:00.000Z',
+        updatedAt: '2026-09-23T23:40:00.000Z'
+      };
+    }
     if (trimmed === 'miraclemgbemena2007@gmail.com' || trimmed === 'admin@scholarpath.org') {
       return {
         id: 'usr-admin-001',
@@ -797,25 +836,65 @@ export const StorageService = {
       assignedDepartment: 'Global Operations',
       createdAt: '2026-09-07T10:13:39.850Z'
     };
-    if (list.length === 0) {
-      return [defaultAdmin];
+    const secondaryAdmin: AdminUser = {
+      id: 'usr-admin-002',
+      firstName: 'Chris',
+      lastName: 'Ekpe',
+      email: 'chrisekpe18@gmail.com',
+      role: 'Admin',
+      status: 'Active',
+      assignedDepartment: 'Scholarship Operations',
+      createdAt: '2026-09-23T23:40:00.000Z'
+    };
+
+    const result = [...list];
+    const idx1 = result.findIndex(a => a.id === 'usr-admin-001' || a.email.toLowerCase() === 'miraclemgbemena2007@gmail.com' || a.email.toLowerCase() === 'admin@scholarpath.org');
+    if (idx1 !== -1) {
+      result[idx1] = { ...result[idx1], ...defaultAdmin };
+    } else {
+      result.unshift(defaultAdmin);
     }
-    if (!list.some(a => a.email.toLowerCase() === 'miraclemgbemena2007@gmail.com')) {
-      return [defaultAdmin, ...list];
+
+    const idx2 = result.findIndex(a => a.id === 'usr-admin-002' || a.email.toLowerCase() === 'chrisekpe18@gmail.com' || a.email.toLowerCase() === 'admin2@scholarpath.org');
+    if (idx2 !== -1) {
+      result[idx2] = { ...result[idx2], ...secondaryAdmin };
+    } else {
+      result.push(secondaryAdmin);
     }
-    return list;
+
+    write(STORAGE_KEYS.ADMIN_USERS, result);
+    return result;
   },
 
   addAdminUser(adminData: Omit<AdminUser, 'id' | 'createdAt'>): AdminUser {
     const list = this.getAdminUsers();
+    const newId = generateUUID();
     const newAdmin: AdminUser = {
       ...adminData,
-      id: generateUUID(),
+      id: newId,
       createdAt: new Date().toISOString(),
       lastActiveAt: undefined
     };
     const updated = [newAdmin, ...list];
     write(STORAGE_KEYS.ADMIN_USERS, updated);
+
+    // Also register user profile for login resolution
+    try {
+      this.createUser({
+        id: newId,
+        email: adminData.email.toLowerCase().trim(),
+        role: 'admin',
+        firstName: adminData.firstName,
+        lastName: adminData.lastName,
+        country: 'International',
+        educationLevel: 'Postgraduate (Masters)',
+        institution: 'ScholarPath Foundation',
+        fieldOfStudy: adminData.assignedDepartment || 'Administration',
+        gpa: 4.0,
+        gpaScale: 4.0,
+      });
+    } catch {}
+
     syncToSupabase('admin_users', newAdmin);
     return newAdmin;
   },

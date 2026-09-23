@@ -295,6 +295,17 @@ const ADMIN_USERS = [
     created_at: new Date().toISOString(),
     last_active_at: new Date().toISOString(),
   },
+  {
+    id: '99999999-9999-4999-a999-999999999998',
+    first_name: 'Chris',
+    last_name: 'Ekpe',
+    email: 'chrisekpe18@gmail.com',
+    role: 'Admin',
+    status: 'Active',
+    assigned_department: 'Scholarship Operations',
+    created_at: new Date().toISOString(),
+    last_active_at: new Date().toISOString(),
+  },
 ];
 
 async function seed() {
