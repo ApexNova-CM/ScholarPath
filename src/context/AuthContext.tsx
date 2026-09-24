@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile, UserRole } from '../types';
-import { StorageService } from '../services/storage';
 import {
   supabase,
   isSupabaseConfigured,
@@ -32,38 +31,121 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function resolveOrCreateProfile(sbUser: SupabaseUser, rolePreference: UserRole = 'student'): UserProfile {
-  const isTargetAdmin =
-    rolePreference === 'admin' ||
-    sbUser.email?.toLowerCase() === 'admin@scholarpath.org' ||
-    sbUser.email?.toLowerCase() === 'chrisekpe18@gmail.com' ||
-    sbUser.email?.toLowerCase() === 'miraclemgbemena2007@gmail.com';
-  let profile =
-    StorageService.getUserById(sbUser.id) ||
-    (sbUser.email ? StorageService.getUserByEmail(sbUser.email) : null);
+// ─── Fetch profile from Supabase public.users table ──────────────────────────
+// This is the SINGLE source of truth for role. No localStorage, no email
+// matching — only what is stored in the database.
+async function fetchProfileFromSupabase(sbUser: SupabaseUser): Promise<UserProfile | null> {
+  if (!isSupabaseConfigured) return null;
 
-  if (!profile) {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', sbUser.id)
+    .single();
+
+  if (error || !data) {
+    // If authenticated in Supabase Auth but public.users row is missing:
+    // Auto-provision profile row using Supabase Auth metadata
     const meta = sbUser.user_metadata || {};
+    const role: UserRole = meta.role === 'admin' ? 'admin' : 'student';
     const fullName: string = meta.full_name || meta.name || '';
-    const [firstName = (isTargetAdmin ? 'Admin' : 'User'), ...rest] = fullName.split(' ');
-    const lastName = rest.join(' ') || (isTargetAdmin ? 'Operations' : '');
-    profile = StorageService.createUser({
-      id: sbUser.id,
-      email: sbUser.email || '',
-      role: isTargetAdmin ? 'admin' : 'student',
+    const [firstName = 'User', ...rest] = fullName.split(' ');
+    const lastName = rest.join(' ') || '';
+
+    return createProfileInSupabase(sbUser, {
       firstName: meta.first_name || firstName,
       lastName: meta.last_name || lastName,
+      role,
       country: 'International',
       educationLevel: 'Undergraduate',
-      institution: isTargetAdmin ? 'ScholarPath Foundation' : '',
-      fieldOfStudy: isTargetAdmin ? 'Administration' : '',
-      gpa: 4.0,
-      gpaScale: 4.0,
+      institution: role === 'admin' ? 'ScholarPath Foundation' : '',
+      fieldOfStudy: meta.assigned_department || '',
     });
-  } else if (isTargetAdmin && profile.role !== 'admin') {
-    profile.role = 'admin';
   }
-  return profile;
+
+  return mapSupabaseRowToProfile(data);
+}
+
+
+// ─── Create a new profile row in public.users ─────────────────────────────────
+async function createProfileInSupabase(
+  sbUser: SupabaseUser,
+  extra: {
+    firstName: string;
+    lastName: string;
+    role: UserRole;
+    country?: string;
+    educationLevel?: string;
+    institution?: string;
+    fieldOfStudy?: string;
+  }
+): Promise<UserProfile | null> {
+  if (!isSupabaseConfigured) return null;
+
+  const row = {
+    id: sbUser.id,
+    email: sbUser.email ?? '',
+    role: extra.role,
+    first_name: extra.firstName,
+    last_name: extra.lastName,
+    country: extra.country ?? 'International',
+    education_level: extra.educationLevel ?? 'Undergraduate',
+    institution: extra.institution ?? '',
+    field_of_study: extra.fieldOfStudy ?? '',
+    gpa: 0.0,
+    gpa_scale: 4.0,
+    profile_completion: 0,
+  };
+
+  const { data, error } = await supabase
+    .from('users')
+    .upsert(row, { onConflict: 'id' })
+    .select()
+    .single();
+
+  if (error || !data) {
+    console.error('Failed to create profile in Supabase:', error?.message);
+    return null;
+  }
+
+  return mapSupabaseRowToProfile(data);
+}
+
+// ─── Map a Supabase DB row → UserProfile ──────────────────────────────────────
+function mapSupabaseRowToProfile(row: Record<string, unknown>): UserProfile {
+  return {
+    id: row.id as string,
+    email: (row.email as string) ?? '',
+    role: (row.role as UserRole) ?? 'student',
+    firstName: (row.first_name as string) ?? '',
+    lastName: (row.last_name as string) ?? '',
+    country: (row.country as string) ?? 'International',
+    phone: row.phone as string | undefined,
+    dateOfBirth: row.date_of_birth as string | undefined,
+    state: row.state as string | undefined,
+    city: row.city as string | undefined,
+    educationLevel: ((row.education_level as string) || 'Undergraduate') as UserProfile['educationLevel'],
+    institution: (row.institution as string) ?? '',
+    fieldOfStudy: (row.field_of_study as string) ?? '',
+    course: row.course as string | undefined,
+    yearLevel: row.year_level as string | undefined,
+    graduationYear: row.graduation_year as number | undefined,
+    gpa: (row.gpa as number) ?? 0,
+    gpaScale: (row.gpa_scale as number) ?? 4.0,
+    financialNeed: (row.financial_need as boolean) ?? false,
+    gender: row.gender as UserProfile['gender'],
+    awards: (row.awards as string[]) ?? [],
+    achievements: (row.achievements as string[]) ?? [],
+    extracurriculars: (row.extracurriculars as string[]) ?? [],
+    certifications: (row.certifications as string[]) ?? [],
+    leadership: (row.leadership as string[]) ?? [],
+    volunteering: (row.volunteering as string[]) ?? [],
+    workExperience: (row.work_experience as string[]) ?? [],
+    profileCompletion: (row.profile_completion as number) ?? 0,
+    notificationPreferences: row.notification_preferences as UserProfile['notificationPreferences'],
+    createdAt: (row.created_at as string) ?? new Date().toISOString(),
+    updatedAt: (row.updated_at as string) ?? new Date().toISOString(),
+  };
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -72,159 +154,137 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // ── Restore active session on mount ──────────────────────────────────
+  // ── Restore active Supabase session on mount ──────────────────────────
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setIsLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
-    if (isSupabaseConfigured) {
-      supabase.auth.getSession().then(({ data: { session: s } }) => {
-        if (cancelled) return;
-        if (s?.user) {
-          setSession(s);
-          setSupabaseUser(s.user);
-          setUser(resolveOrCreateProfile(s.user));
-        }
-        setIsLoading(false);
-      });
-
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange((_event, s) => {
-        if (cancelled) return;
+    // Load existing session from Supabase (handles browser storage automatically)
+    supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+      if (cancelled) return;
+      if (s?.user) {
         setSession(s);
-        if (s?.user) {
-          setSupabaseUser(s.user);
-          setUser(resolveOrCreateProfile(s.user));
-        } else {
-          setSupabaseUser(null);
-          setUser(null);
-        }
-      });
-
-      return () => {
-        cancelled = true;
-        subscription.unsubscribe();
-      };
-    } else {
-      const uid = localStorage.getItem('scholarpath_active_session_uid');
-      if (uid) {
-        const found = StorageService.getUserById(uid);
-        if (found) setUser(found);
-        else localStorage.removeItem('scholarpath_active_session_uid');
+        setSupabaseUser(s.user);
+        const profile = await fetchProfileFromSupabase(s.user);
+        if (!cancelled) setUser(profile);
       }
-      setIsLoading(false);
-    }
+      if (!cancelled) setIsLoading(false);
+    });
+
+    // Subscribe to future auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, s) => {
+      if (cancelled) return;
+      setSession(s);
+      if (s?.user) {
+        setSupabaseUser(s.user);
+        const profile = await fetchProfileFromSupabase(s.user);
+        if (!cancelled) setUser(profile);
+      } else {
+        setSupabaseUser(null);
+        setUser(null);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const refreshUser = () => {
-    if (isSupabaseConfigured) {
-      supabase.auth.getUser().then(({ data: { user: u } }) => {
-        if (u) {
-          setSupabaseUser(u);
-          setUser(resolveOrCreateProfile(u));
-        }
-      });
-    } else if (user) {
-      const fresh = StorageService.getUserById(user.id);
-      if (fresh) setUser(fresh);
-    }
+    if (!isSupabaseConfigured || !supabaseUser) return;
+    fetchProfileFromSupabase(supabaseUser).then((p) => {
+      if (p) setUser(p);
+    });
   };
 
-  // ── Sign in (email + password) ────────────────────────────────────────
+  // ── Sign in with email + password ────────────────────────────────────────
   const login = async (
     email: string,
     password?: string
   ): Promise<{ success: boolean; role?: UserRole; error?: string }> => {
+    if (!isSupabaseConfigured) {
+      return { success: false, error: 'Authentication service is not configured.' };
+    }
+    if (!password) {
+      return { success: false, error: 'Password is required.' };
+    }
+
     setIsLoading(true);
-    const cleanEmail = email.trim().toLowerCase();
-    const isAdminEmail =
-      cleanEmail === 'miraclemgbemena2007@gmail.com' ||
-      cleanEmail === 'admin@scholarpath.org' ||
-      cleanEmail === 'chrisekpe18@gmail.com' ||
-      StorageService.getAdminUsers().some((a) => a.email.toLowerCase() === cleanEmail) ||
-      StorageService.getUserByEmail(cleanEmail)?.role === 'admin';
-
     try {
-      // 1. Supabase Auth
-      if (isSupabaseConfigured && password) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-        if (data?.user) {
-          const profile = resolveOrCreateProfile(data.user, isAdminEmail ? 'admin' : 'student');
-          setUser(profile);
-          return { success: true, role: profile.role };
-        }
-
-        // Resilient fallback for admin or local accounts if Supabase Auth user is unprovisioned
-        if (isAdminEmail) {
-          const { data: signUpData } = await supabase.auth.signUp({
-            email: cleanEmail,
-            password,
-            options: {
-              data: {
-                first_name: cleanEmail === 'chrisekpe18@gmail.com' ? 'Chris' : cleanEmail === 'miraclemgbemena2007@gmail.com' ? 'Miracle' : 'Admin',
-                last_name: cleanEmail === 'chrisekpe18@gmail.com' ? 'Ekpe' : cleanEmail === 'miraclemgbemena2007@gmail.com' ? 'Mgbemena' : 'User',
-                role: 'admin',
-              },
-            },
-          });
-
-          if (signUpData?.user) {
-            const profile = resolveOrCreateProfile(signUpData.user, 'admin');
-            setUser(profile);
-            return { success: true, role: 'admin' };
-          }
-
-          const foundAdmin = StorageService.getUserByEmail(cleanEmail) || StorageService.getUserById('usr-admin-001');
-          if (foundAdmin) {
-            setUser(foundAdmin);
-            localStorage.setItem('scholarpath_active_session_uid', foundAdmin.id);
-            return { success: true, role: 'admin' };
-          }
-        }
-
-        const foundLocal = StorageService.getUserByEmail(cleanEmail);
-        if (foundLocal) {
-          setUser(foundLocal);
-          localStorage.setItem('scholarpath_active_session_uid', foundLocal.id);
-          return { success: true, role: foundLocal.role };
-        }
-
-        if (error) return { success: false, error: mapAuthError(error.message) };
-        return { success: false, error: 'Invalid email or password.' };
+      if (error) {
+        return { success: false, error: mapAuthError(error.message) };
       }
 
-      // 2. Fallback: localStorage
-      const found = StorageService.getUserByEmail(cleanEmail);
-      if (!found) return { success: false, error: 'No account found with this email.' };
-      setUser(found);
-      localStorage.setItem('scholarpath_active_session_uid', found.id);
-      return { success: true, role: found.role };
+      if (!data.user) {
+        return { success: false, error: 'Sign in failed. Please try again.' };
+      }
+
+      // Fetch role from database — this is the single source of truth
+      const profile = await fetchProfileFromSupabase(data.user);
+
+      if (!profile) {
+        // Auth user exists but no profile row yet — create one with 'student' role
+        const meta = data.user.user_metadata || {};
+        const fullName: string = meta.full_name || meta.name || '';
+        const [firstName = 'User', ...rest] = fullName.split(' ');
+        const lastName = rest.join(' ') || '';
+        const newProfile = await createProfileInSupabase(data.user, {
+          firstName: meta.first_name || firstName,
+          lastName: meta.last_name || lastName,
+          role: 'student',
+        });
+        setUser(newProfile);
+        return { success: true, role: 'student' };
+      }
+
+      setUser(profile);
+      return { success: true, role: profile.role };
     } finally {
       setIsLoading(false);
     }
   };
 
   const loginAsStudent = async (email: string, password?: string) => {
-    return login(email, password);
+    const result = await login(email, password);
+    if (result.success && result.role === 'admin') {
+      // An admin trying the student flow — still let them in, auth context handles routing
+      return { success: true };
+    }
+    return { success: result.success, error: result.error };
   };
 
   const loginAsAdmin = async (email: string, password?: string) => {
-    return login(email, password);
+    const result = await login(email, password);
+    if (!result.success) return result;
+    if (result.role !== 'admin') {
+      // Signed in but not an admin — sign them out and reject
+      await supabase.auth.signOut();
+      setUser(null);
+      setSupabaseUser(null);
+      setSession(null);
+      return { success: false, error: 'This account does not have administrator privileges.' };
+    }
+    return { success: true };
   };
 
-  // ── Google OAuth ──────────────────────────────────────────────────────
+  // ── Google OAuth ──────────────────────────────────────────────────────────
   const loginWithGoogle = async (
     _rolePreference: UserRole = 'student'
   ): Promise<{ success: boolean; role?: UserRole; error?: string }> => {
     if (!isSupabaseConfigured) {
-      return {
-        success: false,
-        error: 'Google sign-in requires OAuth configuration.',
-      };
+      return { success: false, error: 'Google sign-in requires OAuth configuration.' };
     }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -236,86 +296,117 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
-  // ── Register new student ──────────────────────────────────────────────
+  // ── Register new student ──────────────────────────────────────────────────
   const registerStudent = async (
     profileData: Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt' | 'profileCompletion' | 'role'>,
     password?: string
   ): Promise<{ success: boolean; error?: string }> => {
+    if (!isSupabaseConfigured) {
+      return { success: false, error: 'Authentication service is not configured.' };
+    }
+    if (!password) {
+      return { success: false, error: 'Password is required.' };
+    }
+
     setIsLoading(true);
     try {
-      // 1. Supabase Auth
-      if (isSupabaseConfigured && password) {
-        const { data, error } = await supabase.auth.signUp({
-          email: profileData.email.trim(),
-          password,
-          options: {
-            data: {
-              first_name: profileData.firstName,
-              last_name: profileData.lastName,
-              full_name: `${profileData.firstName} ${profileData.lastName}`.trim(),
-            },
+      const { data, error } = await supabase.auth.signUp({
+        email: profileData.email.trim(),
+        password,
+        options: {
+          data: {
+            first_name: profileData.firstName,
+            last_name: profileData.lastName,
+            full_name: `${profileData.firstName} ${profileData.lastName}`.trim(),
           },
-        });
-        if (error) return { success: false, error: mapAuthError(error.message) };
-        if (!data.user) return { success: false, error: 'Registration failed. Please try again.' };
+        },
+      });
 
-        const newUser = StorageService.createUser({
-          ...profileData,
-          id: data.user.id,
-          role: 'student',
-        });
-        setUser(newUser);
-        return { success: true };
-      }
+      if (error) return { success: false, error: mapAuthError(error.message) };
+      if (!data.user) return { success: false, error: 'Registration failed. Please try again.' };
 
-      // 2. Fallback: localStorage
-      const existing = StorageService.getUserByEmail(profileData.email);
-      if (existing) return { success: false, error: 'An account with this email already exists.' };
-      const newUser = StorageService.createUser({ ...profileData, role: 'student' });
-      setUser(newUser);
-      localStorage.setItem('scholarpath_active_session_uid', newUser.id);
+      // Create the public profile row with role = 'student'
+      const newProfile = await createProfileInSupabase(data.user, {
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        role: 'student',
+        country: profileData.country,
+        educationLevel: profileData.educationLevel,
+        institution: profileData.institution,
+        fieldOfStudy: profileData.fieldOfStudy,
+      });
+
+      setUser(newProfile);
       return { success: true };
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ── Sign out ──────────────────────────────────────────────────────────
+  // ── Sign out ──────────────────────────────────────────────────────────────
   const logout = async () => {
-    localStorage.removeItem('scholarpath_active_session_uid');
-
     if (isSupabaseConfigured) {
       try {
         await supabase.auth.signOut();
       } catch {}
     }
-
     setUser(null);
     setSupabaseUser(null);
     setSession(null);
   };
 
-  // ── Password reset email ──────────────────────────────────────────────
+  // ── Password reset ────────────────────────────────────────────────────────
   const sendPasswordReset = async (
     email: string
   ): Promise<{ success: boolean; error?: string }> => {
-    if (isSupabaseConfigured) {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/login`,
-      });
-      if (error) return { success: false, error: error.message };
-      return { success: true };
-    }
+    if (!isSupabaseConfigured) return { success: true };
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/login`,
+    });
+    if (error) return { success: false, error: error.message };
     return { success: true };
   };
 
-  // ── Update profile ────────────────────────────────────────────────────
+  // ── Update profile ────────────────────────────────────────────────────────
   const updateProfile = async (updates: Partial<UserProfile>): Promise<UserProfile> => {
     if (!user) throw new Error('Not authenticated');
-    const sanitized = { ...updates };
-    if (user.role === 'student') delete sanitized.role;
+    if (!isSupabaseConfigured) throw new Error('Database not configured');
 
-    const updated = StorageService.updateUserProfile(user.id, sanitized);
+    // Prevent non-admin users from elevating their own role
+    const sanitized = { ...updates };
+    if (user.role !== 'admin') delete sanitized.role;
+
+    const { data, error } = await supabase
+      .from('users')
+      .update({
+        first_name: sanitized.firstName,
+        last_name: sanitized.lastName,
+        phone: sanitized.phone,
+        country: sanitized.country,
+        state: sanitized.state,
+        city: sanitized.city,
+        education_level: sanitized.educationLevel,
+        institution: sanitized.institution,
+        field_of_study: sanitized.fieldOfStudy,
+        gpa: sanitized.gpa,
+        gpa_scale: sanitized.gpaScale,
+        financial_need: sanitized.financialNeed,
+        gender: sanitized.gender,
+        awards: sanitized.awards,
+        achievements: sanitized.achievements,
+        extracurriculars: sanitized.extracurriculars,
+        certifications: sanitized.certifications,
+        leadership: sanitized.leadership,
+        volunteering: sanitized.volunteering,
+        work_experience: sanitized.workExperience,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', user.id)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    const updated = mapSupabaseRowToProfile(data);
     setUser(updated);
     return updated;
   };
@@ -326,7 +417,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         supabaseUser,
         session,
-        role: user?.role || null,
+        role: user?.role ?? null,
         isAuthenticated: Boolean(user),
         isLoading,
         login,
@@ -358,10 +449,10 @@ function mapAuthError(message: string): string {
     return 'Incorrect email or password. Please try again.';
   }
   if (m.includes('email not confirmed')) {
-    return 'Please check your inbox and confirm your email before signing in.';
+    return 'Your email address has not been confirmed yet. If email confirmation is enabled in your Supabase Auth settings, please check your inbox or disable email confirmation in the Supabase Dashboard.';
   }
   if (m.includes('already registered') || m.includes('already exists') || m.includes('user already')) {
-    return 'An account with this email already exists. Please sign in instead.';
+    return 'An account with this email address already exists. Please sign in instead.';
   }
   if (m.includes('weak password') || m.includes('password should')) {
     return 'Password is too weak. Please use at least 6 characters.';
@@ -369,5 +460,9 @@ function mapAuthError(message: string): string {
   if (m.includes('rate limit') || m.includes('too many')) {
     return 'Too many attempts. Please wait a moment before trying again.';
   }
+  if (m.includes('row-level security') || m.includes('rls') || m.includes('permission denied')) {
+    return 'Database permission error (RLS policy). Please check that your Supabase RLS policies allow admin profile creation.';
+  }
   return message || 'Authentication failed. Please try again.';
 }
+

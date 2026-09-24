@@ -5,13 +5,52 @@
 
 import { api } from '../lib/apiClient';
 import { StorageService } from './storage';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type {
   Scholarship, Provider, Category, UserProfile,
   Application, StoredDocument, NotificationItem,
   AdminUser,
 } from '../types';
 
+// Helper to map DB row to UserProfile
+function mapRowToProfile(row: any): UserProfile {
+  return {
+    id: row.id,
+    email: row.email || '',
+    role: row.role || 'student',
+    firstName: row.first_name || '',
+    lastName: row.last_name || '',
+    country: row.country || 'International',
+    phone: row.phone,
+    dateOfBirth: row.date_of_birth,
+    state: row.state,
+    city: row.city,
+    educationLevel: row.education_level || 'Undergraduate',
+    institution: row.institution || '',
+    fieldOfStudy: row.field_of_study || '',
+    course: row.course,
+    yearLevel: row.year_level,
+    graduationYear: row.graduation_year,
+    gpa: row.gpa || 0,
+    gpaScale: row.gpa_scale || 4.0,
+    financialNeed: row.financial_need || false,
+    gender: row.gender,
+    awards: row.awards || [],
+    achievements: row.achievements || [],
+    extracurriculars: row.extracurriculars || [],
+    certifications: row.certifications || [],
+    leadership: row.leadership || [],
+    volunteering: row.volunteering || [],
+    workExperience: row.work_experience || [],
+    profileCompletion: row.profile_completion || 0,
+    notificationPreferences: row.notification_preferences,
+    createdAt: row.created_at || new Date().toISOString(),
+    updatedAt: row.updated_at || new Date().toISOString(),
+  };
+}
+
 // ─── Public entities ──────────────────────────────────────────────────────────
+
 
 export async function fetchScholarships(): Promise<Scholarship[]> {
   try {
@@ -119,6 +158,19 @@ export async function fetchNotifications(userId: string): Promise<NotificationIt
 // ─── Admin-only ───────────────────────────────────────────────────────────────
 
 export async function fetchAllUsers(): Promise<UserProfile[]> {
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && data) {
+        return data.map(mapRowToProfile);
+      }
+    } catch (err) {
+      console.error('Failed to fetch users from Supabase:', err);
+    }
+  }
   try {
     const res = await api.get<UserProfile[]>('/admin/users');
     if (Array.isArray(res)) {
@@ -129,6 +181,7 @@ export async function fetchAllUsers(): Promise<UserProfile[]> {
   }
   return StorageService.getUsers();
 }
+
 
 export async function fetchAllApplications(): Promise<Application[]> {
   try {

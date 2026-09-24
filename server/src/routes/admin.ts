@@ -1,4 +1,5 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
+import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { db } from '../db/store';
 import { authenticateToken, requireRole } from '../middleware/auth';

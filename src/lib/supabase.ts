@@ -69,3 +69,19 @@ export async function testSupabaseConnection(): Promise<void> {
     console.warn('Supabase connection test failed:', err);
   }
 }
+
+/**
+ * Create an isolated, unpersisted Supabase client for admin user provisioning
+ * so that calling signUp() does not overwrite or destroy the active admin's session.
+ */
+export function createAdminAuthClient(): SupabaseClient | null {
+  if (!isSupabaseConfigured) return null;
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+}
+

@@ -89,145 +89,14 @@ export const StorageService = {
   },
 
   getUserById(id: string): UserProfile | null {
-    if (id === 'usr-admin-002') {
-      return {
-        id: 'usr-admin-002',
-        email: 'chrisekpe18@gmail.com',
-        firstName: 'Chris',
-        lastName: 'Ekpe',
-        country: 'Nigeria',
-        role: 'admin',
-        educationLevel: 'Postgraduate (Masters)',
-        institution: 'ScholarPath Foundation',
-        fieldOfStudy: 'Scholarship Operations',
-        gpa: 4.0,
-        gpaScale: 4.0,
-        leadership: ['Admin', 'Scholarship Operations'],
-        profileCompletion: 100,
-        createdAt: '2026-09-23T23:40:00.000Z',
-        updatedAt: '2026-09-23T23:40:00.000Z'
-      };
-    }
-
-    if (id === 'usr-admin-001' || id === 'usr-admin') {
-      return {
-        id: 'usr-admin-001',
-        email: 'miraclemgbemena2007@gmail.com',
-        firstName: 'Miracle',
-        lastName: 'Mgbemena',
-        country: 'Nigeria',
-        role: 'admin',
-        educationLevel: 'Postgraduate (Masters)',
-        institution: 'ScholarPath Foundation',
-        fieldOfStudy: 'Platform Administration',
-        gpa: 4.0,
-        gpaScale: 4.0,
-        leadership: ['Super Admin', 'Scholarship Verification'],
-        profileCompletion: 100,
-        createdAt: '2026-09-07T10:13:39.850Z',
-        updatedAt: '2026-09-07T10:13:39.850Z'
-      };
-    }
-
     const users = this.getUsers();
-    const foundUser = users.find(u => u.id === id);
-    if (foundUser) return foundUser;
-
-    // Check admin directory
-    const admins = this.getAdminUsers();
-    const foundAdmin = admins.find(a => a.id === id);
-    if (foundAdmin) {
-      return {
-        id: foundAdmin.id,
-        email: foundAdmin.email,
-        firstName: foundAdmin.firstName || 'Miracle',
-        lastName: foundAdmin.lastName || 'Mgbemena',
-        country: 'Nigeria',
-        role: 'admin',
-        educationLevel: 'Postgraduate (Masters)',
-        institution: 'ScholarPath Foundation',
-        fieldOfStudy: foundAdmin.assignedDepartment || 'Administration',
-        gpa: 4.0,
-        gpaScale: 4.0,
-        leadership: ['Governance', 'Scholarship Verification'],
-        profileCompletion: 100,
-        createdAt: foundAdmin.createdAt,
-        updatedAt: foundAdmin.createdAt
-      };
-    }
-
-    return null;
+    return users.find(u => u.id === id) || null;
   },
 
   getUserByEmail(email: string): UserProfile | null {
     const trimmed = email.trim().toLowerCase();
-    if (trimmed === 'chrisekpe18@gmail.com' || trimmed === 'admin2@scholarpath.org') {
-      return {
-        id: 'usr-admin-002',
-        email: 'chrisekpe18@gmail.com',
-        firstName: 'Chris',
-        lastName: 'Ekpe',
-        country: 'Nigeria',
-        role: 'admin',
-        educationLevel: 'Postgraduate (Masters)',
-        institution: 'ScholarPath Foundation',
-        fieldOfStudy: 'Scholarship Operations',
-        gpa: 4.0,
-        gpaScale: 4.0,
-        leadership: ['Admin', 'Scholarship Operations'],
-        profileCompletion: 100,
-        createdAt: '2026-09-23T23:40:00.000Z',
-        updatedAt: '2026-09-23T23:40:00.000Z'
-      };
-    }
-    if (trimmed === 'miraclemgbemena2007@gmail.com' || trimmed === 'admin@scholarpath.org') {
-      return {
-        id: 'usr-admin-001',
-        email: 'miraclemgbemena2007@gmail.com',
-        firstName: 'Miracle',
-        lastName: 'Mgbemena',
-        country: 'Nigeria',
-        role: 'admin',
-        educationLevel: 'Postgraduate (Masters)',
-        institution: 'ScholarPath Foundation',
-        fieldOfStudy: 'Platform Administration',
-        gpa: 4.0,
-        gpaScale: 4.0,
-        leadership: ['Super Admin', 'Scholarship Verification'],
-        profileCompletion: 100,
-        createdAt: '2026-09-07T10:13:39.850Z',
-        updatedAt: '2026-09-07T10:13:39.850Z'
-      };
-    }
-
     const users = this.getUsers();
-    const foundUser = users.find(u => u.email.toLowerCase() === trimmed);
-    if (foundUser) return foundUser;
-
-    // Check admin directory
-    const admins = this.getAdminUsers();
-    const foundAdmin = admins.find(a => a.email.toLowerCase() === trimmed);
-    if (foundAdmin && (foundAdmin.status === 'Active' || (foundAdmin.status as string) === 'active')) {
-      return {
-        id: foundAdmin.id,
-        email: foundAdmin.email,
-        firstName: foundAdmin.firstName || 'Admin',
-        lastName: foundAdmin.lastName || 'User',
-        country: 'United States',
-        role: 'admin',
-        educationLevel: 'Postgraduate (Masters)',
-        institution: 'ScholarPath Foundation',
-        fieldOfStudy: foundAdmin.assignedDepartment || 'Administration',
-        gpa: 4.0,
-        gpaScale: 4.0,
-        leadership: ['Governance', 'Scholarship Verification'],
-        profileCompletion: 100,
-        createdAt: foundAdmin.createdAt,
-        updatedAt: foundAdmin.createdAt
-      };
-    }
-
-    return null;
+    return users.find(u => u.email.toLowerCase() === trimmed) || null;
   },
 
   createUser(user: Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt' | 'profileCompletion'> & { id?: string }): UserProfile {
@@ -822,80 +691,25 @@ export const StorageService = {
   },
 
   // ----------------------------------------------------
-  // ADMIN USERS MANAGEMENT
+  // ADMIN USERS MANAGEMENT (legacy localStorage — used only for display fallback)
+  // The source of truth for admin role is public.users in Supabase.
+  // These functions are kept for backward compatibility with other pages that
+  // still call StorageService.getAdminUsers(), but they no longer inject
+  // hardcoded mock admins.
   // ----------------------------------------------------
   getAdminUsers(): AdminUser[] {
-    const list = read<AdminUser[]>(STORAGE_KEYS.ADMIN_USERS, []);
-    const defaultAdmin: AdminUser = {
-      id: 'usr-admin-001',
-      firstName: 'Miracle',
-      lastName: 'Mgbemena',
-      email: 'miraclemgbemena2007@gmail.com',
-      role: 'Super Admin',
-      status: 'Active',
-      assignedDepartment: 'Global Operations',
-      createdAt: '2026-09-07T10:13:39.850Z'
-    };
-    const secondaryAdmin: AdminUser = {
-      id: 'usr-admin-002',
-      firstName: 'Chris',
-      lastName: 'Ekpe',
-      email: 'chrisekpe18@gmail.com',
-      role: 'Admin',
-      status: 'Active',
-      assignedDepartment: 'Scholarship Operations',
-      createdAt: '2026-09-23T23:40:00.000Z'
-    };
-
-    const result = [...list];
-    const idx1 = result.findIndex(a => a.id === 'usr-admin-001' || a.email.toLowerCase() === 'miraclemgbemena2007@gmail.com' || a.email.toLowerCase() === 'admin@scholarpath.org');
-    if (idx1 !== -1) {
-      result[idx1] = { ...result[idx1], ...defaultAdmin };
-    } else {
-      result.unshift(defaultAdmin);
-    }
-
-    const idx2 = result.findIndex(a => a.id === 'usr-admin-002' || a.email.toLowerCase() === 'chrisekpe18@gmail.com' || a.email.toLowerCase() === 'admin2@scholarpath.org');
-    if (idx2 !== -1) {
-      result[idx2] = { ...result[idx2], ...secondaryAdmin };
-    } else {
-      result.push(secondaryAdmin);
-    }
-
-    write(STORAGE_KEYS.ADMIN_USERS, result);
-    return result;
+    return read<AdminUser[]>(STORAGE_KEYS.ADMIN_USERS, []);
   },
 
   addAdminUser(adminData: Omit<AdminUser, 'id' | 'createdAt'>): AdminUser {
     const list = this.getAdminUsers();
-    const newId = generateUUID();
     const newAdmin: AdminUser = {
       ...adminData,
-      id: newId,
+      id: generateUUID(),
       createdAt: new Date().toISOString(),
       lastActiveAt: undefined
     };
-    const updated = [newAdmin, ...list];
-    write(STORAGE_KEYS.ADMIN_USERS, updated);
-
-    // Also register user profile for login resolution
-    try {
-      this.createUser({
-        id: newId,
-        email: adminData.email.toLowerCase().trim(),
-        role: 'admin',
-        firstName: adminData.firstName,
-        lastName: adminData.lastName,
-        country: 'International',
-        educationLevel: 'Postgraduate (Masters)',
-        institution: 'ScholarPath Foundation',
-        fieldOfStudy: adminData.assignedDepartment || 'Administration',
-        gpa: 4.0,
-        gpaScale: 4.0,
-      });
-    } catch {}
-
-    syncToSupabase('admin_users', newAdmin);
+    write(STORAGE_KEYS.ADMIN_USERS, [newAdmin, ...list]);
     return newAdmin;
   },
 
@@ -904,7 +718,6 @@ export const StorageService = {
     const filtered = list.filter(a => a.id !== id);
     if (filtered.length === list.length) return false;
     write(STORAGE_KEYS.ADMIN_USERS, filtered);
-    removeFromSupabase('admin_users', id);
     return true;
   },
 
@@ -914,7 +727,6 @@ export const StorageService = {
     if (idx === -1) return null;
     list[idx] = { ...list[idx], status };
     write(STORAGE_KEYS.ADMIN_USERS, list);
-    syncToSupabase('admin_users', list[idx]);
     return list[idx];
   }
 };
