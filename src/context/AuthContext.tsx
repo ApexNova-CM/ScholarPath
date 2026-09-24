@@ -43,11 +43,13 @@ async function fetchProfileFromSupabase(sbUser: SupabaseUser): Promise<UserProfi
     .eq('id', sbUser.id)
     .single();
 
+  const meta = sbUser.user_metadata || {};
+  const isAuthAdmin = meta.role === 'admin' || sbUser.app_metadata?.role === 'admin';
+
   if (error || !data) {
     // If authenticated in Supabase Auth but public.users row is missing:
     // Auto-provision profile row using Supabase Auth metadata
-    const meta = sbUser.user_metadata || {};
-    const role: UserRole = meta.role === 'admin' ? 'admin' : 'student';
+    const role: UserRole = isAuthAdmin ? 'admin' : 'student';
     const fullName: string = meta.full_name || meta.name || '';
     const [firstName = 'User', ...rest] = fullName.split(' ');
     const lastName = rest.join(' ') || '';
@@ -63,8 +65,17 @@ async function fetchProfileFromSupabase(sbUser: SupabaseUser): Promise<UserProfi
     });
   }
 
+  // Auto-healing: If Supabase Auth metadata specifies admin role but public.users row says student, heal DB row
+  if (data.role !== 'admin' && isAuthAdmin) {
+    data.role = 'admin';
+    supabase.from('users').update({ role: 'admin' }).eq('id', sbUser.id).then(({ error: healErr }) => {
+      if (healErr) console.warn('Role auto-healing update notice:', healErr.message);
+    });
+  }
+
   return mapSupabaseRowToProfile(data);
 }
+
 
 
 // ─── Create a new profile row in public.users ─────────────────────────────────
@@ -235,19 +246,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const profile = await fetchProfileFromSupabase(data.user);
 
       if (!profile) {
-        // Auth user exists but no profile row yet — create one with 'student' role
+        // Auth user exists but no profile row yet — create one using role from user_metadata
         const meta = data.user.user_metadata || {};
+        const role: UserRole = meta.role === 'admin' || data.user.app_metadata?.role === 'admin' ? 'admin' : 'student';
         const fullName: string = meta.full_name || meta.name || '';
         const [firstName = 'User', ...rest] = fullName.split(' ');
         const lastName = rest.join(' ') || '';
         const newProfile = await createProfileInSupabase(data.user, {
           firstName: meta.first_name || firstName,
           lastName: meta.last_name || lastName,
-          role: 'student',
+          role,
         });
         setUser(newProfile);
-        return { success: true, role: 'student' };
+        return { success: true, role: newProfile?.role ?? role };
       }
+
 
       setUser(profile);
       return { success: true, role: profile.role };
