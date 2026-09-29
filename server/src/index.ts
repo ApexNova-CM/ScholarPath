@@ -25,15 +25,29 @@ app.use(
   })
 );
 
+// Allowed production and development origins
+const allowedOrigins = [
+  'https://scholar-path-ebon.vercel.app',
+  ...(config.corsOrigin ? config.corsOrigin.split(',').map((o) => o.trim()) : []),
+];
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, postman) or matching local origins
-      if (!origin || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Permissive in dev, tighten in production
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin) {
+        return callback(null, true);
       }
+      // Allow local development origins and explicit production origins
+      if (
+        origin.startsWith('http://localhost') ||
+        origin.startsWith('http://127.0.0.1') ||
+        allowedOrigins.includes(origin) ||
+        origin.endsWith('.vercel.app')
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS error: Origin ${origin} not allowed.`));
     },
     credentials: true,
   })
@@ -77,6 +91,7 @@ export async function startServer(): Promise<void> {
     console.log(` ScholarPath REST API Server`);
     console.log(` Running on: http://localhost:${config.port}`);
     console.log(` Environment: ${config.env}`);
+    console.log(` Persistence: server/data/db.json & uploads/ (Persistent volume required in container hosting)`);
     console.log(`=========================================`);
   });
   return new Promise((resolve) => server.on('listening', resolve));

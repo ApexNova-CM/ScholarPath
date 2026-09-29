@@ -3,7 +3,15 @@
  * Handles requests, Authorization headers, token management, and JSON error handling.
  */
 
-const API_BASE = '/api/v1';
+const rawApiUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) ? String(import.meta.env.VITE_API_URL).trim() : '';
+
+export const API_BASE = (() => {
+  if (!rawApiUrl) return '/api/v1';
+  const clean = rawApiUrl.replace(/\/+$/, '');
+  if (clean.endsWith('/api/v1')) return clean;
+  if (clean.endsWith('/api')) return `${clean}/v1`;
+  return `${clean}/api/v1`;
+})();
 
 export interface ApiResponse<T = any> {
   success: boolean;
