@@ -21,6 +21,9 @@ export interface AIChatRequest {
   message: string;
   history?: ChatMessageTurn[];
   contextScholarshipId?: string;
+  userProfile?: any;
+  applications?: any[];
+  documents?: any[];
 }
 
 export interface AIChatResponse {
@@ -80,14 +83,24 @@ function mapProfileRecord(record: any, user: any): UserProfile {
 /**
  * Builds controlled, authenticated context for a student
  */
-export function buildStudentContext(userId: string, contextScholarshipId?: string) {
+export function buildStudentContext(
+  userId: string,
+  contextScholarshipId?: string,
+  clientProfile?: any,
+  clientApplications?: any[],
+  clientDocuments?: any[]
+) {
   const userRec = db.findUserById(userId);
   const profileRec = db.getProfile(userId);
-  const profile = mapProfileRecord(profileRec, userRec);
+  const profile = clientProfile
+    ? { ...mapProfileRecord(profileRec, userRec), ...clientProfile }
+    : mapProfileRecord(profileRec, userRec);
 
-  const applications = db.getApplicationsByUser(userId) as Application[];
+  const dbApps = db.getApplicationsByUser(userId) as Application[];
+  const applications = (clientApplications && clientApplications.length > 0 ? clientApplications : dbApps) as Application[];
+
   const rawDocs = db.getDocumentsByUser(userId);
-  const documents: StoredDocument[] = rawDocs.map(d => ({
+  const dbDocs: StoredDocument[] = rawDocs.map(d => ({
     id: d.id,
     userId: d.userId,
     name: d.name,
@@ -99,6 +112,7 @@ export function buildStudentContext(userId: string, contextScholarshipId?: strin
     uploadedAt: d.uploadedAt,
     status: 'available' as const,
   }));
+  const documents: StoredDocument[] = (clientDocuments && clientDocuments.length > 0 ? clientDocuments : dbDocs) as StoredDocument[];
 
   const savedIds = db.getSavedIdsByUser(userId);
   const allScholarships = (db.getScholarships() as Scholarship[]).filter(
@@ -591,7 +605,13 @@ export async function processAIChat(
   userId: string,
   req: AIChatRequest
 ): Promise<AIChatResponse> {
-  const ctx = buildStudentContext(userId, req.contextScholarshipId);
+  const ctx = buildStudentContext(
+    userId,
+    req.contextScholarshipId,
+    req.userProfile,
+    req.applications,
+    req.documents
+  );
 
   // If Gemini API Key is configured, attempt real Gemini API invocation
   if (config.geminiApiKey && config.geminiApiKey !== 'MY_GEMINI_API_KEY') {
@@ -615,14 +635,27 @@ export async function processAIChat(
         parts: [{ text: req.message }]
       });
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: contents as any,
-        config: {
-          systemInstruction,
-          temperature: 0.2, // Low temperature for high factual accuracy
-        }
-      });
+      let response;
+      try {
+        response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: contents as any,
+          config: {
+            systemInstruction,
+            temperature: 0.2, // Low temperature for high factual accuracy
+          }
+        });
+      } catch (primaryErr: any) {
+        console.warn('gemini-2.5-flash failed, attempting fallback model gemini-2.0-flash:', primaryErr?.message || primaryErr);
+        response = await ai.models.generateContent({
+          model: 'gemini-2.0-flash',
+          contents: contents as any,
+          config: {
+            systemInstruction,
+            temperature: 0.2,
+          }
+        });
+      }
 
       const text = response.text || '';
       if (text.trim().length > 0) {

@@ -159,8 +159,8 @@
       "passwordHash": "hashed_pw_1",
       "role": "student",
       "emailVerified": false,
-      "createdAt": "2026-09-28T23:26:22.691Z",
-      "updatedAt": "2026-09-28T23:26:22.691Z"
+      "createdAt": "2026-09-29T12:46:32.725Z",
+      "updatedAt": "2026-09-29T12:46:32.725Z"
     },
     "usr-ai-student-002": {
       "id": "usr-ai-student-002",
@@ -168,8 +168,8 @@
       "passwordHash": "hashed_pw_2",
       "role": "student",
       "emailVerified": false,
-      "createdAt": "2026-09-28T23:26:22.702Z",
-      "updatedAt": "2026-09-28T23:26:22.702Z"
+      "createdAt": "2026-09-29T12:46:32.738Z",
+      "updatedAt": "2026-09-29T12:46:32.738Z"
     },
     "usr-d1869038-d9fb-4b0c-862a-1852da096cd7": {
       "id": "usr-d1869038-d9fb-4b0c-862a-1852da096cd7",
@@ -197,6 +197,15 @@
       "emailVerified": false,
       "createdAt": "2026-09-29T01:56:14.951Z",
       "updatedAt": "2026-09-29T01:56:14.951Z"
+    },
+    "usr-22ec1335-c5b6-4983-9fb6-c788c6be6c78": {
+      "id": "usr-22ec1335-c5b6-4983-9fb6-c788c6be6c78",
+      "email": "test_1790686044753@example.com",
+      "passwordHash": "$2a$10$mWmwMoj9D3iZ4wDbZcC1d.6j4kPu3Utf/wJh9zpA6oE2zu2mgIdNu",
+      "role": "student",
+      "emailVerified": false,
+      "createdAt": "2026-09-29T12:47:25.374Z",
+      "updatedAt": "2026-09-29T12:47:25.374Z"
     }
   },
   "profiles": {
@@ -523,8 +532,8 @@
       "gpa": 3.92,
       "gpaScale": 4,
       "profileCompletion": 75,
-      "createdAt": "2026-09-28T23:26:22.698Z",
-      "updatedAt": "2026-09-28T23:26:22.698Z"
+      "createdAt": "2026-09-29T12:46:32.732Z",
+      "updatedAt": "2026-09-29T12:46:32.732Z"
     },
     "usr-ai-student-002": {
       "userId": "usr-ai-student-002",
@@ -537,8 +546,8 @@
       "gpa": 3.75,
       "gpaScale": 4,
       "profileCompletion": 75,
-      "createdAt": "2026-09-28T23:26:22.706Z",
-      "updatedAt": "2026-09-28T23:26:22.706Z"
+      "createdAt": "2026-09-29T12:46:32.749Z",
+      "updatedAt": "2026-09-29T12:46:32.749Z"
     },
     "usr-d1869038-d9fb-4b0c-862a-1852da096cd7": {
       "userId": "usr-d1869038-d9fb-4b0c-862a-1852da096cd7",
@@ -599,6 +608,26 @@
       },
       "createdAt": "2026-09-29T01:56:14.982Z",
       "updatedAt": "2026-09-29T01:56:14.983Z"
+    },
+    "usr-22ec1335-c5b6-4983-9fb6-c788c6be6c78": {
+      "userId": "usr-22ec1335-c5b6-4983-9fb6-c788c6be6c78",
+      "firstName": "Taylor",
+      "lastName": "Swift",
+      "country": "United States",
+      "educationLevel": "Undergraduate",
+      "institution": "Stanford University",
+      "fieldOfStudy": "Computer Science",
+      "gpa": 3.9,
+      "gpaScale": 4,
+      "profileCompletion": 75,
+      "notificationPreferences": {
+        "inApp": true,
+        "email": true,
+        "deadlineAlerts": true,
+        "matchingAlerts": true
+      },
+      "createdAt": "2026-09-29T12:47:25.380Z",
+      "updatedAt": "2026-09-29T12:47:25.381Z"
     }
   },
   "providers": {
@@ -765,7 +794,7 @@
       "status": "verified",
       "verificationStatus": "verified",
       "viewCount": 1420,
-      "saveCount": 329,
+      "saveCount": 330,
       "createdAt": "2026-09-19T08:13:53.822Z",
       "updatedAt": "2026-09-19T08:13:53.822Z"
     },
@@ -1032,9 +1061,9 @@
       "viewCount": 310,
       "saveCount": 85,
       "createdAt": "2026-09-19T08:13:53.822Z",
-      "updatedAt": "2026-09-29T01:56:16.877Z",
+      "updatedAt": "2026-09-29T12:47:27.410Z",
       "verifiedBy": "usr-admin-001",
-      "verifiedAt": "2026-09-29T01:56:16.877Z",
+      "verifiedAt": "2026-09-29T12:47:27.410Z",
       "verificationNotes": "Verified against official foundation website."
     },
     "sch-ai-101": {
@@ -1072,11 +1101,11 @@
       ],
       "applicationUrl": "https://techfuture.example.com/apply",
       "applicationInstructions": "Submit your transcript and personal statement online.",
-      "deadline": "2026-10-08T23:26:22.723Z",
+      "deadline": "2026-10-09T12:46:32.753Z",
       "viewCount": 0,
       "saveCount": 0,
-      "createdAt": "2026-09-28T23:26:22.723Z",
-      "updatedAt": "2026-09-28T23:26:22.723Z"
+      "createdAt": "2026-09-29T12:46:32.753Z",
+      "updatedAt": "2026-09-29T12:46:32.754Z"
     },
     "sch-ai-102": {
       "id": "sch-ai-102",
@@ -1113,11 +1142,11 @@
       ],
       "applicationUrl": "https://healthfirst.example.com/apply",
       "applicationInstructions": "Apply with research proposal.",
-      "deadline": "2026-10-23T23:26:22.729Z",
+      "deadline": "2026-10-24T12:46:32.762Z",
       "viewCount": 0,
       "saveCount": 0,
-      "createdAt": "2026-09-28T23:26:22.729Z",
-      "updatedAt": "2026-09-28T23:26:22.729Z"
+      "createdAt": "2026-09-29T12:46:32.762Z",
+      "updatedAt": "2026-09-29T12:46:32.762Z"
     }
   },
   "applications": {
@@ -1687,11 +1716,11 @@
       "scholarshipId": "sch-ai-101",
       "scholarshipTitle": "Silicon Valley Women in Tech Fellowship",
       "providerName": "Tech Future Institute",
-      "deadline": "2026-10-08T23:26:22.723Z",
+      "deadline": "2026-10-09T12:46:32.753Z",
       "amount": 15000,
       "currency": "USD",
       "status": "Shortlisted",
-      "appliedAt": "2026-09-28T23:26:22.736Z",
+      "appliedAt": "2026-09-29T12:46:32.778Z",
       "notes": "Passed initial screening round",
       "checklist": [
         {
@@ -1715,18 +1744,18 @@
         {
           "id": "h-1",
           "status": "Applied",
-          "timestamp": "2026-09-23T23:26:22.736Z",
+          "timestamp": "2026-09-24T12:46:32.778Z",
           "source": "student_updated"
         },
         {
           "id": "h-2",
           "status": "Shortlisted",
-          "timestamp": "2026-09-28T23:26:22.736Z",
+          "timestamp": "2026-09-29T12:46:32.778Z",
           "source": "provider_confirmed"
         }
       ],
-      "createdAt": "2026-09-28T23:26:22.736Z",
-      "updatedAt": "2026-09-28T23:26:22.736Z"
+      "createdAt": "2026-09-29T12:46:32.778Z",
+      "updatedAt": "2026-09-29T12:46:32.778Z"
     },
     "app-c8f1d6bf-be49-4bd0-83b5-bb787083a379": {
       "id": "app-c8f1d6bf-be49-4bd0-83b5-bb787083a379",
@@ -1847,6 +1876,46 @@
       ],
       "createdAt": "2026-09-29T01:56:16.656Z",
       "updatedAt": "2026-09-29T01:56:16.656Z"
+    },
+    "app-6ae2ebf4-7da7-4e8b-9d37-920e72f720a4": {
+      "id": "app-6ae2ebf4-7da7-4e8b-9d37-920e72f720a4",
+      "userId": "usr-22ec1335-c5b6-4983-9fb6-c788c6be6c78",
+      "scholarshipId": "sch-001",
+      "scholarshipTitle": "Gates Cambridge Global Scholars Program",
+      "providerName": "Bill & Melinda Gates Foundation",
+      "deadline": "2026-12-05T23:59:59Z",
+      "amount": 55000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "Priority 1 application",
+      "checklist": [
+        {
+          "id": "chk-e6951117",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-284074df",
+          "label": "Curriculum Vitae (CV)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-ec1b6447",
+          "label": "Research Proposal",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-5e4af21e",
+          "label": "Two Academic References",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-09-29T12:47:27.163Z",
+      "updatedAt": "2026-09-29T12:47:27.163Z"
     }
   },
   "saved": {
@@ -1951,6 +2020,12 @@
       "userId": "usr-1e655c59-7908-4970-91f1-4b5f1661a9bb",
       "scholarshipId": "sch-001",
       "savedAt": "2026-09-29T01:56:16.630Z"
+    },
+    "usr-22ec1335-c5b6-4983-9fb6-c788c6be6c78-sch-001": {
+      "id": "usr-22ec1335-c5b6-4983-9fb6-c788c6be6c78-sch-001",
+      "userId": "usr-22ec1335-c5b6-4983-9fb6-c788c6be6c78",
+      "scholarshipId": "sch-001",
+      "savedAt": "2026-09-29T12:47:27.127Z"
     }
   },
   "documents": {
@@ -1963,7 +2038,7 @@
       "fileSize": 102400,
       "fileUrl": "vault/doc-ai-1.pdf",
       "verified": false,
-      "uploadedAt": "2026-09-28T23:26:22.733Z"
+      "uploadedAt": "2026-09-29T12:46:32.767Z"
     }
   },
   "notifications": {
@@ -2306,6 +2381,26 @@
       "relatedScholarshipId": "sch-001",
       "relatedApplicationId": "app-72bd91f6-4cbc-4c62-bf54-c98c08b55f3d",
       "createdAt": "2026-09-29T01:56:16.782Z"
+    },
+    "notif-20f748e7-1792-4f50-94bc-7e39579792ac": {
+      "id": "notif-20f748e7-1792-4f50-94bc-7e39579792ac",
+      "userId": "usr-22ec1335-c5b6-4983-9fb6-c788c6be6c78",
+      "title": "Welcome to ScholarPath! 🎉",
+      "message": "Your academic profile has been created. Discover vetted scholarships that match your education path.",
+      "type": "announcement",
+      "read": false,
+      "createdAt": "2026-09-29T12:47:25.388Z"
+    },
+    "notif-03aea30f-0f67-4470-89e3-167bef51fa78": {
+      "id": "notif-03aea30f-0f67-4470-89e3-167bef51fa78",
+      "userId": "usr-22ec1335-c5b6-4983-9fb6-c788c6be6c78",
+      "title": "Started Application: Gates Cambridge Global Scholars Program",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 06/12/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-001",
+      "relatedApplicationId": "app-6ae2ebf4-7da7-4e8b-9d37-920e72f720a4",
+      "createdAt": "2026-09-29T12:47:27.291Z"
     }
   },
   "verifications": {
@@ -2495,6 +2590,17 @@
       "newStatus": "verified",
       "notes": "Verified against official foundation website.",
       "timestamp": "2026-09-29T01:56:16.881Z"
+    },
+    "vlog-2edb6eb8-1496-43d9-be2e-baaee65cb768": {
+      "id": "vlog-2edb6eb8-1496-43d9-be2e-baaee65cb768",
+      "scholarshipId": "sch-006",
+      "scholarshipTitle": "NextGen Women in Computer Science & AI Fellowship",
+      "adminId": "usr-admin-001",
+      "adminEmail": "admin@scholarpath.org",
+      "previousStatus": "verified",
+      "newStatus": "verified",
+      "notes": "Verified against official foundation website.",
+      "timestamp": "2026-09-29T12:47:27.415Z"
     }
   },
   "adminUsers": {

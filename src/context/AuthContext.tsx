@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile, UserRole } from '../types';
+import { api } from '../lib/apiClient';
 import {
   supabase,
   isSupabaseConfigured,
@@ -180,6 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (s?.user) {
         setSession(s);
         setSupabaseUser(s.user);
+        if (s.access_token) api.setToken(s.access_token);
         const profile = await fetchProfileFromSupabase(s.user);
         if (!cancelled) setUser(profile);
       }
@@ -194,11 +196,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(s);
       if (s?.user) {
         setSupabaseUser(s.user);
+        if (s.access_token) api.setToken(s.access_token);
         const profile = await fetchProfileFromSupabase(s.user);
         if (!cancelled) setUser(profile);
       } else {
         setSupabaseUser(null);
         setUser(null);
+        api.setToken(null);
       }
     });
 

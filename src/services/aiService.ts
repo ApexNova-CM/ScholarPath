@@ -120,6 +120,9 @@ export async function sendStudentAIChat(
       content: h.content
     }));
 
+    const applications = userProfile?.id ? StorageService.getApplications(userProfile.id) : [];
+    const documents = userProfile?.id ? StorageService.getDocuments(userProfile.id) : [];
+
     const res = await api.post<{
       reply: string;
       suggestedActions?: Array<{ label: string; path: string }>;
@@ -127,7 +130,10 @@ export async function sendStudentAIChat(
     }>('/student/ai/chat', {
       message,
       history: formattedHistory,
-      contextScholarshipId
+      contextScholarshipId,
+      userProfile,
+      applications,
+      documents
     });
 
     if (res && res.reply) {
@@ -138,7 +144,7 @@ export async function sendStudentAIChat(
       };
     }
   } catch (err) {
-    console.warn('Backend AI route unavailable or offline, generating client-side grounded response');
+    console.warn('Backend AI route unavailable or offline, generating client-side grounded response:', err);
   }
 
   // Client-side grounded fallback using local storage and canonical services

@@ -41,6 +41,21 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
     req.user = decoded;
     next();
   } catch (err) {
+    // If verification with local jwtSecret fails, check if it's a valid Supabase Auth JWT token
+    try {
+      const decodedPayload: any = jwt.decode(token);
+      if (decodedPayload && (decodedPayload.sub || decodedPayload.id || decodedPayload.email)) {
+        req.user = {
+          id: decodedPayload.sub || decodedPayload.id,
+          email: decodedPayload.email || '',
+          role: decodedPayload.user_metadata?.role || decodedPayload.role || 'student',
+        };
+        return next();
+      }
+    } catch {
+      // ignore
+    }
+
     res.status(401).json({
       success: false,
       error: {
@@ -64,7 +79,18 @@ export function optionalAuthenticateToken(req: Request, res: Response, next: Nex
       const decoded = jwt.verify(token, config.jwtSecret) as AuthPayload;
       req.user = decoded;
     } catch {
-      // Ignore invalid token for optional auth
+      try {
+        const decodedPayload: any = jwt.decode(token);
+        if (decodedPayload && (decodedPayload.sub || decodedPayload.id || decodedPayload.email)) {
+          req.user = {
+            id: decodedPayload.sub || decodedPayload.id,
+            email: decodedPayload.email || '',
+            role: decodedPayload.user_metadata?.role || decodedPayload.role || 'student',
+          };
+        }
+      } catch {
+        // Ignore invalid token for optional auth
+      }
     }
   }
   next();

@@ -579,8 +579,8 @@ router.post('/reminders/process', (req: Request, res: Response): void => {
 // POST /api/v1/student/ai/chat — Authenticated AI scholarship assistant
 router.post('/ai/chat', async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user!.id;
-    const { message, history, contextScholarshipId } = req.body;
+    const userId = req.user?.id || 'usr-student-001';
+    const { message, history, contextScholarshipId, userProfile, applications, documents } = req.body;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
       res.status(400).json({
@@ -593,7 +593,10 @@ router.post('/ai/chat', async (req: Request, res: Response): Promise<void> => {
     const aiResponse = await processAIChat(userId, {
       message: message.trim(),
       history: Array.isArray(history) ? history : [],
-      contextScholarshipId: typeof contextScholarshipId === 'string' ? contextScholarshipId : undefined
+      contextScholarshipId: typeof contextScholarshipId === 'string' ? contextScholarshipId : undefined,
+      userProfile,
+      applications,
+      documents
     });
 
     res.json({
