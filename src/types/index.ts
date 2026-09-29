@@ -33,7 +33,11 @@ export type ScholarshipStatus =
   | 'verified'
   | 'rejected'
   | 'expired'
+  | 'closed'
   | 'archived';
+
+/** Computed display lifecycle status — derived at render time, never stored */
+export type LifecycleStatus = 'active' | 'closing_soon' | 'closed' | 'archived';
 
 export type VerificationStatus = 
   | 'unverified'
@@ -47,12 +51,45 @@ export type ApplicationStatus =
   | 'Preparing'
   | 'Applied'
   | 'Under Review'
+  | 'Shortlisted'
   | 'Interview'
   | 'Successful'
   | 'Unsuccessful'
   | 'Withdrawn'
   | 'Awarded'
   | 'Not Selected';
+
+export type ApplicationStatusSource = 'student_updated' | 'admin_updated' | 'provider_confirmed';
+
+export interface ApplicationStatusHistoryItem {
+  id: string;
+  status: ApplicationStatus;
+  timestamp: string;
+  notes?: string;
+  source?: ApplicationStatusSource;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ApplicationOutcomeDetails {
+  shortlistDate?: string;
+  nextStep?: string;
+  nextStepDate?: string;
+  interviewDate?: string;
+  interviewType?: 'online' | 'in_person' | 'phone' | 'assessment';
+  interviewLocation?: string;
+  interviewNotes?: string;
+  awardDate?: string;
+  awardAmount?: number;
+  awardCurrency?: string;
+  awardDuration?: string;
+  awardNotes?: string;
+  rejectionDate?: string;
+  rejectionReason?: string;
+  rejectionNotes?: string;
+  withdrawnDate?: string;
+  withdrawnReason?: string;
+  withdrawnNotes?: string;
+}
 
 export type DocumentStatus = 
   | 'available'
@@ -160,6 +197,10 @@ export interface Scholarship {
   verificationNotes?: string;
   viewCount?: number;
   saveCount?: number;
+  /** Set to true by admin "Close" action — prevents auto-restore even if deadline is in future */
+  manuallyClosed?: boolean;
+  /** ISO timestamp of when admin manually closed this scholarship */
+  manuallyClosedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -170,6 +211,7 @@ export interface ApplicationChecklistItem {
   completed: boolean;
   documentId?: string;
   required: boolean;
+  custom?: boolean;
 }
 
 export interface Application {
@@ -188,6 +230,13 @@ export interface Application {
   resultDate?: string;
   notes: string;
   checklist: ApplicationChecklistItem[];
+  essayDraft?: string;
+  essayStatus?: 'not_started' | 'drafting' | 'ready';
+  essayNotes?: string;
+  workspaceLastSavedAt?: string;
+  statusHistory?: ApplicationStatusHistoryItem[];
+  outcomeDetails?: ApplicationOutcomeDetails;
+  statusSource?: ApplicationStatusSource;
   // Submission snapshot — frozen at time of submission, never mutated
   submittedProfileSnapshot?: Record<string, unknown>;
   submittedDocuments?: SubmittedDocumentSnapshot[];
@@ -275,7 +324,38 @@ export interface DocumentReadinessItem {
   status: 'available' | 'missing' | 'expired';
 }
 
-/** Overall application readiness result */
+export type RequirementCategory = 'Profile' | 'Academic' | 'Documents' | 'Other';
+export type RequirementStatus = 'complete' | 'missing' | 'needs_review' | 'not_required';
+
+export interface RequirementItem {
+  id: string;
+  category: RequirementCategory;
+  name: string;
+  description: string;
+  status: RequirementStatus;
+  isRequired: boolean;
+  actionLabel?: string;
+  actionPath?: string;
+  matchedDocument?: StoredDocument | null;
+}
+
+export type ReadinessCategory = 'Ready to Apply' | 'Almost Ready' | 'Needs Preparation' | 'Not Ready Yet';
+
+export interface ComprehensiveReadinessResult {
+  hasStructuredRequirements: boolean;
+  score: number; // 0 to 100
+  category: ReadinessCategory;
+  categoryColors: { bg: string; text: string; border: string; bar: string };
+  summary: string;
+  items: RequirementItem[];
+  missingCount: number;
+  needsReviewCount: number;
+  completeCount: number;
+  totalCount: number;
+  isReady: boolean;
+}
+
+/** Overall application readiness result (document-specific) */
 export interface ApplicationReadiness {
   percentage: number;
   total: number;
@@ -300,6 +380,26 @@ export interface NotificationItem {
 }
 
 export type InAppNotification = NotificationItem;
+
+export type ReminderType = '7_day' | '3_day' | '1_day' | 'deadline_day';
+export type ReminderStatus = 'scheduled' | 'sent' | 'failed' | 'cancelled';
+export type ReminderChannel = 'inApp' | 'email' | 'push' | 'whatsapp';
+
+export interface ReminderRecord {
+  id: string;
+  userId: string;
+  scholarshipId: string;
+  scholarshipTitle: string;
+  reminderType: ReminderType;
+  deadlineAt: string;
+  scheduledFor: string;
+  sentAt?: string;
+  channel: ReminderChannel;
+  status: ReminderStatus;
+  createdAt: string;
+  readAt?: string;
+  errorMessage?: string;
+}
 
 export interface VerificationRecord {
   id: string;
@@ -352,4 +452,35 @@ export interface AdminUser {
   createdAt: string;
   lastActiveAt?: string;
   assignedDepartment?: string;
+}
+
+export type ReportReason =
+  | 'Scholarship has expired'
+  | "Application link doesn't work"
+  | 'Information is incorrect'
+  | 'Eligibility requirements are incorrect'
+  | 'Award/funding information is incorrect'
+  | 'Scholarship appears suspicious'
+  | 'Deadline appears incorrect'
+  | 'Other';
+
+export type ReportStatus = 'Pending' | 'Reviewing' | 'Resolved' | 'Dismissed';
+
+export interface ScholarshipReport {
+  id: string;
+  scholarshipId: string;
+  scholarshipTitle: string;
+  providerName: string;
+  reporterUserId: string;
+  reporterName?: string;
+  reporterEmail?: string;
+  reason: ReportReason;
+  description?: string;
+  status: ReportStatus;
+  adminNotes?: string;
+  resolvedAt?: string;
+  resolvedByAdminId?: string;
+  resolvedByAdminName?: string;
+  createdAt: string;
+  updatedAt: string;
 }

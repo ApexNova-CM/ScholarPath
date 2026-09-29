@@ -35,6 +35,7 @@ export type ScholarshipStatus =
   | 'verified'
   | 'rejected'
   | 'expired'
+  | 'closed'
   | 'archived';
 
 export type VerificationStatus =
@@ -49,12 +50,45 @@ export type ApplicationStatus =
   | 'Preparing'
   | 'Applied'
   | 'Under Review'
+  | 'Shortlisted'
   | 'Interview'
   | 'Successful'
   | 'Unsuccessful'
   | 'Withdrawn'
   | 'Awarded'
   | 'Not Selected';
+
+export type ApplicationStatusSource = 'student_updated' | 'admin_updated' | 'provider_confirmed';
+
+export interface ApplicationStatusHistoryItem {
+  id: string;
+  status: ApplicationStatus;
+  timestamp: string;
+  notes?: string;
+  source?: ApplicationStatusSource;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ApplicationOutcomeDetails {
+  shortlistDate?: string;
+  nextStep?: string;
+  nextStepDate?: string;
+  interviewDate?: string;
+  interviewType?: 'online' | 'in_person' | 'phone' | 'assessment';
+  interviewLocation?: string;
+  interviewNotes?: string;
+  awardDate?: string;
+  awardAmount?: number;
+  awardCurrency?: string;
+  awardDuration?: string;
+  awardNotes?: string;
+  rejectionDate?: string;
+  rejectionReason?: string;
+  rejectionNotes?: string;
+  withdrawnDate?: string;
+  withdrawnReason?: string;
+  withdrawnNotes?: string;
+}
 
 export interface UserRecord {
   id: string;
@@ -170,6 +204,8 @@ export interface ScholarshipRecord {
   verificationNotes?: string;
   viewCount: number;
   saveCount: number;
+  manuallyClosed?: boolean;
+  manuallyClosedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -180,6 +216,7 @@ export interface ApplicationChecklistItem {
   completed: boolean;
   documentId?: string;
   required: boolean;
+  custom?: boolean;
 }
 
 export interface ApplicationRecord {
@@ -196,6 +233,13 @@ export interface ApplicationRecord {
   resultDate?: string;
   notes: string;
   checklist: ApplicationChecklistItem[];
+  essayDraft?: string;
+  essayStatus?: 'not_started' | 'drafting' | 'ready';
+  essayNotes?: string;
+  workspaceLastSavedAt?: string;
+  statusHistory?: ApplicationStatusHistoryItem[];
+  outcomeDetails?: ApplicationOutcomeDetails;
+  statusSource?: ApplicationStatusSource;
   createdAt: string;
   updatedAt: string;
 }
@@ -231,6 +275,26 @@ export interface NotificationRecord {
   relatedScholarshipId?: string;
   relatedApplicationId?: string;
   createdAt: string;
+}
+
+export type ReminderType = '7_day' | '3_day' | '1_day' | 'deadline_day';
+export type ReminderStatus = 'scheduled' | 'sent' | 'failed' | 'cancelled';
+export type ReminderChannel = 'inApp' | 'email' | 'push' | 'whatsapp';
+
+export interface ReminderRecord {
+  id: string;
+  userId: string;
+  scholarshipId: string;
+  scholarshipTitle: string;
+  reminderType: ReminderType;
+  deadlineAt: string;
+  scheduledFor: string;
+  sentAt?: string;
+  channel: ReminderChannel;
+  status: ReminderStatus;
+  createdAt: string;
+  readAt?: string;
+  errorMessage?: string;
 }
 
 export interface VerificationLogRecord {

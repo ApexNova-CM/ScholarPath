@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Scholarship, UserProfile } from '../../types';
 import { ScholarshipCard } from '../../components/common/ScholarshipCard';
+import { evaluateEligibility } from '../../services/eligibility';
 import { Bookmark, Search, ArrowRight } from 'lucide-react';
 
 interface SavedScholarshipsPageProps {
@@ -66,17 +67,22 @@ export const SavedScholarshipsPage: React.FC<SavedScholarshipsPageProps> = ({
 
       {savedScholarships.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {savedScholarships.map(sch => (
-            <ScholarshipCard
-              key={sch.id}
-              scholarship={sch}
-              userProfile={userProfile}
-              isSaved={true}
-              onToggleSave={onToggleSave}
-              onViewDetails={(id) => onNavigate(`/scholarships/${id}`)}
-              onStartApplication={onStartApplication}
-            />
-          ))}
+          {savedScholarships.map(sch => {
+            const eligibility = evaluateEligibility(sch, userProfile);
+            return (
+              <ScholarshipCard
+                key={sch.id}
+                scholarship={sch}
+                userProfile={userProfile}
+                isSaved={true}
+                onToggleSave={onToggleSave}
+                onViewDetails={(id) => onNavigate(`/scholarships/${id}`)}
+                onStartApplication={onStartApplication}
+                showMatchScore={!eligibility.hardDisqualified && eligibility.score >= 50}
+                matchScore={eligibility.score}
+              />
+            );
+          })}
         </div>
       ) : (
         <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-4 max-w-md mx-auto">

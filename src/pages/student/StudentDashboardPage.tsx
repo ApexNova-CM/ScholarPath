@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { UserProfile, Scholarship, Application, InAppNotification } from '../../types';
 import { ScholarshipCard } from '../../components/common/ScholarshipCard';
 import { DeadlineBadge } from '../../components/common/DeadlineBadge';
 import { evaluateEligibility } from '../../services/eligibility';
+import { computeLifecycleStatus } from '../../services/scholarshipFilters';
+import { processDueScholarshipReminders } from '../../services/reminderService';
 import { 
   Sparkles, GraduationCap, Search, ArrowRight, Briefcase, 
-  CheckCircle2, Bookmark, FileText, Bell, Clock 
+  CheckCircle2, Bookmark, FileText, Bell, Clock, Target, AlertCircle, UserCheck
 } from 'lucide-react';
 
 interface StudentDashboardPageProps {
@@ -31,21 +33,37 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
   onNavigate,
   onStartApplication
 }) => {
-  // Compute top matched scholarships
-  const topMatches = [...scholarships]
-    .filter(s => s.status !== 'archived')
+  // Automatically process any due deadline reminders for the current student on dashboard load
+  useEffect(() => {
+    if (userProfile?.id) {
+      processDueScholarshipReminders({ userProfile }).catch(() => {});
+    }
+  }, [userProfile?.id]);
+  // Compute top matched scholarships — keep score alongside for badge rendering
+  // Must exclude closed, archived, and rejected opportunities
+  const topMatchesWithScores = [...scholarships]
+    .filter(s => {
+      if (s.status === 'archived' || s.status === 'rejected' || s.status === 'closed' || s.manuallyClosed === true) return false;
+      const lifecycle = computeLifecycleStatus(s);
+      return lifecycle !== 'closed' && lifecycle !== 'archived';
+    })
     .map(s => ({
       scholarship: s,
       eligibility: evaluateEligibility(s, userProfile)
     }))
-    .filter(item => !item.eligibility.hardDisqualified && item.eligibility.score >= 60)
+    .filter(item => !item.eligibility.hardDisqualified && item.eligibility.score >= 50)
     .sort((a, b) => b.eligibility.score - a.eligibility.score)
-    .slice(0, 4)
-    .map(item => item.scholarship);
+    .slice(0, 4);
 
-  // Filter upcoming deadlines (closing within next 45 days)
+  // Simple list for backward-compat (metric counter still uses length)
+  const topMatches = topMatchesWithScores.map(item => item.scholarship);
+
+  // Filter upcoming deadlines (closing within next 45 days, excluding closed/archived)
   const upcomingScholarships = [...scholarships]
     .filter(s => {
+      if (s.status === 'archived' || s.status === 'rejected' || s.status === 'closed' || s.manuallyClosed === true) return false;
+      const lifecycle = computeLifecycleStatus(s);
+      if (lifecycle === 'closed' || lifecycle === 'archived') return false;
       const diff = (new Date(s.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24);
       return diff >= 0 && diff <= 45;
     })
@@ -58,11 +76,18 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
     preparing: applications.filter(a => a.status === 'Preparing').length,
     applied: applications.filter(a => a.status === 'Applied').length,
     underReview: applications.filter(a => a.status === 'Under Review').length,
+    shortlisted: applications.filter(a => a.status === 'Shortlisted').length,
     interview: applications.filter(a => a.status === 'Interview').length,
-    awarded: applications.filter(a => a.status === 'Awarded').length
+    awarded: applications.filter(a => a.status === 'Awarded').length,
+    notSelected: applications.filter(a => a.status === 'Not Selected').length,
+    withdrawn: applications.filter(a => a.status === 'Withdrawn').length
   };
 
   const unreadNotifs = notifications.filter(n => !n.read).slice(0, 3);
+
+  // Profile completeness — used to show nudge banner
+  const completion = userProfile.profileCompletion || 0;
+  const isProfileLow = completion < 60;
 
   return (
     <div className="space-y-8">
@@ -81,7 +106,15 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <button
+            id="student-btn-ask-ai"
+            onClick={() => onNavigate('/ai-assistant')}
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 text-indigo-700 border border-indigo-200/80 text-xs font-semibold rounded-xl shadow-2xs transition-colors cursor-pointer"
+          >
+            <Sparkles size={14} className="text-indigo-600 animate-pulse" />
+            <span>Ask AI Assistant</span>
+          </button>
           <button
             id="student-btn-quick-explore"
             onClick={() => onNavigate('/scholarships')}
@@ -101,7 +134,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
         >
           <span className="text-[11px] font-semibold text-slate-500 block group-hover:text-indigo-600">Top Matches</span>
           <div className="text-2xl font-extrabold text-slate-900 mt-1">{topMatches.length}</div>
-          <span className="text-[10px] text-slate-400">60%+ compatibility</span>
+          <span className="text-[10px] text-slate-400">50%+ compatibility</span>
         </div>
 
         <div 
@@ -136,8 +169,8 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
           className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:border-purple-300 hover:shadow-xs transition-all cursor-pointer group"
         >
           <span className="text-[11px] font-semibold text-purple-600 block">In Review</span>
-          <div className="text-2xl font-extrabold text-purple-600 mt-1">{appCounts.underReview + appCounts.interview}</div>
-          <span className="text-[10px] text-slate-400">Review & Interview</span>
+          <div className="text-2xl font-extrabold text-purple-600 mt-1">{appCounts.underReview + appCounts.shortlisted + appCounts.interview}</div>
+          <span className="text-[10px] text-slate-400">Review & Shortlist</span>
         </div>
 
         <div 
@@ -152,12 +185,12 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
 
       {/* Main Content Grid: Top Matches + Sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left 2 Cols: Top Matches */}
+        {/* Left 2 Cols: Recommended For You */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-              <Sparkles size={16} className="text-indigo-600" />
-              <span>Top Matched Scholarships For You</span>
+              <Target size={16} className="text-indigo-600" />
+              <span>Recommended for You</span>
             </h2>
             <button
               onClick={() => onNavigate('/scholarships')}
@@ -167,9 +200,35 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
             </button>
           </div>
 
-          {topMatches.length > 0 ? (
+          {/* Profile completion nudge — shown when profile < 60% */}
+          {isProfileLow && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200/80 text-xs">
+              <div className="flex items-start gap-2.5">
+                <UserCheck size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-amber-900">Complete your profile to improve your matches</p>
+                  <p className="text-amber-700 mt-0.5 leading-relaxed">
+                    Your profile is {completion}% complete. Adding your field of study, GPA, and location helps us find scholarships that truly fit you.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => onNavigate('/profile')}
+                className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors"
+              >
+                Complete Profile
+              </button>
+            </div>
+          )}
+
+          {/* Recommendation disclaimer */}
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            Based on your profile · Scores reflect compatibility, not guaranteed eligibility. Always check full requirements before applying.
+          </p>
+
+          {topMatchesWithScores.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {topMatches.map(sch => (
+              {topMatchesWithScores.map(({ scholarship: sch, eligibility }) => (
                 <ScholarshipCard
                   key={sch.id}
                   scholarship={sch}
@@ -178,24 +237,75 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                   onToggleSave={onToggleSave}
                   onViewDetails={(id) => onNavigate(`/scholarships/${id}`)}
                   onStartApplication={onStartApplication}
+                  showMatchScore={true}
+                  matchScore={eligibility.score}
                 />
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-8 text-center space-y-3 shadow-2xs">
-              <p className="text-xs text-slate-500">No scholarships matching 60%+ currently found for your profile criteria.</p>
-              <button
-                onClick={() => onNavigate('/scholarships')}
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 cursor-pointer"
-              >
-                Browse All Scholarships
-              </button>
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-8 text-center space-y-4 shadow-2xs">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-400 mx-auto flex items-center justify-center">
+                <Target size={24} />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-slate-800">No strong matches yet</p>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                  Complete more of your profile to discover scholarships that fit you — especially your field of study, education level, and location.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <button
+                  onClick={() => onNavigate('/profile')}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors shadow-2xs"
+                >
+                  <UserCheck size={13} />
+                  <span>Complete Profile</span>
+                </button>
+                <button
+                  onClick={() => onNavigate('/scholarships')}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-slate-300 text-slate-700 text-xs font-semibold transition-colors shadow-2xs"
+                >
+                  <Search size={13} />
+                  <span>Browse All Scholarships</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Right Col: Deadlines & Notifications & Documents */}
+        {/* Right Col: AI Advisor + Deadlines & Notifications & Documents */}
         <div className="space-y-6">
+          {/* AI Advisor Card */}
+          <div className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-purple-950 text-white rounded-2xl p-5 shadow-sm space-y-3 relative overflow-hidden border border-indigo-800/40">
+            <div className="absolute top-0 right-0 -mt-2 -mr-2 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 flex items-center justify-center">
+                  <Sparkles size={14} className="animate-pulse text-indigo-200" />
+                </div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-100">
+                  ScholarPath AI
+                </h3>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-200 border border-indigo-400/30">
+                Ready
+              </span>
+            </div>
+            <p className="text-xs text-indigo-200/90 leading-relaxed">
+              Ask about personalized matches, readiness gaps, deadline alerts, or next actions.
+            </p>
+            <div className="pt-1">
+              <button
+                id="dashboard-ai-card-btn"
+                onClick={() => onNavigate('/ai-assistant')}
+                className="w-full py-2 px-3 bg-white hover:bg-indigo-50 text-indigo-950 text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>Chat with AI Assistant</span>
+                <ArrowRight size={13} />
+              </button>
+            </div>
+          </div>
+
           {/* Upcoming Deadlines */}
           <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
@@ -247,9 +357,16 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
             {unreadNotifs.length > 0 ? (
               <div className="space-y-2">
                 {unreadNotifs.map(n => (
-                  <div key={n.id} className="p-2.5 rounded-xl bg-indigo-50/40 border border-indigo-100/60 text-xs space-y-1">
+                  <div 
+                    key={n.id} 
+                    onClick={() => {
+                      const target = n.link || (n.relatedScholarshipId ? `/scholarships/${n.relatedScholarshipId}` : '/notifications');
+                      onNavigate(target);
+                    }}
+                    className="p-2.5 rounded-xl bg-indigo-50/40 hover:bg-indigo-50/80 border border-indigo-100/60 text-xs space-y-1 cursor-pointer transition-colors"
+                  >
                     <span className="font-semibold text-slate-900 block">{n.title}</span>
-                    <p className="text-[11px] text-slate-600 leading-relaxed">{n.body}</p>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">{n.body || n.message}</p>
                   </div>
                 ))}
               </div>

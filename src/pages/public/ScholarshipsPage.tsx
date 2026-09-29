@@ -149,8 +149,9 @@ export const ScholarshipsPage: React.FC<ScholarshipsPageProps> = ({
   // Filtering & Sorting logic
   const filteredScholarships = useMemo(() => {
     return scholarships.filter(sch => {
-      // In student-facing discovery, only show verified or pending active scholarships (not archived/rejected)
+      // In student-facing discovery, only show verified or pending active scholarships (not archived/rejected/closed)
       if (sch.status === 'rejected' || sch.status === 'archived') return false;
+      if (sch.status === 'closed' || sch.manuallyClosed === true) return false;
 
       // 1. Search query
       if (searchQuery.trim()) {
@@ -405,7 +406,7 @@ export const ScholarshipsPage: React.FC<ScholarshipsPageProps> = ({
                 onChange={(e) => setSortBy(e.target.value as any)}
                 className="w-full sm:w-auto px-3.5 py-3 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 appearance-none pr-8 cursor-pointer focus:outline-hidden focus:border-indigo-500 shadow-2xs min-h-[44px]"
               >
-                <option value="match">Sort: Best Match</option>
+                <option value="match">Sort: Recommended</option>
                 <option value="deadline">Sort: Deadline (Soonest)</option>
                 <option value="amount">Sort: Amount (Highest)</option>
                 <option value="recent">Sort: Recently Added</option>
@@ -697,17 +698,25 @@ export const ScholarshipsPage: React.FC<ScholarshipsPageProps> = ({
 
           {filteredScholarships.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {filteredScholarships.map(sch => (
-                <ScholarshipCard
-                  key={sch.id}
-                  scholarship={sch}
-                  userProfile={userProfile}
-                  isSaved={isSaved(sch.id)}
-                  onToggleSave={onToggleSave}
-                  onViewDetails={(id) => onNavigate(`/scholarships/${id}`)}
-                  onStartApplication={onStartApplication}
-                />
-              ))}
+              {filteredScholarships.map(sch => {
+                // Compute score once for card badge when student is logged in
+                const matchScore = userProfile
+                  ? evaluateEligibility(sch, userProfile).score
+                  : undefined;
+                return (
+                  <ScholarshipCard
+                    key={sch.id}
+                    scholarship={sch}
+                    userProfile={userProfile}
+                    isSaved={isSaved(sch.id)}
+                    onToggleSave={onToggleSave}
+                    onViewDetails={(id) => onNavigate(`/scholarships/${id}`)}
+                    onStartApplication={onStartApplication}
+                    showMatchScore={!!matchScore && matchScore >= 50}
+                    matchScore={matchScore}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200 p-10 sm:p-14 text-center space-y-4">

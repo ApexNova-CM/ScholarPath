@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Application, ApplicationStatus, Scholarship, SubmittedDocumentSnapshot } from '../../types';
+import React, { useState } from 'react';
+import { Application, ApplicationStatus, ApplicationOutcomeDetails, Scholarship, SubmittedDocumentSnapshot } from '../../types';
 import { StorageService } from '../../services/storage';
 import { api } from '../../lib/apiClient';
-import { fetchApplicationDocuments } from '../../services/documentService';
+import { fetchApplicationDocuments, evaluateScholarshipReadiness } from '../../services/documentService';
 import { DeadlineBadge } from '../../components/common/DeadlineBadge';
+import { ApplicationOutcomeModal } from '../../components/common/ApplicationOutcomeModal';
+import { ApplicationHistoryTimeline } from '../../components/common/ApplicationHistoryTimeline';
+import { useAuth } from '../../context/AuthContext';
 import { 
   Briefcase, Plus, ExternalLink, Calendar, CheckCircle2, 
-  Clock, AlertCircle, Trash2, Edit3, Save, X, Sparkles,
-  FileText, ChevronDown, ChevronUp, Shield
+  Clock, AlertCircle, Edit3, Sparkles, FileText, ChevronDown, 
+  ChevronUp, Shield, Trophy, XCircle, History
 } from 'lucide-react';
 
 interface ApplicationsPageProps {
@@ -23,11 +26,11 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
   onUpdateApplication,
   onNavigate
 }) => {
+  const { user } = useAuth();
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('all');
-  const [editingAppId, setEditingAppId] = useState<string | null>(null);
-  const [editNotes, setEditNotes] = useState<string>('');
-  const [editStatus, setEditStatus] = useState<ApplicationStatus>('Applied');
+  const [outcomeModalApp, setOutcomeModalApp] = useState<Application | null>(null);
   const [expandedAppId, setExpandedAppId] = useState<string | null>(null);
+  const [expandedHistoryAppId, setExpandedHistoryAppId] = useState<string | null>(null);
   const [appDocsMap, setAppDocsMap] = useState<Record<string, SubmittedDocumentSnapshot[]>>({});
 
   const toggleExpand = async (appId: string) => {
@@ -42,14 +45,19 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     }
   };
 
+  const toggleHistory = (appId: string) => {
+    setExpandedHistoryAppId(prev => prev === appId ? null : appId);
+  };
+
   const statuses: ApplicationStatus[] = [
-    'Interested',
     'Preparing',
     'Applied',
     'Under Review',
+    'Shortlisted',
     'Interview',
     'Awarded',
-    'Not Selected'
+    'Not Selected',
+    'Withdrawn'
   ];
 
   const filteredApps = applications.filter(a => {
@@ -57,26 +65,31 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
     return a.status === selectedStatusFilter;
   });
 
-  const handleStartEdit = (app: Application) => {
-    setEditingAppId(app.id);
-    setEditNotes(app.notes || '');
-    setEditStatus(app.status);
-  };
-
-  const handleSaveEdit = async (app: Application) => {
+  const handleSaveOutcome = async (
+    applicationId: string,
+    newStatus: ApplicationStatus,
+    outcomeDetails?: ApplicationOutcomeDetails,
+    newNotes?: string
+  ) => {
     try {
-      await api.patch(`/student/applications/${app.id}`, {
-        status: editStatus,
-        notes: editNotes,
+      await api.patch(`/student/applications/${applicationId}`, {
+        status: newStatus,
+        notes: newNotes,
+        outcomeDetails,
       });
     } catch (e) {
       console.error('Failed to update application status via API:', e);
     }
-    const updated = StorageService.updateApplicationStatus(app.id, editStatus, editNotes);
+    const updated = StorageService.recordApplicationOutcome(
+      applicationId,
+      newStatus,
+      outcomeDetails,
+      newNotes,
+      'student_updated'
+    );
     if (updated) {
       onUpdateApplication(updated);
     }
-    setEditingAppId(null);
   };
 
   return (
@@ -89,27 +102,38 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
             <span>Applications Tracker</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            My Application Submissions
+            My Application Submissions & Outcomes
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
-            Track milestones, interview stages, and notes for all your active scholarship applications.
+            Track milestones, interview stages, award notifications, and outcome histories for all your scholarships.
           </p>
         </div>
 
-        <button
-          onClick={() => onNavigate('/scholarships')}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors self-start sm:self-auto cursor-pointer"
-        >
-          <Plus size={15} />
-          <span>Apply to New Scholarship</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            id="btn-apps-ask-ai"
+            onClick={() => onNavigate('/ai-assistant')}
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 text-indigo-700 border border-indigo-200/80 text-xs font-semibold rounded-xl shadow-2xs transition-colors cursor-pointer"
+          >
+            <Sparkles size={14} className="text-indigo-600 animate-pulse" />
+            <span>Ask AI</span>
+          </button>
+
+          <button
+            onClick={() => onNavigate('/scholarships')}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+          >
+            <Plus size={15} />
+            <span>Apply to New Scholarship</span>
+          </button>
+        </div>
       </div>
 
       {/* Status Filter Pills */}
       <div className="flex flex-wrap items-center gap-2">
         <button
           onClick={() => setSelectedStatusFilter('all')}
-          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
             selectedStatusFilter === 'all'
               ? 'bg-slate-900 text-white'
               : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -123,7 +147,7 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
             <button
               key={s}
               onClick={() => setSelectedStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
                 selectedStatusFilter === s
                   ? 'bg-indigo-600 text-white'
                   : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -139,7 +163,6 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
       {filteredApps.length > 0 ? (
         <div className="space-y-4">
           {filteredApps.map(app => {
-            const isEditing = editingAppId === app.id;
             const sch = scholarships.find(s => s.id === app.scholarshipId);
 
             return (
@@ -161,63 +184,94 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <DeadlineBadge deadline={app.deadline} size="sm" />
                     
-                    {/* Status Badge or Editor */}
-                    {isEditing ? (
-                      <select
-                        value={editStatus}
-                        onChange={(e) => setEditStatus(e.target.value as ApplicationStatus)}
-                        className="px-2.5 py-1 text-xs font-bold rounded-lg border border-indigo-300 bg-indigo-50 text-indigo-900 focus:outline-hidden"
-                      >
-                        {statuses.map(st => (
-                          <option key={st} value={st}>{st}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className={`px-2.5 py-1 text-xs font-bold rounded-lg border ${
-                        app.status === 'Awarded' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
-                        app.status === 'Interview' ? 'bg-purple-50 border-purple-200 text-purple-800' :
-                        app.status === 'Under Review' ? 'bg-amber-50 border-amber-200 text-amber-800' :
-                        app.status === 'Applied' ? 'bg-indigo-50 border-indigo-200 text-indigo-800' :
-                        'bg-slate-100 border-slate-200 text-slate-700'
-                      }`}>
-                        {app.status}
-                      </span>
-                    )}
+                    {sch && user && app.status === 'Preparing' && (() => {
+                      const readiness = evaluateScholarshipReadiness(sch, user);
+                      if (!readiness.hasStructuredRequirements) return null;
+                      return (
+                        <span 
+                          title={readiness.summary}
+                          className={`px-2 py-0.5 text-[11px] font-bold rounded-lg border ${readiness.categoryColors.bg} ${readiness.categoryColors.text} ${readiness.categoryColors.border}`}
+                        >
+                          🎓 {readiness.score}% Ready
+                        </span>
+                      );
+                    })()}
+                    
+                    {/* Status Badge */}
+                    <span className={`px-2.5 py-1 text-xs font-bold rounded-lg border ${
+                      app.status === 'Awarded' || app.status === 'Successful' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+                      app.status === 'Shortlisted' ? 'bg-indigo-50 border-indigo-200 text-indigo-800' :
+                      app.status === 'Interview' ? 'bg-purple-50 border-purple-200 text-purple-800' :
+                      app.status === 'Under Review' ? 'bg-amber-50 border-amber-200 text-amber-800' :
+                      app.status === 'Applied' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+                      app.status === 'Not Selected' || app.status === 'Unsuccessful' ? 'bg-rose-50 border-rose-200 text-rose-800' :
+                      'bg-slate-100 border-slate-200 text-slate-700'
+                    }`}>
+                      {app.status}
+                    </span>
                   </div>
                 </div>
+
+                {/* Outcome Highlight Box if metadata exists */}
+                {app.outcomeDetails && (
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs flex flex-wrap items-center justify-between gap-2">
+                    {app.status === 'Awarded' && (
+                      <div className="flex items-center gap-2 text-emerald-800 font-semibold">
+                        <Trophy size={14} className="text-emerald-600 shrink-0" />
+                        <span>Awarded: {app.outcomeDetails.awardAmount ? `$${Number(app.outcomeDetails.awardAmount).toLocaleString()} ${app.outcomeDetails.awardCurrency || 'USD'}` : 'Confirmed'}</span>
+                        {app.outcomeDetails.awardDuration && <span className="text-[11px] font-normal text-slate-500">({app.outcomeDetails.awardDuration})</span>}
+                        {app.outcomeDetails.awardDate && <span className="text-[11px] font-normal text-slate-500">· {new Date(app.outcomeDetails.awardDate).toLocaleDateString()}</span>}
+                      </div>
+                    )}
+                    {app.status === 'Shortlisted' && (
+                      <div className="flex items-center gap-2 text-indigo-800 font-semibold">
+                        <Sparkles size={14} className="text-indigo-600 shrink-0" />
+                        <span>Shortlisted</span>
+                        {app.outcomeDetails.nextStep && <span className="text-[11px] font-normal text-slate-600">· Next: {app.outcomeDetails.nextStep}</span>}
+                        {app.outcomeDetails.nextStepDate && <span className="text-[11px] font-normal text-slate-500">({new Date(app.outcomeDetails.nextStepDate).toLocaleDateString()})</span>}
+                      </div>
+                    )}
+                    {app.status === 'Interview' && (
+                      <div className="flex items-center gap-2 text-purple-800 font-semibold">
+                        <Calendar size={14} className="text-purple-600 shrink-0" />
+                        <span>Interview Scheduled</span>
+                        {app.outcomeDetails.interviewDate && <span className="text-[11px] font-normal text-slate-600">· {new Date(app.outcomeDetails.interviewDate).toLocaleDateString()}</span>}
+                        {app.outcomeDetails.interviewLocation && <span className="text-[11px] font-normal text-slate-500">({app.outcomeDetails.interviewLocation})</span>}
+                      </div>
+                    )}
+                    {app.status === 'Not Selected' && (
+                      <div className="flex items-center gap-2 text-rose-800 font-semibold">
+                        <XCircle size={14} className="text-rose-600 shrink-0" />
+                        <span>Decision Received</span>
+                        {app.outcomeDetails.rejectionDate && <span className="text-[11px] font-normal text-slate-500">· {new Date(app.outcomeDetails.rejectionDate).toLocaleDateString()}</span>}
+                        {app.outcomeDetails.rejectionReason && <span className="text-[11px] font-normal text-slate-600">({app.outcomeDetails.rejectionReason})</span>}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Body & Notes */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
                   <div>
                     <span className="text-slate-400 block font-medium">Application Date</span>
                     <span className="font-semibold text-slate-800 mt-0.5 block">
-                      {new Date(app.appliedDate || app.createdAt).toLocaleDateString()}
+                      {new Date(app.appliedDate || app.appliedAt || app.createdAt).toLocaleDateString()}
                     </span>
                   </div>
 
                   <div className="md:col-span-2">
                     <span className="text-slate-400 block font-medium mb-1">Your Application Notes</span>
-                    {isEditing ? (
-                      <textarea
-                        value={editNotes}
-                        onChange={(e) => setEditNotes(e.target.value)}
-                        placeholder="Add interview reminders, portal login references, or submission milestones..."
-                        rows={2}
-                        className="w-full p-2 text-xs rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-hidden focus:border-indigo-500"
-                      />
-                    ) : (
-                      <p className="text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100/80 leading-relaxed italic">
-                        {app.notes || 'No notes added yet.'}
-                      </p>
-                    )}
+                    <p className="text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100/80 leading-relaxed italic">
+                      {app.notes || 'No notes added yet.'}
+                    </p>
                   </div>
                 </div>
 
                 {/* Footer Controls */}
-                <div className="flex items-center justify-between pt-2">
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                   {sch?.applicationUrl ? (
                     <a
                       href={sch.applicationUrl}
@@ -232,42 +286,52 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
                     <div />
                   )}
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => onNavigate(`/student/applications/${app.scholarshipId}/workspace`)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 cursor-pointer"
+                    >
+                      <FileText size={13} />
+                      <span>Workspace</span>
+                    </button>
+
+                    <button
+                      onClick={() => toggleHistory(app.id)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                    >
+                      <History size={13} className="text-indigo-600" />
+                      <span>{expandedHistoryAppId === app.id ? 'Hide Timeline' : 'History'}</span>
+                    </button>
+
                     <button
                       onClick={() => toggleExpand(app.id)}
                       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
                     >
-                      <FileText size={13} className="text-indigo-600" />
-                      <span>{expandedAppId === app.id ? 'Hide Details' : 'View Submitted Snapshot'}</span>
+                      <FileText size={13} className="text-slate-500" />
+                      <span>{expandedAppId === app.id ? 'Hide Snapshot' : 'Submission Snapshot'}</span>
                       {expandedAppId === app.id ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                     </button>
-                    {isEditing ? (
-                      <>
-                        <button
-                          onClick={() => setEditingAppId(null)}
-                          className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => handleSaveEdit(app)}
-                          className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                        >
-                          <Save size={13} />
-                          <span>Save Changes</span>
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => handleStartEdit(app)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
-                      >
-                        <Edit3 size={13} />
-                        <span>Update Status & Notes</span>
-                      </button>
-                    )}
+
+                    <button
+                      onClick={() => setOutcomeModalApp(app)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-2xs cursor-pointer"
+                    >
+                      <Edit3 size={13} />
+                      <span>Update Outcome</span>
+                    </button>
                   </div>
                 </div>
+
+                {/* History Timeline Panel */}
+                {expandedHistoryAppId === app.id && (
+                  <div className="pt-4 border-t border-slate-100 bg-slate-50/50 p-4 rounded-xl">
+                    <ApplicationHistoryTimeline
+                      history={app.statusHistory}
+                      currentStatus={app.status}
+                      createdAt={app.createdAt}
+                    />
+                  </div>
+                )}
 
                 {/* Submitted Snapshot Panel */}
                 {expandedAppId === app.id && (
@@ -283,47 +347,16 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
                       {(appDocsMap[app.id] || app.submittedDocuments || []).length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {(appDocsMap[app.id] || app.submittedDocuments || []).map((doc, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200 text-xs">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <FileText size={14} className="text-indigo-600 shrink-0" />
-                                <div className="truncate">
-                                  <p className="font-semibold text-slate-800 truncate">{doc.originalFileName || doc.documentTypeName}</p>
-                                  <p className="text-[10px] text-slate-400">{doc.documentTypeName}</p>
-                                </div>
-                              </div>
-                              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">Attached</span>
+                            <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-200 text-xs">
+                              <FileText size={14} className="text-indigo-600 shrink-0" />
+                              <span className="font-medium text-slate-800 truncate">{doc.documentTypeName || doc.originalFileName}</span>
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <p className="text-xs text-slate-400 italic">No document snapshot records found for this application.</p>
+                        <p className="text-xs text-slate-400 italic">No document snapshot captured for this submission.</p>
                       )}
                     </div>
-
-                    {/* Profile Snapshot Details */}
-                    {app.submittedProfileSnapshot && (
-                      <div className="space-y-1.5 pt-2 border-t border-slate-200/60">
-                        <span className="text-[11px] font-semibold text-slate-500 block uppercase tracking-wider">Profile Used At Submission</span>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-white p-3 rounded-lg border border-slate-200">
-                          <div>
-                            <span className="text-slate-400 text-[10px] block">Name</span>
-                            <span className="font-semibold text-slate-800">{String((app.submittedProfileSnapshot as any).firstName || '')} {String((app.submittedProfileSnapshot as any).lastName || '')}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 text-[10px] block">Institution</span>
-                            <span className="font-semibold text-slate-800">{String((app.submittedProfileSnapshot as any).institution || '—')}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 text-[10px] block">Field of Study</span>
-                            <span className="font-semibold text-slate-800">{String((app.submittedProfileSnapshot as any).fieldOfStudy || '—')}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 text-[10px] block">GPA</span>
-                            <span className="font-semibold text-slate-800">{String((app.submittedProfileSnapshot as any).gpa || '—')}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -331,21 +364,23 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
           })}
         </div>
       ) : (
-        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-4 max-w-md mx-auto">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 mx-auto flex items-center justify-center">
-            <Briefcase size={24} />
-          </div>
-          <h3 className="text-base font-bold text-slate-900">No Applications In This Status</h3>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            When you find a scholarship, click "Start Application" to prepare documents and record external submissions here.
+        <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-3">
+          <Briefcase size={28} className="text-slate-300 mx-auto" />
+          <h3 className="text-base font-bold text-slate-900">No applications found in this filter</h3>
+          <p className="text-xs text-slate-500">
+            Change filter or discover new scholarships to apply.
           </p>
-          <button
-            onClick={() => onNavigate('/scholarships')}
-            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors shadow-2xs"
-          >
-            Find Scholarships to Apply
-          </button>
         </div>
+      )}
+
+      {/* Outcome Modal */}
+      {outcomeModalApp && (
+        <ApplicationOutcomeModal
+          isOpen={Boolean(outcomeModalApp)}
+          onClose={() => setOutcomeModalApp(null)}
+          application={outcomeModalApp}
+          onSaveOutcome={handleSaveOutcome}
+        />
       )}
     </div>
   );

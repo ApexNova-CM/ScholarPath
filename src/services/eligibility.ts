@@ -252,3 +252,24 @@ export function evaluateEligibility(
     summary
   };
 }
+
+/**
+ * Returns a human-readable match category label for a given score (0–100).
+ * Scholarships below 50 are not shown in the Recommended section.
+ */
+export function getMatchCategory(score: number): 'Excellent Match' | 'Strong Match' | 'Possible Match' | 'Low Match' {
+  if (score >= 90) return 'Excellent Match';
+  if (score >= 75) return 'Strong Match';
+  if (score >= 50) return 'Possible Match';
+  return 'Low Match';
+}
+
+/**
+ * Returns Tailwind colour classes for a given match score tier.
+ */
+export function getMatchCategoryColors(score: number): { bg: string; text: string; border: string } {
+  if (score >= 90) return { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200' };
+  if (score >= 75) return { bg: 'bg-indigo-50', text: 'text-indigo-800', border: 'border-indigo-200' };
+  if (score >= 50) return { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' };
+  return { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200' };
+}

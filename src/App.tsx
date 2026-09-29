@@ -34,12 +34,16 @@ import { ProfilePage } from './pages/student/ProfilePage';
 import { DocumentsPage } from './pages/student/DocumentsPage';
 import { NotificationsPage } from './pages/student/NotificationsPage';
 import { SettingsPage } from './pages/student/SettingsPage';
+import { MyReportsPage } from './pages/student/MyReportsPage';
+import { ApplicationWorkspacePage } from './pages/student/ApplicationWorkspacePage';
+import { AiAssistantPage } from './pages/student/AiAssistantPage';
 
 // Admin Pages
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AdminScholarshipsPage } from './pages/admin/AdminScholarshipsPage';
 import { AdminAddEditScholarshipPage } from './pages/admin/AdminAddEditScholarshipPage';
 import { AdminVerificationQueuePage } from './pages/admin/AdminVerificationQueuePage';
+import { AdminReportsPage } from './pages/admin/AdminReportsPage';
 import { AdminProvidersPage } from './pages/admin/AdminProvidersPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { AdminApplicationsPage } from './pages/admin/AdminApplicationsPage';
@@ -216,6 +220,20 @@ function MainApp() {
     api.post(`/admin/scholarships/${id}/archive`).catch(() => {});
   };
 
+  const handleCloseScholarship = (id: string) => {
+    const updated = StorageService.closeScholarship(id);
+    if (updated) {
+      setScholarships((prev) => prev.map((s) => s.id === id ? updated : s));
+    }
+  };
+
+  const handleRestoreScholarship = (id: string) => {
+    const updated = StorageService.restoreScholarship(id);
+    if (updated) {
+      setScholarships((prev) => prev.map((s) => s.id === id ? updated : s));
+    }
+  };
+
   const handleDeleteScholarship = (id: string) => {
     // Optimistic update — remove from UI instantly, no page refresh
     setScholarships((prev) => prev.filter((s) => s.id !== id));
@@ -229,6 +247,43 @@ function MainApp() {
 
   // Route parser & matcher
   const renderRoute = () => {
+    // 0. Check application workspace route: /student/applications/:id/workspace or /scholarships/:id/workspace
+    const workspaceMatch = currentPath.match(/^\/(?:student\/applications|scholarships)\/([^/?#]+)\/workspace$/);
+    if (workspaceMatch && workspaceMatch[1]) {
+      const id = workspaceMatch[1];
+      if (!isAuthenticated || !user || role !== 'student') {
+        return (
+          <AuthLayout portal="student" onNavigate={navigate}>
+            <LoginPage onNavigate={navigate} />
+          </AuthLayout>
+        );
+      }
+      return (
+        <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+          <ApplicationWorkspacePage
+            scholarshipId={id}
+            scholarships={scholarships}
+            userProfile={user}
+            documents={documents}
+            savedScholarshipIds={savedIds}
+            onToggleSave={handleToggleSave}
+            onNavigate={navigate}
+            onUpdateApplication={(updated) => {
+              setApplications((prev) => {
+                const idx = prev.findIndex((a) => a.id === updated.id);
+                if (idx >= 0) {
+                  const copy = [...prev];
+                  copy[idx] = updated;
+                  return copy;
+                }
+                return [updated, ...prev];
+              });
+            }}
+          />
+        </StudentLayout>
+      );
+    }
+
     // 1. Check scholarship detail route: /scholarships/:id
     const scholarshipMatch = currentPath.match(/^\/scholarships\/([^/?#]+)$/);
     if (scholarshipMatch && scholarshipMatch[1]) {
@@ -640,6 +695,41 @@ function MainApp() {
           </StudentLayout>
         );
 
+      case '/my-reports':
+        if (!isAuthenticated || !user || role !== 'student') {
+          return (
+            <AuthLayout portal="student" onNavigate={navigate}>
+              <LoginPage onNavigate={navigate} />
+            </AuthLayout>
+          );
+        }
+        return (
+          <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+            <MyReportsPage onNavigate={navigate} />
+          </StudentLayout>
+        );
+
+      case '/ai-assistant':
+      case '/student/ai-assistant':
+        if (!isAuthenticated || !user || role !== 'student') {
+          return (
+            <AuthLayout portal="student" onNavigate={navigate}>
+              <LoginPage onNavigate={navigate} />
+            </AuthLayout>
+          );
+        }
+        return (
+          <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+            <AiAssistantPage
+              userProfile={user}
+              scholarships={scholarships}
+              applications={applications}
+              initialScholarshipId={queryParams.get('scholarshipId') || undefined}
+              onNavigate={navigate}
+            />
+          </StudentLayout>
+        );
+
       // ----------------------------------------------------
       // ADMIN PORTAL ROUTES
       // ----------------------------------------------------
@@ -724,6 +814,8 @@ function MainApp() {
               onUnverifyScholarship={handleUnverifyScholarship}
               onArchiveScholarship={handleArchiveScholarship}
               onDeleteScholarship={handleDeleteScholarship}
+              onCloseScholarship={handleCloseScholarship}
+              onRestoreScholarship={handleRestoreScholarship}
             />
           </AdminLayout>
         );
@@ -775,6 +867,20 @@ function MainApp() {
               onVerifyScholarship={handleVerifyScholarship}
               onRejectScholarship={handleRejectScholarship}
             />
+          </AdminLayout>
+        );
+
+      case '/admin/reports':
+        if (!isAuthenticated || role !== 'admin') {
+          return (
+            <AuthLayout portal="unified" onNavigate={navigate}>
+              <LoginPage onNavigate={navigate} />
+            </AuthLayout>
+          );
+        }
+        return (
+          <AdminLayout currentPath={currentPath} onNavigate={navigate}>
+            <AdminReportsPage onNavigate={navigate} />
           </AdminLayout>
         );
 

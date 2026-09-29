@@ -5,6 +5,8 @@ import { api } from '../../lib/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import { NotificationItem } from '../../types';
 
+import { FloatingAiButton } from '../common/FloatingAiButton';
+
 interface StudentLayoutProps {
   children: React.ReactNode;
   currentPath: string;
@@ -34,7 +36,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
   }, [user, currentPath]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-slate-900">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-slate-900 relative">
       {/* Sidebar handles both desktop persistent navigation and the mobile sliding drawer */}
       <Sidebar
         currentPath={currentPath}
@@ -58,6 +60,9 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
           {children}
         </main>
       </div>
+
+      {/* Floating AI Assistant Trigger */}
+      <FloatingAiButton currentPath={currentPath} onNavigate={onNavigate} />
     </div>
   );
 };

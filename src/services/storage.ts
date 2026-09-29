@@ -1,7 +1,9 @@
 import {
   Scholarship, Provider, Category, UserProfile, StoredDocument,
   Application, NotificationItem, VerificationRecord, SavedScholarship,
-  VerificationStatus, ApplicationStatus, AdminUser
+  VerificationStatus, ApplicationStatus, AdminUser, ScholarshipReport,
+  ReportStatus, ReminderRecord, ReminderType, ApplicationChecklistItem,
+  ApplicationStatusHistoryItem, ApplicationOutcomeDetails, ApplicationStatusSource
 } from '../types';
 import { syncToSupabase, removeFromSupabase, isSupabaseConfigured } from '../lib/supabase';
 import { generateUUID } from '../lib/uuid';
@@ -18,6 +20,8 @@ const STORAGE_KEYS = {
   DOCUMENTS: 'scholarpath_documents',
   NOTIFICATIONS: 'scholarpath_notifications',
   VERIFICATIONS: 'scholarpath_verifications',
+  REPORTS: 'scholarpath_reports',
+  REMINDERS: 'scholarpath_reminders',
   CURRENT_USER_ID: 'scholarpath_current_user_id',
 };
 
@@ -60,6 +64,8 @@ export function initializeStorage(): void {
   if (!localStorage.getItem(STORAGE_KEYS.SAVED))         write(STORAGE_KEYS.SAVED, []);
   if (!localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)) write(STORAGE_KEYS.NOTIFICATIONS, []);
   if (!localStorage.getItem(STORAGE_KEYS.VERIFICATIONS)) write(STORAGE_KEYS.VERIFICATIONS, []);
+  if (!localStorage.getItem(STORAGE_KEYS.REPORTS))       write(STORAGE_KEYS.REPORTS, []);
+  if (!localStorage.getItem(STORAGE_KEYS.REMINDERS))     write(STORAGE_KEYS.REMINDERS, []);
 }
 
 // Ensure initialized on import
@@ -281,6 +287,62 @@ export const StorageService = {
     list[index] = updated;
     write(STORAGE_KEYS.SCHOLARSHIPS, list);
     syncToSupabase('scholarships', updated);
+    this.cancelFutureRemindersForScholarship(id);
+    return updated;
+  },
+
+  closeScholarship(id: string, adminId?: string, reason?: string): Scholarship {
+    const list = this.getScholarships();
+    const index = list.findIndex(s => s.id === id);
+    if (index === -1) throw new Error('Scholarship not found');
+
+    const now = new Date().toISOString();
+    const updated: Scholarship = {
+      ...list[index],
+      status: 'closed',
+      manuallyClosed: true,
+      manuallyClosedAt: now,
+      verificationNotes: reason || list[index].verificationNotes,
+      updatedAt: now
+    };
+    list[index] = updated;
+    write(STORAGE_KEYS.SCHOLARSHIPS, list);
+    syncToSupabase('scholarships', updated);
+    this.cancelFutureRemindersForScholarship(id);
+    return updated;
+  },
+
+  restoreScholarship(id: string): Scholarship {
+    const list = this.getScholarships();
+    const index = list.findIndex(s => s.id === id);
+    if (index === -1) throw new Error('Scholarship not found');
+
+    const now = new Date().toISOString();
+    const current = list[index];
+
+    // Recalculate status from deadline
+    let restoredStatus: Scholarship['status'] = 'verified';
+    if (current.deadline) {
+      const deadline = new Date(current.deadline);
+      if (!isNaN(deadline.getTime()) && deadline.getTime() < Date.now()) {
+        restoredStatus = 'expired';
+      }
+    }
+    // Preserve draft/rejected — don't upgrade those
+    if (current.status === 'draft' || current.status === 'rejected') {
+      restoredStatus = current.status;
+    }
+
+    const updated: Scholarship = {
+      ...current,
+      status: restoredStatus,
+      manuallyClosed: false,
+      manuallyClosedAt: undefined,
+      updatedAt: now
+    };
+    list[index] = updated;
+    write(STORAGE_KEYS.SCHOLARSHIPS, list);
+    syncToSupabase('scholarships', updated);
     return updated;
   },
 
@@ -489,6 +551,14 @@ export const StorageService = {
       };
     });
 
+    const initialHistory: ApplicationStatusHistoryItem = {
+      id: `hist-${generateUUID().slice(0, 8)}`,
+      status,
+      timestamp: new Date().toISOString(),
+      notes: notes || (status === 'Preparing' ? 'Started application preparation' : `Application marked as ${status}`),
+      source: 'student_updated'
+    };
+
     const newApp: Application = {
       id: generateUUID(),
       userId,
@@ -502,6 +572,8 @@ export const StorageService = {
       appliedAt: status === 'Applied' ? new Date().toISOString() : undefined,
       notes,
       checklist,
+      statusHistory: [initialHistory],
+      statusSource: 'student_updated',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -517,14 +589,42 @@ export const StorageService = {
     const index = all.findIndex(a => a.id === id);
     if (index === -1) throw new Error('Application not found');
 
+    const currentApp = all[index];
+    const now = new Date().toISOString();
+
+    // Preserve and append status history if status changed
+    let statusHistory = currentApp.statusHistory && currentApp.statusHistory.length > 0
+      ? [...currentApp.statusHistory]
+      : [
+          {
+            id: `hist-${generateUUID().slice(0, 8)}`,
+            status: currentApp.status,
+            timestamp: currentApp.createdAt || now,
+            notes: currentApp.notes || 'Initial status',
+            source: currentApp.statusSource || 'student_updated'
+          }
+        ];
+
+    if (updates.status && updates.status !== currentApp.status) {
+      statusHistory.push({
+        id: `hist-${generateUUID().slice(0, 8)}`,
+        status: updates.status,
+        timestamp: now,
+        notes: updates.notes || undefined,
+        source: updates.statusSource || 'student_updated',
+        metadata: updates.outcomeDetails ? { ...updates.outcomeDetails } : undefined
+      });
+    }
+
     const updated: Application = {
-      ...all[index],
+      ...currentApp,
       ...updates,
-      updatedAt: new Date().toISOString()
+      statusHistory,
+      updatedAt: now
     };
 
-    if (updates.status === 'Applied' && !all[index].appliedAt) {
-      updated.appliedAt = new Date().toISOString();
+    if (updates.status === 'Applied' && !currentApp.appliedAt) {
+      updated.appliedAt = now;
     }
 
     all[index] = updated;
@@ -533,10 +633,79 @@ export const StorageService = {
     return updated;
   },
 
-  updateApplicationStatus(id: string, status: ApplicationStatus, notes?: string): Application {
+  updateApplicationStatus(
+    id: string, 
+    status: ApplicationStatus, 
+    notes?: string,
+    outcomeDetails?: ApplicationOutcomeDetails,
+    source: ApplicationStatusSource = 'student_updated'
+  ): Application {
     return this.updateApplication(id, {
       status,
-      ...(notes !== undefined ? { notes } : {})
+      ...(outcomeDetails ? { outcomeDetails } : {}),
+      ...(notes !== undefined ? { notes } : {}),
+      statusSource: source
+    });
+  },
+
+  recordApplicationOutcome(
+    id: string,
+    status: ApplicationStatus,
+    outcomeDetails?: ApplicationOutcomeDetails,
+    notes?: string,
+    source: ApplicationStatusSource = 'student_updated'
+  ): Application {
+    return this.updateApplication(id, {
+      status,
+      outcomeDetails,
+      ...(notes !== undefined ? { notes } : {}),
+      statusSource: source
+    });
+  },
+
+  getOrCreateApplication(userId: string, scholarship: Scholarship): Application {
+    const all = this.getApplications();
+    const existing = all.find(a => a.userId === userId && a.scholarshipId === scholarship.id);
+    if (existing) return existing;
+    return this.createApplication(userId, scholarship, 'Preparing');
+  },
+
+  toggleApplicationChecklistItem(applicationId: string, itemId: string): Application {
+    const app = this.getApplicationById(applicationId);
+    if (!app) throw new Error('Application not found');
+    const updatedChecklist = (app.checklist || []).map(item =>
+      item.id === itemId ? { ...item, completed: !item.completed } : item
+    );
+    return this.updateApplication(applicationId, {
+      checklist: updatedChecklist,
+      workspaceLastSavedAt: new Date().toISOString()
+    });
+  },
+
+  addApplicationChecklistItem(applicationId: string, label: string): Application {
+    const app = this.getApplicationById(applicationId);
+    if (!app) throw new Error('Application not found');
+    const newItem: ApplicationChecklistItem = {
+      id: `chk-custom-${generateUUID().slice(0, 8)}`,
+      label,
+      completed: false,
+      required: false,
+      custom: true
+    };
+    const updatedChecklist = [...(app.checklist || []), newItem];
+    return this.updateApplication(applicationId, {
+      checklist: updatedChecklist,
+      workspaceLastSavedAt: new Date().toISOString()
+    });
+  },
+
+  deleteApplicationChecklistItem(applicationId: string, itemId: string): Application {
+    const app = this.getApplicationById(applicationId);
+    if (!app) throw new Error('Application not found');
+    const updatedChecklist = (app.checklist || []).filter(item => item.id !== itemId);
+    return this.updateApplication(applicationId, {
+      checklist: updatedChecklist,
+      workspaceLastSavedAt: new Date().toISOString()
     });
   },
 
@@ -622,6 +791,66 @@ export const StorageService = {
     write(STORAGE_KEYS.NOTIFICATIONS, all);
   },
 
+  // --- REMINDERS ---
+  getReminders(userId?: string): ReminderRecord[] {
+    const all = read<ReminderRecord[]>(STORAGE_KEYS.REMINDERS, []);
+    if (userId) {
+      return all.filter(r => r.userId === userId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+    return all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  },
+
+  saveReminder(reminder: ReminderRecord): ReminderRecord {
+    const all = read<ReminderRecord[]>(STORAGE_KEYS.REMINDERS, []);
+    const idx = all.findIndex(r => r.id === reminder.id);
+    if (idx !== -1) {
+      all[idx] = reminder;
+    } else {
+      all.unshift(reminder);
+    }
+    write(STORAGE_KEYS.REMINDERS, all);
+    syncToSupabase('reminders', reminder);
+    return reminder;
+  },
+
+  hasSentReminder(userId: string, scholarshipId: string, reminderType: ReminderType, deadlineAt: string): boolean {
+    const all = read<ReminderRecord[]>(STORAGE_KEYS.REMINDERS, []);
+    const normalizedDeadline = deadlineAt ? new Date(deadlineAt).toISOString().split('T')[0] : '';
+    return all.some(r => 
+      r.userId === userId &&
+      r.scholarshipId === scholarshipId &&
+      r.reminderType === reminderType &&
+      r.status === 'sent' &&
+      (r.deadlineAt ? new Date(r.deadlineAt).toISOString().split('T')[0] === normalizedDeadline : true)
+    );
+  },
+
+  cancelFutureRemindersForScholarship(scholarshipId: string): void {
+    const all = read<ReminderRecord[]>(STORAGE_KEYS.REMINDERS, []);
+    let modified = false;
+    all.forEach(r => {
+      if (r.scholarshipId === scholarshipId && r.status === 'scheduled') {
+        r.status = 'cancelled';
+        modified = true;
+        syncToSupabase('reminders', r);
+      }
+    });
+    if (modified) {
+      write(STORAGE_KEYS.REMINDERS, all);
+    }
+  },
+
+  getReminderStats() {
+    const all = read<ReminderRecord[]>(STORAGE_KEYS.REMINDERS, []);
+    return {
+      total: all.length,
+      sent: all.filter(r => r.status === 'sent').length,
+      scheduled: all.filter(r => r.status === 'scheduled').length,
+      failed: all.filter(r => r.status === 'failed').length,
+      cancelled: all.filter(r => r.status === 'cancelled').length,
+    };
+  },
+
   // --- AUDIT & VERIFICATION RECORDS ---
   getVerificationRecords(): VerificationRecord[] {
     return read<VerificationRecord[]>(STORAGE_KEYS.VERIFICATIONS, []);
@@ -651,6 +880,7 @@ export const StorageService = {
     const pendingVerification = scholarships.filter(s => s.verificationStatus === 'pending_verification');
     const verifiedScholarships = scholarships.filter(s => s.verificationStatus === 'verified');
     const expiredScholarships = scholarships.filter(s => new Date(s.deadline).getTime() < now);
+    const closedScholarships = scholarships.filter(s => s.status === 'closed' || s.manuallyClosed === true);
 
     // Group applications by status
     const appStatusCounts: Record<string, number> = {
@@ -682,6 +912,7 @@ export const StorageService = {
       pendingVerification: pendingVerification.length,
       verifiedScholarships: verifiedScholarships.length,
       expiredScholarships: expiredScholarships.length,
+      closedScholarships: closedScholarships.length,
       totalStudents: users.length,
       totalSaved: allSaved.length,
       totalApplications: applications.length,
@@ -728,5 +959,80 @@ export const StorageService = {
     list[idx] = { ...list[idx], status };
     write(STORAGE_KEYS.ADMIN_USERS, list);
     return list[idx];
+  },
+
+  // --- SCHOLARSHIP REPORTS ---
+  getReports(): ScholarshipReport[] {
+    return read<ScholarshipReport[]>(STORAGE_KEYS.REPORTS, []);
+  },
+
+  getUserReports(userId: string): ScholarshipReport[] {
+    const all = this.getReports();
+    return all.filter(r => r.reporterUserId === userId);
+  },
+
+  getScholarshipReports(scholarshipId: string): ScholarshipReport[] {
+    const all = this.getReports();
+    return all.filter(r => r.scholarshipId === scholarshipId);
+  },
+
+  hasActiveReport(userId: string, scholarshipId: string, reason: string): boolean {
+    const all = this.getReports();
+    return all.some(
+      r => r.reporterUserId === userId &&
+           r.scholarshipId === scholarshipId &&
+           r.reason === reason &&
+           (r.status === 'Pending' || r.status === 'Reviewing')
+    );
+  },
+
+  createReport(reportData: Omit<ScholarshipReport, 'id' | 'createdAt' | 'updatedAt' | 'status'> & { status?: ReportStatus }): ScholarshipReport {
+    // Check duplicate
+    if (this.hasActiveReport(reportData.reporterUserId, reportData.scholarshipId, reportData.reason)) {
+      throw new Error("You've already reported this issue.");
+    }
+
+    const all = this.getReports();
+    const newReport: ScholarshipReport = {
+      ...reportData,
+      id: generateUUID(),
+      status: reportData.status || 'Pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    all.unshift(newReport);
+    write(STORAGE_KEYS.REPORTS, all);
+    syncToSupabase('scholarship_reports', newReport);
+    return newReport;
+  },
+
+  updateReportStatus(
+    id: string,
+    status: ReportStatus,
+    adminNotes?: string,
+    admin?: { id: string; name: string }
+  ): ScholarshipReport | null {
+    const all = this.getReports();
+    const idx = all.findIndex(r => r.id === id);
+    if (idx === -1) return null;
+
+    const current = all[idx];
+    const isResolving = status === 'Resolved' || status === 'Dismissed';
+
+    const updated: ScholarshipReport = {
+      ...current,
+      status,
+      adminNotes: adminNotes !== undefined ? adminNotes : current.adminNotes,
+      resolvedAt: isResolving ? new Date().toISOString() : current.resolvedAt,
+      resolvedByAdminId: isResolving ? (admin?.id || current.resolvedByAdminId) : current.resolvedByAdminId,
+      resolvedByAdminName: isResolving ? (admin?.name || current.resolvedByAdminName) : current.resolvedByAdminName,
+      updatedAt: new Date().toISOString()
+    };
+
+    all[idx] = updated;
+    write(STORAGE_KEYS.REPORTS, all);
+    syncToSupabase('scholarship_reports', updated);
+    return updated;
   }
 };

@@ -1,6 +1,9 @@
 import React from 'react';
 import { Scholarship, UserProfile } from '../../types';
-import { Bookmark, MapPin, GraduationCap, ArrowUpRight, DollarSign } from 'lucide-react';
+import { Bookmark, MapPin, GraduationCap, ArrowUpRight, DollarSign, Target } from 'lucide-react';
+import { getMatchCategory, getMatchCategoryColors } from '../../services/eligibility';
+import { LifecycleBadge } from './LifecycleBadge';
+import { computeLifecycleStatus } from '../../services/scholarshipFilters';
 
 interface ScholarshipCardProps {
   scholarship: Scholarship;
@@ -9,6 +12,10 @@ interface ScholarshipCardProps {
   onToggleSave?: (scholarshipId: string) => void;
   onViewDetails?: (scholarshipId: string) => void;
   onStartApplication?: (scholarship: Scholarship) => void;
+  /** When true, renders a match score badge using the score value below */
+  showMatchScore?: boolean;
+  /** Pre-computed match score (0–100). Only rendered when showMatchScore=true */
+  matchScore?: number;
 }
 
 export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
@@ -17,7 +24,9 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
   isSaved = false,
   onToggleSave,
   onViewDetails,
-  onStartApplication
+  onStartApplication,
+  showMatchScore = false,
+  matchScore
 }) => {
   const formattedAmount = scholarship.amountDisplay || (
     scholarship.amount !== undefined && scholarship.amount !== null && scholarship.amount > 0
@@ -34,10 +43,23 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
       ? 'Global / All Countries'
       : scholarship.eligibleCountries.slice(0, 2).join(', ') + (scholarship.eligibleCountries.length > 2 ? ` +${scholarship.eligibleCountries.length - 2}` : '');
 
+  // Match score badge rendering
+  const shouldShowBadge = showMatchScore && matchScore !== undefined && matchScore >= 50;
+  const matchColors = shouldShowBadge ? getMatchCategoryColors(matchScore!) : null;
+  const matchLabel = shouldShowBadge ? getMatchCategory(matchScore!) : null;
+
+  // Lifecycle status for visual treatment
+  const lifecycleStatus = computeLifecycleStatus(scholarship);
+  const isInactive = lifecycleStatus === 'closed' || lifecycleStatus === 'archived';
+
   return (
     <div 
       id={`scholarship-card-${scholarship.id}`}
-      className="group relative flex flex-col justify-between bg-white border border-slate-200/90 rounded-xl p-5 hover:border-indigo-400/80 hover:shadow-md transition-all duration-200"
+      className={`group relative flex flex-col justify-between bg-white border rounded-xl p-5 transition-all duration-200 ${
+        isInactive
+          ? 'border-slate-200 opacity-70 hover:opacity-90'
+          : 'border-slate-200/90 hover:border-indigo-400/80 hover:shadow-md'
+      }`}
     >
       <div>
         {/* Title, Provider and Bookmark Save Action */}
@@ -72,6 +94,26 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
             </button>
           )}
         </div>
+
+        {/* Match Score Badge — only shown when showMatchScore=true and score ≥ 50 */}
+        {shouldShowBadge && matchColors && matchLabel && (
+          <div className="mb-3">
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold ${matchColors.bg} ${matchColors.text} ${matchColors.border}`}
+            >
+              <Target size={12} className="shrink-0" />
+              <span>{matchScore}% Match</span>
+              <span className="font-normal opacity-70">· {matchLabel}</span>
+            </span>
+          </div>
+        )}
+
+        {/* Lifecycle Status Badge — only for Closing Soon, Closed, Archived */}
+        {lifecycleStatus !== 'active' && (
+          <div className="mb-3">
+            <LifecycleBadge scholarship={scholarship} size="sm" hideActive />
+          </div>
+        )}
 
         {/* Short description */}
         <p className="text-xs text-slate-600 line-clamp-2 mb-4 leading-relaxed">

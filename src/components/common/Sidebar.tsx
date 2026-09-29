@@ -3,7 +3,8 @@ import { useAuth } from '../../context/AuthContext';
 import { 
   LayoutDashboard, Search, Bookmark, Briefcase, 
   UserCheck, FileText, Bell, Settings, HelpCircle, 
-  LogOut, ArrowLeft, X, ChevronLeft, ChevronRight
+  LogOut, ArrowLeft, X, ChevronLeft, ChevronRight, Flag,
+  Sparkles
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -103,7 +104,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const overviewNav = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Find Scholarships', path: '/scholarships', icon: Search }
+    { label: 'Find Scholarships', path: '/scholarships', icon: Search },
+    { label: 'AI Assistant', path: '/ai-assistant', icon: Sparkles }
   ];
 
   const applicationsNav = [
@@ -114,6 +116,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const personalNav = [
     { label: 'Academic Profile', path: '/profile', icon: UserCheck },
     { label: 'Document Vault', path: '/documents', icon: FileText },
+    { label: 'My Reports', path: '/my-reports', icon: Flag },
     { label: 'Notifications', path: '/notifications', icon: Bell, badge: unreadNotificationCount },
     { label: 'Settings', path: '/settings', icon: Settings }
   ];

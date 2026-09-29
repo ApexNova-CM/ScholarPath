@@ -8,6 +8,7 @@ import { authenticateToken, requireRole } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
 import { UpdateProfileSchema, ApplicationRecord, StoredDocumentRecord } from '../types';
 import { config } from '../config';
+import { processAIChat } from '../services/aiService';
 
 const router = Router();
 
@@ -449,4 +450,164 @@ router.patch('/notifications/:id/read', (req: Request, res: Response): void => {
   });
 });
 
+// POST /api/v1/student/notifications/read-all
+router.post('/notifications/read-all', (req: Request, res: Response): void => {
+  const userId = req.user!.id;
+  db.markAllNotificationsRead(userId);
+  res.json({
+    success: true,
+    data: { message: 'All notifications marked as read.' },
+  });
+});
+
+// GET /api/v1/student/reminders
+router.get('/reminders', (req: Request, res: Response): void => {
+  const userId = req.user!.id;
+  const reminders = db.getRemindersByUser(userId);
+  res.json({
+    success: true,
+    data: reminders,
+  });
+});
+
+// POST /api/v1/student/reminders/process
+router.post('/reminders/process', (req: Request, res: Response): void => {
+  const userId = req.user!.id;
+  const profile = db.getProfile(userId);
+  const user = db.findUserById(userId);
+  const userRole = user?.role || req.user!.role;
+
+  // Process reminders for the student
+  const savedIds = db.getSavedIdsByUser(userId);
+  const applications = db.getApplicationsByUser(userId);
+  const appSchIds = applications.map((a) => a.scholarshipId);
+  const relevantIds = new Set([...savedIds, ...appSchIds]);
+
+  const allScholarships = db.getScholarships();
+  const currentDate = req.body.currentDate ? new Date(req.body.currentDate) : new Date();
+
+  const enabledDays = profile?.notificationPreferences?.deadlineDays ?? [7, 3, 1, 0];
+  const deadlineAlertsEnabled = profile?.notificationPreferences?.deadlineAlerts !== false;
+
+  const generatedReminders: any[] = [];
+
+  if (deadlineAlertsEnabled) {
+    for (const sch of allScholarships) {
+      if (!relevantIds.has(sch.id)) continue;
+      if (sch.status === 'archived' || sch.status === 'closed' || sch.manuallyClosed) continue;
+      if (!sch.deadline) continue;
+
+      const deadline = new Date(sch.deadline);
+      if (isNaN(deadline.getTime())) continue;
+
+      const deadlineUtc = Date.UTC(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
+      const currentUtc = Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+      const daysLeft = Math.round((deadlineUtc - currentUtc) / (1000 * 60 * 60 * 24));
+
+      if (daysLeft < 0) continue;
+
+      let reminderType: string | null = null;
+      if (daysLeft === 7 && enabledDays.includes(7)) reminderType = '7_day';
+      else if (daysLeft === 3 && enabledDays.includes(3)) reminderType = '3_day';
+      else if (daysLeft === 1 && enabledDays.includes(1)) reminderType = '1_day';
+      else if (daysLeft === 0 && enabledDays.includes(0)) reminderType = 'deadline_day';
+
+      if (!reminderType) continue;
+
+      const alreadySent = db.hasSentReminder(userId, sch.id, reminderType, sch.deadline);
+      if (alreadySent) continue;
+
+      const titleMap: Record<string, string> = {
+        '7_day': '⏰ Deadline in 7 days',
+        '3_day': '⏰ Deadline in 3 days',
+        '1_day': '🚨 Deadline tomorrow',
+        'deadline_day': '🚨 Deadline today',
+      };
+      const bodyMap: Record<string, string> = {
+        '7_day': `${sch.title} closes in 7 days. You still have time to complete your application.`,
+        '3_day': `${sch.title} closes in 3 days. Make sure your required documents are ready.`,
+        '1_day': `${sch.title} closes tomorrow. Complete your application before the deadline.`,
+        'deadline_day': `${sch.title} closes today. If you plan to apply, submit before the deadline.`,
+      };
+
+      const remId = `rem-${crypto.randomUUID()}`;
+      const notifId = `notif-${crypto.randomUUID()}`;
+      const nowIso = new Date().toISOString();
+
+      const reminderRecord = {
+        id: remId,
+        userId,
+        scholarshipId: sch.id,
+        scholarshipTitle: sch.title,
+        reminderType: reminderType as any,
+        deadlineAt: sch.deadline,
+        scheduledFor: currentDate.toISOString(),
+        sentAt: nowIso,
+        channel: 'inApp' as const,
+        status: 'sent' as const,
+        createdAt: nowIso,
+      };
+
+      db.createReminder(reminderRecord);
+      db.createNotification({
+        id: notifId,
+        userId,
+        title: titleMap[reminderType],
+        message: bodyMap[reminderType],
+        body: bodyMap[reminderType],
+        type: 'deadline_alert',
+        read: false,
+        link: `/scholarships/${sch.id}`,
+        relatedScholarshipId: sch.id,
+        createdAt: nowIso,
+      });
+
+      generatedReminders.push(reminderRecord);
+    }
+  }
+
+  res.json({
+    success: true,
+    data: {
+      processedCount: relevantIds.size,
+      sentCount: generatedReminders.length,
+      reminders: generatedReminders,
+    },
+  });
+});
+
+// POST /api/v1/student/ai/chat — Authenticated AI scholarship assistant
+router.post('/ai/chat', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+    const { message, history, contextScholarshipId } = req.body;
+
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+      res.status(400).json({
+        success: false,
+        error: 'Message string is required'
+      });
+      return;
+    }
+
+    const aiResponse = await processAIChat(userId, {
+      message: message.trim(),
+      history: Array.isArray(history) ? history : [],
+      contextScholarshipId: typeof contextScholarshipId === 'string' ? contextScholarshipId : undefined
+    });
+
+    res.json({
+      success: true,
+      data: aiResponse
+    });
+  } catch (err: any) {
+    console.error('AI chat endpoint error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'ScholarPath AI is temporarily unavailable. Please try again.'
+    });
+  }
+});
+
 export default router;
+

@@ -3,12 +3,17 @@ import { Scholarship, UserProfile, StoredDocument } from '../../types';
 import { VerifiedBadge } from '../../components/common/VerifiedBadge';
 import { MatchScore } from '../../components/common/MatchScore';
 import { DeadlineBadge } from '../../components/common/DeadlineBadge';
+import { LifecycleBadge } from '../../components/common/LifecycleBadge';
+import { ApplicationReadinessCard } from '../../components/common/ApplicationReadinessCard';
 import { evaluateEligibility } from '../../services/eligibility';
+import { evaluateScholarshipReadiness } from '../../services/documentService';
+import { computeLifecycleStatus } from '../../services/scholarshipFilters';
 import { 
   ArrowLeft, Bookmark, Calendar, DollarSign, GraduationCap, 
   MapPin, CheckCircle2, XCircle, FileText, ExternalLink, 
-  ShieldCheck, Share2, AlertCircle, Info, Sparkles 
+  ShieldCheck, Share2, AlertCircle, Info, Sparkles, Flag 
 } from 'lucide-react';
+import { ReportScholarshipModal } from '../../components/common/ReportScholarshipModal';
 
 interface ScholarshipDetailPageProps {
   scholarshipId: string;
@@ -32,6 +37,7 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
   onStartApplication
 }) => {
   const [copied, setCopied] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   const scholarship = scholarships.find(s => s.id === scholarshipId);
 
@@ -52,6 +58,11 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
   }
 
   const eligibility = evaluateEligibility(scholarship, userProfile);
+  const readiness = evaluateScholarshipReadiness(scholarship, userProfile, documents);
+  const lifecycleStatus = computeLifecycleStatus(scholarship);
+  const isClosed = lifecycleStatus === 'closed';
+  const isArchived = lifecycleStatus === 'archived';
+  const isInactive = isClosed || isArchived;
 
   const formattedAmount = scholarship.amountDisplay || (
     scholarship.amount !== undefined && scholarship.amount !== null && scholarship.amount > 0
@@ -120,11 +131,21 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
             <Bookmark size={14} className={isSaved ? 'fill-indigo-600' : ''} />
             <span>{isSaved ? 'Saved' : 'Save'}</span>
           </button>
+
+          <button
+            id="btn-detail-report"
+            onClick={() => setIsReportModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/60 transition-colors shadow-2xs min-h-[44px]"
+            title="Report inaccurate or broken scholarship information"
+          >
+            <Flag size={13} />
+            <span className="hidden sm:inline">Report</span>
+          </button>
         </div>
       </div>
 
       {/* Main Header Card */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-8 shadow-xs">
+      <div className={`bg-white rounded-2xl border p-6 sm:p-8 shadow-xs ${isInactive ? 'border-slate-300 opacity-90' : 'border-slate-200/90'}`}>
         <div className="flex flex-wrap items-center gap-2.5 mb-3">
           {scholarship.verificationStatus === 'verified' && (
             <VerifiedBadge 
@@ -135,6 +156,7 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
             />
           )}
           <DeadlineBadge deadline={scholarship.deadline} size="md" />
+          <LifecycleBadge scholarship={scholarship} size="md" hideActive />
           <span className="text-xs px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-medium">
             {scholarship.category}
           </span>
@@ -147,6 +169,27 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
         <p className="text-sm font-semibold text-indigo-600 mt-1">
           {scholarship.providerName}
         </p>
+
+        {/* Closed / Archived Banner */}
+        {isInactive && (
+          <div className={`mt-4 flex items-start gap-3 p-3.5 rounded-xl border text-sm ${
+            isArchived
+              ? 'bg-slate-50 border-slate-200 text-slate-700'
+              : 'bg-rose-50 border-rose-200 text-rose-800'
+          }`}>
+            <XCircle size={18} className={`shrink-0 mt-0.5 ${isArchived ? 'text-slate-500' : 'text-rose-600'}`} />
+            <div>
+              <p className="font-bold text-sm">
+                {isArchived ? 'This scholarship has been archived' : 'This scholarship is no longer accepting applications'}
+              </p>
+              <p className="text-xs mt-0.5 opacity-80">
+                {isArchived
+                  ? 'It has been removed from active listings by an administrator and is no longer available.'
+                  : 'The application window for this scholarship has closed. Check back later or explore other opportunities.'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Primary Metrics Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-100 text-xs">
@@ -179,7 +222,7 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
           </div>
         </div>
 
-        {/* Action Button Row */}
+          {/* Action Button Row */}
         <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <MatchScore result={eligibility} size="lg" />
@@ -188,14 +231,41 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
             </span>
           </div>
 
-          <button
-            id="btn-detail-start-application"
-            onClick={() => onStartApplication(scholarship)}
-            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-all shadow-sm flex items-center justify-center gap-2"
-          >
-            <span>Start Application</span>
-            <ExternalLink size={14} />
-          </button>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <button
+              id="btn-detail-ask-ai"
+              onClick={() => onNavigate(`/ai-assistant?scholarshipId=${scholarship.id}`)}
+              className="flex-1 sm:flex-none px-4 py-3 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 text-indigo-700 hover:from-indigo-100 hover:to-purple-100 font-semibold text-xs transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles size={14} className="text-indigo-600 animate-pulse" />
+              <span>Ask AI</span>
+            </button>
+
+            <button
+              id="btn-detail-open-workspace"
+              onClick={() => onNavigate(`/student/applications/${scholarship.id}/workspace`)}
+              className="flex-1 sm:flex-none px-5 py-3 rounded-xl bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300 font-semibold text-xs transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <FileText size={14} />
+              <span>Prepare Application</span>
+            </button>
+
+            {isInactive ? (
+              <div className="flex-1 sm:flex-none px-5 py-3 rounded-xl bg-slate-100 text-slate-500 font-semibold text-xs flex items-center justify-center gap-2 cursor-not-allowed border border-slate-200">
+                <XCircle size={14} />
+                <span>{isArchived ? 'Archived' : 'Applications Closed'}</span>
+              </div>
+            ) : (
+              <button
+                id="btn-detail-start-application"
+                onClick={() => onStartApplication(scholarship)}
+                className="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Start Application</span>
+                <ExternalLink size={14} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -264,46 +334,100 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
           </div>
         </div>
 
-        {/* Right Col: Deterministic Eligibility Breakdown */}
+        {/* Right Col: "Application Readiness" + "Why This Matches You" Eligibility Panel */}
         <div className="space-y-6">
+          {/* Application Readiness Card */}
+          <ApplicationReadinessCard
+            readiness={readiness}
+            onNavigate={onNavigate}
+            onStartApplication={() => onStartApplication(scholarship)}
+          />
+
           <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <Sparkles size={16} className="text-indigo-600" />
-                <span>Your Eligibility Breakdown</span>
+                <span>Why This Matches You</span>
               </h2>
               <span className="text-xs font-bold text-indigo-600">{eligibility.score}%</span>
             </div>
 
             {userProfile ? (
-              <div className="space-y-3.5">
-                {eligibility.criteria.map((c, i) => (
-                  <div key={i} className="text-xs space-y-1">
-                    <div className="flex items-center gap-2 font-semibold">
-                      {c.met ? (
-                        <CheckCircle2 size={15} className="text-emerald-600 shrink-0 stroke-[2.5]" />
-                      ) : (
-                        <XCircle size={15} className="text-rose-600 shrink-0 stroke-[2.5]" />
-                      )}
-                      <span className={c.met ? 'text-slate-900' : 'text-rose-900'}>
-                        {c.factor}
+              <>
+                {/* Match category label */}
+                {!eligibility.hardDisqualified && eligibility.status !== 'profile_incomplete' && (
+                  <div className="flex items-center gap-2">
+                    {eligibility.score >= 90 && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+                        <CheckCircle2 size={12} /> Excellent Match
                       </span>
-                    </div>
-                    <p className={`pl-6 text-[11px] leading-relaxed ${c.met ? 'text-slate-500' : 'text-rose-700 font-medium'}`}>
-                      {c.detail}
-                    </p>
+                    )}
+                    {eligibility.score >= 75 && eligibility.score < 90 && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-bold">
+                        <CheckCircle2 size={12} /> Strong Match
+                      </span>
+                    )}
+                    {eligibility.score >= 50 && eligibility.score < 75 && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold">
+                        <AlertCircle size={12} /> Possible Match
+                      </span>
+                    )}
+                    {(eligibility.hardDisqualified || eligibility.score < 50) && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold">
+                        <XCircle size={12} /> Low Compatibility
+                      </span>
+                    )}
                   </div>
-                ))}
+                )}
 
-                <div className="pt-3 border-t border-slate-100">
-                  <button
-                    onClick={() => onNavigate('/profile')}
-                    className="w-full text-center text-xs font-semibold text-indigo-600 hover:text-indigo-800 py-1.5"
-                  >
-                    Edit Academic Profile
-                  </button>
-                </div>
-              </div>
+                {eligibility.status === 'profile_incomplete' ? (
+                  <div className="space-y-3 py-2">
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      {eligibility.summary}
+                    </p>
+                    <button
+                      onClick={() => onNavigate('/profile')}
+                      className="w-full py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition-colors"
+                    >
+                      Complete Profile to Improve Matches
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3.5">
+                    {eligibility.criteria.map((c, i) => (
+                      <div key={i} className="text-xs space-y-1">
+                        <div className="flex items-center gap-2 font-semibold">
+                          {c.met ? (
+                            <CheckCircle2 size={15} className="text-emerald-600 shrink-0 stroke-[2.5]" />
+                          ) : c.isHardRequirement ? (
+                            <XCircle size={15} className="text-rose-600 shrink-0 stroke-[2.5]" />
+                          ) : (
+                            <AlertCircle size={15} className="text-amber-500 shrink-0 stroke-[2.5]" />
+                          )}
+                          <span className={c.met ? 'text-slate-900' : c.isHardRequirement ? 'text-rose-900' : 'text-amber-900'}>
+                            {c.factor}
+                          </span>
+                        </div>
+                        <p className={`pl-6 text-[11px] leading-relaxed ${c.met ? 'text-slate-500' : c.isHardRequirement ? 'text-rose-700 font-medium' : 'text-amber-700'}`}>
+                          {c.detail}
+                        </p>
+                      </div>
+                    ))}
+
+                    <div className="pt-3 border-t border-slate-100 space-y-2.5">
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Match scores are based on your profile and are not a guarantee of eligibility. Always review the full requirements before applying.
+                      </p>
+                      <button
+                        onClick={() => onNavigate('/profile')}
+                        className="w-full text-center text-xs font-semibold text-indigo-600 hover:text-indigo-800 py-1.5"
+                      >
+                        Edit Academic Profile
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="text-center py-4 space-y-3">
                 <p className="text-xs text-slate-500 leading-relaxed">
@@ -328,9 +452,29 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
             <p className="text-xs text-slate-600 leading-relaxed">
               We never collect application fees or claim automatic selection. This scholarship details page references validated criteria provided directly by accredited organizations.
             </p>
+            <div className="pt-2.5 border-t border-slate-200/60 flex items-center justify-between">
+              <span className="text-[11px] text-slate-400">Notice an issue with this scholarship?</span>
+              <button
+                id="btn-report-scholarship-inline"
+                onClick={() => setIsReportModalOpen(true)}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:underline"
+              >
+                <Flag size={11} />
+                <span>Report an Issue</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Report Modal */}
+      <ReportScholarshipModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        scholarship={scholarship}
+        userProfile={userProfile}
+        onNavigate={onNavigate}
+      />
     </div>
   );
 };

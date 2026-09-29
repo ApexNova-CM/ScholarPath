@@ -11,6 +11,8 @@ import {
   saveSubmissionSnapshot,
   fetchDocumentTypes,
   fetchUserDocuments,
+  getReadinessCategory,
+  getReadinessCategoryColors,
 } from '../../services/documentService';
 import {
   CheckCircle2, AlertCircle, ExternalLink, X, FileText,
@@ -409,23 +411,34 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
               ) : (
                 <>
                   {/* Readiness bar */}
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                    <div className="flex items-center justify-between text-xs font-semibold text-slate-700 mb-2">
-                      <span>Application Readiness</span>
-                      <span className={readinessPct === 100 ? 'text-emerald-600' : missingCount > 0 ? 'text-amber-600' : 'text-indigo-600'}>
-                        {readinessPct}%
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
+                      <span className="flex items-center gap-1.5">
+                        <GraduationCap size={15} className="text-indigo-600" />
+                        <span>Document Readiness</span>
+                      </span>
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-bold ${getReadinessCategoryColors(readinessPct).bg} ${getReadinessCategoryColors(readinessPct).text} ${getReadinessCategoryColors(readinessPct).border}`}>
+                        <span>{readinessPct}% Ready</span>
+                        <span className="opacity-70 font-normal">· {getReadinessCategory(readinessPct)}</span>
                       </span>
                     </div>
-                    <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                    <div 
+                      role="progressbar"
+                      aria-valuenow={readinessPct}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`Document readiness: ${readinessPct}%`}
+                      className="w-full h-2 bg-slate-200 rounded-full overflow-hidden"
+                    >
                       <div
-                        className={`h-full rounded-full transition-all ${readinessPct === 100 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                        className={`h-full rounded-full transition-all duration-300 ${getReadinessCategoryColors(readinessPct).bar}`}
                         style={{ width: `${readinessPct}%` }}
                       />
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-2">
+                    <p className="text-[11px] text-slate-500">
                       {readinessPct === 100
                         ? '✓ All required documents are ready for submission.'
-                        : `You are missing ${missingCount} required document${missingCount > 1 ? 's' : ''}.`}
+                        : `You have ${missingCount} required document${missingCount > 1 ? 's' : ''} to upload before final submission.`}
                     </p>
                   </div>
 

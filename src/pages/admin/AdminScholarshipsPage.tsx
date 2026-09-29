@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Scholarship, Category } from '../../types';
 import { DeadlineBadge } from '../../components/common/DeadlineBadge';
+import { LifecycleBadge } from '../../components/common/LifecycleBadge';
 import { 
-  isScholarshipExpired, isScholarshipUpcoming, isScholarshipActive 
+  isScholarshipExpired, isScholarshipUpcoming, isScholarshipActive, computeLifecycleStatus 
 } from '../../services/scholarshipFilters';
 import { 
   Award, Search, PlusCircle, CheckCircle2, Clock, 
-  Edit3, Archive, Calendar, Filter, ExternalLink, Trash2, AlertTriangle 
+  Edit3, Archive, Calendar, Filter, ExternalLink, Trash2, AlertTriangle, Flag,
+  XCircle, RotateCcw
 } from 'lucide-react';
+import { StorageService } from '../../services/storage';
 
 interface AdminScholarshipsPageProps {
   scholarships: Scholarship[];
@@ -18,6 +21,8 @@ interface AdminScholarshipsPageProps {
   onUnverifyScholarship: (id: string) => void;
   onArchiveScholarship: (id: string) => void;
   onDeleteScholarship: (id: string) => void;
+  onCloseScholarship?: (id: string) => void;
+  onRestoreScholarship?: (id: string) => void;
 }
 
 export const AdminScholarshipsPage: React.FC<AdminScholarshipsPageProps> = ({
@@ -28,7 +33,9 @@ export const AdminScholarshipsPage: React.FC<AdminScholarshipsPageProps> = ({
   onVerifyScholarship,
   onUnverifyScholarship,
   onArchiveScholarship,
-  onDeleteScholarship
+  onDeleteScholarship,
+  onCloseScholarship,
+  onRestoreScholarship
 }) => {
   // Determine initial status filter from prop or URL
   const getInitialStatus = () => {
@@ -55,16 +62,31 @@ export const AdminScholarshipsPage: React.FC<AdminScholarshipsPageProps> = ({
 
   // Counts for pills
   const counts = useMemo(() => {
-    const expired = scholarships.filter(s => isScholarshipExpired(s)).length;
-    const upcoming = scholarships.filter(s => isScholarshipUpcoming(s)).length;
-    const active = scholarships.filter(s => isScholarshipActive(s)).length;
+    const active = scholarships.filter(s => computeLifecycleStatus(s) === 'active').length;
+    const closingSoon = scholarships.filter(s => computeLifecycleStatus(s) === 'closing_soon').length;
+    const closed = scholarships.filter(s => computeLifecycleStatus(s) === 'closed').length;
+    const archived = scholarships.filter(s => s.status === 'archived' || computeLifecycleStatus(s) === 'archived').length;
     return {
       all: scholarships.length,
       active,
-      upcoming,
-      expired
+      closingSoon,
+      closed,
+      archived
     };
   }, [scholarships]);
+
+  const reportCounts = useMemo(() => {
+    try {
+      const reports = StorageService.getReports();
+      const map: Record<string, number> = {};
+      reports.forEach(r => {
+        map[r.scholarshipId] = (map[r.scholarshipId] || 0) + 1;
+      });
+      return map;
+    } catch {
+      return {};
+    }
+  }, []);
 
   const filtered = useMemo(() => {
     return scholarships.filter(s => {
@@ -78,16 +100,20 @@ export const AdminScholarshipsPage: React.FC<AdminScholarshipsPageProps> = ({
       }
 
       // 2. Status Filter
-      if (statusFilter === 'expired') {
+      if (statusFilter === 'active') {
+        if (computeLifecycleStatus(s) !== 'active') return false;
+      } else if (statusFilter === 'closing_soon') {
+        if (computeLifecycleStatus(s) !== 'closing_soon') return false;
+      } else if (statusFilter === 'closed') {
+        if (computeLifecycleStatus(s) !== 'closed') return false;
+      } else if (statusFilter === 'archived') {
+        if (s.status !== 'archived' && computeLifecycleStatus(s) !== 'archived') return false;
+      } else if (statusFilter === 'expired') {
         if (!isScholarshipExpired(s)) return false;
       } else if (statusFilter === 'upcoming') {
         if (!isScholarshipUpcoming(s)) return false;
-      } else if (statusFilter === 'active') {
-        if (!isScholarshipActive(s)) return false;
       } else if (statusFilter === 'draft') {
         if (s.status !== 'draft') return false;
-      } else if (statusFilter === 'archived') {
-        if (s.status !== 'archived') return false;
       }
 
       // 3. Verification Filter
@@ -112,7 +138,7 @@ export const AdminScholarshipsPage: React.FC<AdminScholarshipsPageProps> = ({
             Scholarship Directory
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
-            Browse, edit, audit verification status, or review expired and upcoming scholarships in the database.
+            Browse, edit, audit verification status, or manage lifecycle states (Active, Closing Soon, Closed, Archived).
           </p>
         </div>
 
@@ -151,26 +177,39 @@ export const AdminScholarshipsPage: React.FC<AdminScholarshipsPageProps> = ({
         </button>
 
         <button
-          onClick={() => setStatusFilter('upcoming')}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
-            statusFilter === 'upcoming'
-              ? 'bg-indigo-600 text-white shadow-2xs'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
-          }`}
-        >
-          Upcoming ({counts.upcoming})
-        </button>
-
-        <button
-          onClick={() => setStatusFilter('expired')}
+          onClick={() => setStatusFilter('closing_soon')}
           className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
-            statusFilter === 'expired'
-              ? 'bg-rose-600 text-white shadow-2xs'
+            statusFilter === 'closing_soon'
+              ? 'bg-amber-600 text-white shadow-2xs'
               : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
           }`}
         >
           <Clock size={13} />
-          <span>Expired ({counts.expired})</span>
+          <span>Closing Soon ({counts.closingSoon})</span>
+        </button>
+
+        <button
+          onClick={() => setStatusFilter('closed')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+            statusFilter === 'closed'
+              ? 'bg-rose-600 text-white shadow-2xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+          }`}
+        >
+          <XCircle size={13} />
+          <span>Closed ({counts.closed})</span>
+        </button>
+
+        <button
+          onClick={() => setStatusFilter('archived')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+            statusFilter === 'archived'
+              ? 'bg-slate-700 text-white shadow-2xs'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+          }`}
+        >
+          <Archive size={13} />
+          <span>Archived ({counts.archived})</span>
         </button>
       </div>
 
@@ -206,10 +245,10 @@ export const AdminScholarshipsPage: React.FC<AdminScholarshipsPageProps> = ({
           >
             <option value="all">All Statuses</option>
             <option value="active">Active</option>
-            <option value="upcoming">Upcoming</option>
-            <option value="expired">Expired</option>
-            <option value="draft">Draft</option>
+            <option value="closing_soon">Closing Soon</option>
+            <option value="closed">Closed</option>
             <option value="archived">Archived</option>
+            <option value="draft">Draft</option>
           </select>
         </div>
       </div>
@@ -231,25 +270,25 @@ export const AdminScholarshipsPage: React.FC<AdminScholarshipsPageProps> = ({
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {filtered.length > 0 ? (
                 filtered.map(s => {
-                  const expired = isScholarshipExpired(s);
-                  const upcoming = isScholarshipUpcoming(s);
+                  const lifecycle = computeLifecycleStatus(s);
+                  const isClosedOrArchived = lifecycle === 'closed' || lifecycle === 'archived' || s.status === 'archived';
 
                   return (
                     <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
                       <td className="px-5 py-4">
                         <div 
-                          className="font-bold text-slate-900 hover:text-indigo-600 cursor-pointer flex items-center gap-2" 
+                          className="font-bold text-slate-900 hover:text-indigo-600 cursor-pointer flex flex-wrap items-center gap-2" 
                           onClick={() => onNavigate(`/admin/scholarships/${s.id}/edit`)}
                         >
                           <span>{s.title}</span>
-                          {expired && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">
-                              Expired
-                            </span>
-                          )}
-                          {upcoming && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-                              Upcoming
+                          {reportCounts[s.id] > 0 && (
+                            <span 
+                              onClick={(e) => { e.stopPropagation(); onNavigate('/admin/reports'); }}
+                              className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200 hover:bg-rose-200 transition-colors cursor-pointer"
+                              title={`${reportCounts[s.id]} student report(s) submitted`}
+                            >
+                              <Flag size={9} />
+                              <span>{reportCounts[s.id]} {reportCounts[s.id] === 1 ? 'Report' : 'Reports'}</span>
                             </span>
                           )}
                         </div>
@@ -268,19 +307,7 @@ export const AdminScholarshipsPage: React.FC<AdminScholarshipsPageProps> = ({
                       </td>
 
                       <td className="px-4 py-4">
-                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                          expired
-                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                            : upcoming
-                            ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                            : s.status === 'active'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : s.status === 'draft'
-                            ? 'bg-slate-100 text-slate-600 border border-slate-200'
-                            : 'bg-rose-50 text-rose-700 border border-rose-200'
-                        }`}>
-                          {expired ? 'Expired' : upcoming ? 'Upcoming' : s.status}
-                        </span>
+                        <LifecycleBadge scholarship={s} size="sm" />
                       </td>
 
                       <td className="px-4 py-4">
@@ -314,6 +341,28 @@ export const AdminScholarshipsPage: React.FC<AdminScholarshipsPageProps> = ({
                               className="px-2 py-1 rounded text-[11px] font-medium text-emerald-700 hover:bg-emerald-50 border border-emerald-200 cursor-pointer"
                             >
                               Verify ✓
+                            </button>
+                          )}
+
+                          {/* Close action for open scholarships */}
+                          {onCloseScholarship && !isClosedOrArchived && (
+                            <button
+                              onClick={() => onCloseScholarship(s.id)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer transition-colors"
+                              title="Close scholarship (stop accepting applications)"
+                            >
+                              <XCircle size={14} />
+                            </button>
+                          )}
+
+                          {/* Restore action for closed/archived scholarships */}
+                          {onRestoreScholarship && isClosedOrArchived && (
+                            <button
+                              onClick={() => onRestoreScholarship(s.id)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 cursor-pointer transition-colors"
+                              title="Restore scholarship"
+                            >
+                              <RotateCcw size={14} />
                             </button>
                           )}
 

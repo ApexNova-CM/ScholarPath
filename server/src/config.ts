@@ -14,4 +14,5 @@ export const config = {
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   uploadDir: path.resolve(process.cwd(), 'uploads'),
   emailSender: process.env.EMAIL_SENDER_ADDRESS || 'scholarships@scholarpath.org',
+  geminiApiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '',
 };

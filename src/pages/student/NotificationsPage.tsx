@@ -89,7 +89,8 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
               key={n.id}
               onClick={() => {
                 if (!n.read) handleMarkAsRead(n.id);
-                if (n.link) onNavigate(n.link);
+                const targetLink = n.link || (n.relatedScholarshipId ? `/scholarships/${n.relatedScholarshipId}` : undefined);
+                if (targetLink) onNavigate(targetLink);
               }}
               className={`p-4 sm:p-5 flex items-start justify-between gap-4 hover:bg-slate-50/70 transition-colors cursor-pointer ${
                 !n.read ? 'bg-indigo-50/20' : ''
@@ -108,7 +109,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
                       <span className="w-2 h-2 rounded-full bg-indigo-600" />
                     )}
                   </div>
-                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">{n.body}</p>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">{n.body || n.message}</p>
                   <span className="text-[10px] text-slate-400 mt-2 block">
                     {new Date(n.createdAt).toLocaleDateString(undefined, { 
                       month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
@@ -117,7 +118,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
                 </div>
               </div>
 
-              {n.link && (
+              {(n.link || n.relatedScholarshipId) && (
                 <span className="text-xs text-indigo-600 font-semibold shrink-0 flex items-center gap-1">
                   <span>View</span>
                   <ArrowUpRight size={13} />

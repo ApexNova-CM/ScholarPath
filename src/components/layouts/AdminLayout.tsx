@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AdminSidebar } from '../common/AdminSidebar';
 import { MobileHeader } from '../common/MobileHeader';
 import { api } from '../../lib/apiClient';
+import { StorageService } from '../../services/storage';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -16,6 +17,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [pendingReportsCount, setPendingReportsCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -26,6 +28,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         }
       })
       .catch(() => {});
+
+    try {
+      const reports = StorageService.getReports();
+      const activePending = reports.filter(r => r.status === 'Pending').length;
+      setPendingReportsCount(activePending);
+    } catch {
+      // ignore
+    }
+
     return () => { cancelled = true; };
   }, [currentPath]);
 
@@ -36,6 +47,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         currentPath={currentPath}
         onNavigate={onNavigate}
         pendingVerificationCount={pendingCount}
+        pendingReportsCount={pendingReportsCount}
         isMobileOpen={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
       />

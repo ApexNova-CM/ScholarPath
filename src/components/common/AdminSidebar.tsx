@@ -3,13 +3,14 @@ import { useAuth } from '../../context/AuthContext';
 import { 
   ShieldCheck, LayoutDashboard, Award, PlusCircle, 
   CheckCircle2, Clock, Building2, Users, FileSpreadsheet, 
-  FolderTree, Bell, Settings, UserCog, LogOut, ArrowLeft, X
+  FolderTree, Bell, Settings, UserCog, LogOut, ArrowLeft, X, Flag
 } from 'lucide-react';
 
 interface AdminSidebarProps {
   currentPath: string;
   onNavigate: (path: string) => void;
   pendingVerificationCount?: number;
+  pendingReportsCount?: number;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
 }
@@ -18,6 +19,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   currentPath,
   onNavigate,
   pendingVerificationCount = 0,
+  pendingReportsCount = 0,
   isMobileOpen = false,
   onCloseMobile
 }) => {
@@ -51,6 +53,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     { label: 'All Scholarships', path: '/admin/scholarships', icon: Award },
     { label: 'Add Scholarship', path: '/admin/scholarships/new', icon: PlusCircle },
     { label: 'Pending Verification', path: '/admin/verification', icon: CheckCircle2, badge: pendingVerificationCount },
+    { label: 'Scholarship Reports', path: '/admin/reports', icon: Flag, badge: pendingReportsCount },
     { label: 'Verified Scholarships', path: '/admin/scholarships?status=verified', icon: CheckCircle2 },
     { label: 'Expired Scholarships', path: '/admin/scholarships?status=expired', icon: Clock }
   ];

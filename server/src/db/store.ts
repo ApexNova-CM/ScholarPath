@@ -12,6 +12,7 @@ import {
   NotificationRecord,
   VerificationLogRecord,
   AdminUserRecord,
+  ReminderRecord,
 } from '../types';
 import {
   SEED_CATEGORIES,
@@ -35,6 +36,7 @@ export interface DatabaseState {
   notifications: Record<string, NotificationRecord>;
   verifications: Record<string, VerificationLogRecord>;
   adminUsers: Record<string, AdminUserRecord>;
+  reminders: Record<string, ReminderRecord>;
 }
 
 class Store {
@@ -50,6 +52,7 @@ class Store {
     notifications: {},
     verifications: {},
     adminUsers: {},
+    reminders: {},
   };
 
   private initialized = false;
@@ -261,7 +264,34 @@ class Store {
   public updateApplication(id: string, updates: Partial<ApplicationRecord>): ApplicationRecord | undefined {
     const existing = this.state.applications[id];
     if (!existing) return undefined;
-    this.state.applications[id] = { ...existing, ...updates, updatedAt: new Date().toISOString() };
+    const now = new Date().toISOString();
+    let statusHistory = existing.statusHistory ? [...existing.statusHistory] : [
+      {
+        id: `hist-${crypto.randomUUID().slice(0, 8)}`,
+        status: existing.status,
+        timestamp: existing.createdAt || now,
+        notes: existing.notes || 'Initial status',
+        source: existing.statusSource || 'student_updated'
+      }
+    ];
+
+    if (updates.status && updates.status !== existing.status) {
+      statusHistory.push({
+        id: `hist-${crypto.randomUUID().slice(0, 8)}`,
+        status: updates.status,
+        timestamp: now,
+        notes: updates.notes || undefined,
+        source: updates.statusSource || 'student_updated',
+        metadata: updates.outcomeDetails ? { ...updates.outcomeDetails } : undefined
+      });
+    }
+
+    this.state.applications[id] = { 
+      ...existing, 
+      ...updates, 
+      statusHistory,
+      updatedAt: now 
+    };
     this.save();
     return this.state.applications[id];
   }
@@ -347,6 +377,53 @@ class Store {
     this.state.notifications[id].read = true;
     this.save();
     return true;
+  }
+
+  public markAllNotificationsRead(userId: string): boolean {
+    let modified = false;
+    Object.values(this.state.notifications).forEach((n) => {
+      if (n.userId === userId && !n.read) {
+        n.read = true;
+        modified = true;
+      }
+    });
+    if (modified) {
+      this.save();
+    }
+    return true;
+  }
+
+  // --- REMINDERS ---
+  public getRemindersByUser(userId: string): ReminderRecord[] {
+    return Object.values(this.state.reminders || {})
+      .filter((r) => r.userId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  public createReminder(r: ReminderRecord): ReminderRecord {
+    if (!this.state.reminders) {
+      this.state.reminders = {};
+    }
+    this.state.reminders[r.id] = r;
+    this.save();
+    return r;
+  }
+
+  public hasSentReminder(
+    userId: string,
+    scholarshipId: string,
+    reminderType: string,
+    deadlineAt: string
+  ): boolean {
+    const norm = deadlineAt ? new Date(deadlineAt).toISOString().split('T')[0] : '';
+    return Object.values(this.state.reminders || {}).some(
+      (r) =>
+        r.userId === userId &&
+        r.scholarshipId === scholarshipId &&
+        r.reminderType === reminderType &&
+        r.status === 'sent' &&
+        (r.deadlineAt ? new Date(r.deadlineAt).toISOString().split('T')[0] === norm : true)
+    );
   }
 
   // --- VERIFICATION AUDIT LOGS ---
