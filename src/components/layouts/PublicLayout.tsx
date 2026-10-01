@@ -118,7 +118,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children, currentPat
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
             <p>© {new Date().getFullYear()} Scholavon. All rights reserved.</p>
             <p className="flex items-center gap-1">
-              Find Scholarships. Track Opportunities. Build Your Future.
+              Opportunities. Within Reach.
             </p>
           </div>
         </div>
