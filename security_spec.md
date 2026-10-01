@@ -1,4 +1,4 @@
-# Scholar Path Security Specification
+# Scholavon Security Specification
 
 ## 1. Data Invariants
 1. **User Identity Invariant**: A user document (`/users/{userId}`) can only be created or modified by the authenticated user whose `request.auth.uid == userId`. Users cannot elevate their own role to `admin`.

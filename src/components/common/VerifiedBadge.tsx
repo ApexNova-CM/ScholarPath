@@ -43,7 +43,7 @@ export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({
 
       {showDetails && (
         <span className="ml-2 text-xs text-slate-500">
-          Verified by ScholarPath
+          Verified by Scholavon
           {verifiedAt ? ` on ${new Date(verifiedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
         </span>
       )}

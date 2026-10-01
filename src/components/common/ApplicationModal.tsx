@@ -193,7 +193,7 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
     setStep('submitting');
 
     try {
-      const notes = `Applied via ScholarPath on ${new Date().toLocaleDateString()}.`;
+      const notes = `Applied via Scholavon on ${new Date().toLocaleDateString()}.`;
 
       // Create or find existing application
       let appId: string | null = null;
@@ -471,7 +471,7 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
               {/* Notice */}
               <div className="p-3.5 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-indigo-900 leading-relaxed">
                 <p className="font-semibold mb-0.5">External Provider Application</p>
-                ScholarPath records your application. After submission, visit the provider's official portal to complete the external application process.
+                Scholavon records your application. After submission, visit the provider's official portal to complete the external application process.
               </div>
 
               {submitError && (

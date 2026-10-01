@@ -447,7 +447,7 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
           <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-3">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
               <ShieldCheck size={16} className="text-emerald-600" />
-              <span>ScholarPath Transparency</span>
+              <span>Scholavon Transparency</span>
             </div>
             <p className="text-xs text-slate-600 leading-relaxed">
               We never collect application fees or claim automatic selection. This scholarship details page references validated criteria provided directly by accredited organizations.

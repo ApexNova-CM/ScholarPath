@@ -153,17 +153,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className={`flex items-center gap-2.5 cursor-pointer select-none ${
               isCollapsed ? 'justify-center' : ''
             }`}
-            title="ScholarPath Student Portal"
+            title="Scholavon Student Portal"
           >
             <img
-              src="/images/scholarpath-logo.png"
-              alt="ScholarPath"
+              src="/images/scholavon-logo.png"
+              alt="Scholavon"
               className="h-8 w-auto object-contain shrink-0"
             />
             {!isCollapsed && (
               <div className="min-w-0">
                 <span className="text-sm font-bold text-slate-900 tracking-tight block leading-none truncate">
-                  ScholarPath
+                  Scholavon
                 </span>
                 <span className="text-[10px] text-indigo-700 font-bold uppercase tracking-wider block mt-0.5">
                   Student Portal
@@ -446,13 +446,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className="flex items-center gap-2.5 cursor-pointer select-none"
               >
                 <img
-                  src="/images/scholarpath-logo.png"
-                  alt="ScholarPath"
+                  src="/images/scholavon-logo.png"
+                  alt="Scholavon"
                   className="h-8 w-auto object-contain shrink-0"
                 />
                 <div>
                   <span className="text-sm font-bold text-slate-900 tracking-tight block leading-none">
-                    ScholarPath
+                    Scholavon
                   </span>
                   <span className="text-[10px] text-indigo-700 font-bold uppercase tracking-wider block mt-0.5">
                     Student Portal
@@ -660,7 +660,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <HelpCircle size={18} className="text-indigo-600" />
-                <span>ScholarPath Help & Guide</span>
+                <span>Scholavon Help & Guide</span>
               </h3>
               <button onClick={() => setShowHelpModal(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
                 <X size={18} />
@@ -671,10 +671,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <strong>Eligibility Matching:</strong> Matches are computed deterministically against your academic profile criteria (GPA, major, education level, country). Keep your profile 100% updated for optimal accuracy.
               </p>
               <p>
-                <strong>Applying:</strong> ScholarPath prepares your document checklists and provides direct links to verified official provider portals. After applying externally, click "I've Applied" to track milestones.
+                <strong>Applying:</strong> Scholavon prepares your document checklists and provides direct links to verified official provider portals. After applying externally, click "I've Applied" to track milestones.
               </p>
               <p>
-                <strong>Verification:</strong> The <em>✓ Verified</em> badge denotes opportunities audited for legitimacy by the ScholarPath verification review board.
+                <strong>Verification:</strong> The <em>✓ Verified</em> badge denotes opportunities audited for legitimacy by the Scholavon verification review board.
               </p>
             </div>
             <button
@@ -689,3 +689,4 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </>
   );
 };
+

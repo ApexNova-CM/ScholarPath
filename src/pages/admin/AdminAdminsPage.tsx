@@ -182,7 +182,7 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
           last_name: cleanLastName,
           country: 'International',
           education_level: 'Undergraduate',
-          institution: 'ScholarPath Foundation',
+          institution: 'Scholavon Foundation',
           field_of_study: cleanDept,
           gpa: 4.0,
           gpa_scale: 4.0,
@@ -452,7 +452,7 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
                   disabled={isCreating}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="e.g. eleanor.vance@scholarpath.org"
+                  placeholder="e.g. eleanor.vance@scholavon.org"
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 transition-colors disabled:opacity-60"
                 />
               </div>

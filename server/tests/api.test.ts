@@ -86,7 +86,7 @@ describe('Phase 4: Authentication System', () => {
     const res = await request(app)
       .post('/api/v1/auth/login')
       .send({
-        email: 'admin@scholarpath.org',
+        email: 'admin@scholavon.org',
         password: 'admin123',
       });
 

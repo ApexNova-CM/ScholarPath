@@ -56,7 +56,7 @@ export async function fetchScholarships(): Promise<Scholarship[]> {
   try {
     const res = await api.get<{ items: Scholarship[]; total: number }>('/scholarships?limit=100');
     if (res?.items && Array.isArray(res.items)) {
-      localStorage.setItem('scholarpath_scholarships', JSON.stringify(res.items));
+      localStorage.setItem('scholavon_scholarships', JSON.stringify(res.items));
       return res.items;
     }
   } catch (err) {
@@ -69,7 +69,7 @@ export async function fetchProviders(): Promise<Provider[]> {
   try {
     const res = await api.get<Provider[]>('/admin/providers');
     if (Array.isArray(res)) {
-      localStorage.setItem('scholarpath_providers', JSON.stringify(res));
+      localStorage.setItem('scholavon_providers', JSON.stringify(res));
       return res;
     }
   } catch (err) {
@@ -82,7 +82,7 @@ export async function fetchCategories(): Promise<Category[]> {
   try {
     const res = await api.get<Category[]>('/categories');
     if (Array.isArray(res)) {
-      localStorage.setItem('scholarpath_categories', JSON.stringify(res));
+      localStorage.setItem('scholavon_categories', JSON.stringify(res));
       return res;
     }
   } catch (err) {

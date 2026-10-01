@@ -1,6 +1,6 @@
 {
-  "name": "ScholarPath",
-  "description": "Scholarship discovery and application-management platform with student matching, eligibility engine, and administrative verification.",
+  "name": "Scholavon",
+  "description": "Scholavon helps students discover scholarships, check eligibility, track applications, and stay on top of deadlines.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

@@ -1,5 +1,5 @@
 -- ==============================================================================
--- SCHOLAR PATH — Migration V2: Document Vault + Required Documents + Snapshots
+-- SCHOLAVON — Migration V2: Document Vault + Required Documents + Snapshots
 -- ==============================================================================
 -- Run this AFTER the original supabase_schema_and_policies.sql
 -- Safe to run multiple times (uses IF NOT EXISTS / DROP POLICY IF EXISTS)

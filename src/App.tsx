@@ -982,7 +982,7 @@ function MainApp() {
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                 <span className="font-bold text-slate-900 block">Active Administrator:</span>
                 <p className="text-slate-700">
-                  {user ? `${user.firstName} ${user.lastName} (${user.role}) • ${user.email}` : 'System Administrator • admin@scholarpath.org'}
+                  {user ? `${user.firstName} ${user.lastName} (${user.role}) • ${user.email}` : 'System Administrator • admin@scholavon.org'}
                 </p>
                 <p className="text-emerald-700 font-semibold">Security Clearance: Enterprise Full Access</p>
               </div>

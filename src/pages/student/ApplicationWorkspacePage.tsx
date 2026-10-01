@@ -977,7 +977,7 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
               Official Provider Submission Portal
             </h3>
             <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
-              ScholarPath guides your preparation and verifies criteria. External applications must be submitted directly through the official provider portal.
+              Scholavon guides your preparation and verifies criteria. External applications must be submitted directly through the official provider portal.
             </p>
           </div>
 

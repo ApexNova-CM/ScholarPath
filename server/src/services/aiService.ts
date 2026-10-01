@@ -216,14 +216,14 @@ CURRENT FOCUS SCHOLARSHIP (Student is currently viewing / working on this):
   }
 
   return `
-You are ScholarPath AI, an intelligent, empowering, and context-aware scholarship advisor for ScholarPath.
+You are Scholavon AI, an intelligent, empowering, and context-aware scholarship advisor for Scholavon.
 You are assisting ${ctx.profile.firstName}.
 
 === MANDATORY SAFETY & TRUTHFULNESS RULES ===
 1. GROUNDED IN REAL DATA: ONLY refer to scholarships, applications, deadlines, documents, and match scores that exist in the provided student context below.
 2. NEVER FABRICATE: Never invent scholarships, fake deadlines, fake award amounts, or hallucinated requirements.
 3. NEVER GUARANTEE OUTCOMES: Never tell a student they are guaranteed to win an award or predict selection as a fact.
-4. HONEST UNKNOWN INFORMATION: If information is missing or not in ScholarPath, say: "I don't have enough information to confirm that."
+4. HONEST UNKNOWN INFORMATION: If information is missing or not in Scholavon, say: "I don't have enough information to confirm that."
 5. PRIVACY IS PARAMOUNT: You only have access to ${ctx.profile.firstName}'s authorized data. Never refer to or disclose any other student's data.
 6. CONCISE & ACTIONABLE: Keep responses structured with clear bullet points, bold highlights, and direct next steps. Avoid wall-of-text paragraphs.
 7. RESPECT CANONICAL SCORES: Never calculate independent conflicting match or readiness scores. Use the exact percentages and categories provided in context.
@@ -237,14 +237,14 @@ ${applicationsSummary}
 === STUDENT DOCUMENT VAULT METADATA ===
 ${documentsSummary}
 
-=== TOP MATCHED SCHOLARSHIPS AVAILABLE IN SCHOLARPATH ===
+=== TOP MATCHED SCHOLARSHIPS AVAILABLE IN SCHOLAVON ===
 ${topMatchesSummary}
 `;
 }
 
 /**
  * Contextual grounding fallback generator when API key is not present or in test environment.
- * Generates exact, factual, grounded answers using canonical ScholarPath engines.
+ * Generates exact, factual, grounded answers using canonical Scholavon engines.
  */
 function generateGroundedFallbackResponse(
   userMessage: string,
@@ -266,7 +266,7 @@ function generateGroundedFallbackResponse(
     lower.includes('bypass')
   ) {
     return {
-      reply: `I cannot perform that action or access unauthorized information.\n\nScholarPath AI strictly respects data isolation and safety. I cannot view other students' accounts, admin records, or perform automatic submissions without your direct action.`,
+      reply: `I cannot perform that action or access unauthorized information.\n\nScholavon AI strictly respects data isolation and safety. I cannot view other students' accounts, admin records, or perform automatic submissions without your direct action.`,
       suggestedActions: [{ label: 'Return to Dashboard', path: '/dashboard' }]
     };
   }
@@ -281,7 +281,7 @@ function generateGroundedFallbackResponse(
     lower === 'hello'
   ) {
     return {
-      reply: `Hello ${firstName}! I'm **ScholarPath AI**, your personal scholarship and application advisor.\n\nHere is how I can help you:\n- 🎯 **Match Score & Discovery**: Find scholarships tailored to your field (${ctx.profile.fieldOfStudy || 'your study'}) and degree level.\n- 📋 **Application Readiness**: Check what documents and profile requirements you are missing before applying.\n- ⏰ **Deadlines & Timelines**: Track upcoming closing dates and priority opportunities.\n- 📊 **Application Tracker & Outcomes**: Review your current applications, shortlist statuses, and award updates.\n- 💡 **Actionable Next Steps**: Guide you on exactly what to prepare next.`,
+      reply: `Hello ${firstName}! I'm **Scholavon AI**, your personal scholarship and application advisor.\n\nHere is how I can help you:\n- 🎯 **Match Score & Discovery**: Find scholarships tailored to your field (${ctx.profile.fieldOfStudy || 'your study'}) and degree level.\n- 📋 **Application Readiness**: Check what documents and profile requirements you are missing before applying.\n- ⏰ **Deadlines & Timelines**: Track upcoming closing dates and priority opportunities.\n- 📊 **Application Tracker & Outcomes**: Review your current applications, shortlist statuses, and award updates.\n- 💡 **Actionable Next Steps**: Guide you on exactly what to prepare next.`,
       suggestedActions: [
         { label: 'Find Top Matches', path: '/scholarships' },
         { label: 'Check Readiness', path: '/documents' },
@@ -560,7 +560,7 @@ function generateGroundedFallbackResponse(
     if (!ctx.profile.gpa || ctx.profile.gpa === 0) gaps.push('GPA');
     if (ctx.profile.profileCompletion < 100) gaps.push('Extracurriculars and certifications');
 
-    let reply = `Here is a summary of your academic profile on ScholarPath:\n\n` +
+    let reply = `Here is a summary of your academic profile on Scholavon:\n\n` +
       `- **Name**: ${ctx.profile.firstName} ${ctx.profile.lastName}\n` +
       `- **Education Level**: ${ctx.profile.educationLevel}\n` +
       `- **Field of Study**: ${ctx.profile.fieldOfStudy || 'Not provided'}\n` +
@@ -588,7 +588,7 @@ function generateGroundedFallbackResponse(
     reply: `I understand you are asking about: "${userMessage}".\n\nBased on your current profile (**${ctx.profile.educationLevel}** in **${ctx.profile.fieldOfStudy || 'your field'}**):\n` +
       `- You have **${ctx.applications.length} tracked applications**.\n` +
       `- You have **${ctx.documents.length} verified documents** in your vault.\n` +
-      `- There are **${ctx.matches.filter(m => m.lifecycle !== 'closed').length} active scholarships** available in ScholarPath.\n\n` +
+      `- There are **${ctx.matches.filter(m => m.lifecycle !== 'closed').length} active scholarships** available in Scholavon.\n\n` +
       `Feel free to ask me to search specific scholarships, check your readiness, explain deadlines, or review your application outcomes!`,
     suggestedActions: [
       { label: 'Find Scholarships', path: '/scholarships' },
@@ -672,10 +672,10 @@ export async function processAIChat(
         };
       }
     } catch (err: any) {
-      console.warn('Gemini API call encountered an issue, falling back to grounded ScholarPath engine:', err?.message || err);
+      console.warn('Gemini API call encountered an issue, falling back to grounded Scholavon engine:', err?.message || err);
     }
   }
 
-  // Grounded ScholarPath engine fallback
+  // Grounded Scholavon engine fallback
   return generateGroundedFallbackResponse(req.message, ctx);
 }

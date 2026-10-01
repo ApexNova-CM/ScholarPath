@@ -28,12 +28,12 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children, currentPat
                 className="flex items-center gap-2.5 cursor-pointer"
               >
                 <img
-                  src="/images/scholarpath-logo.png"
-                  alt="ScholarPath"
+                  src="/images/scholavon-logo.png"
+                  alt="Scholavon"
                   className="h-8 w-auto object-contain shrink-0"
                 />
                 <span className="text-lg font-bold text-white tracking-tight">
-                  ScholarPath
+                  Scholavon
                 </span>
               </div>
               <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
@@ -83,7 +83,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children, currentPat
                 </li>
                 <li>
                   <button onClick={() => onNavigate('/about')} className="hover:text-white transition-colors">
-                    About ScholarPath
+                    About Scholavon
                   </button>
                 </li>
                 <li>
@@ -116,9 +116,9 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children, currentPat
           </div>
 
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-            <p>© {new Date().getFullYear()} ScholarPath. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} Scholavon. All rights reserved.</p>
             <p className="flex items-center gap-1">
-              Your path to the right scholarship
+              Find Scholarships. Track Opportunities. Build Your Future.
             </p>
           </div>
         </div>

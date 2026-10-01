@@ -131,7 +131,7 @@ export const ReportScholarshipModal: React.FC<ReportScholarshipModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-900">Report Scholarship</h2>
-              <p className="text-xs text-slate-500">Help us keep ScholarPath accurate and trustworthy.</p>
+              <p className="text-xs text-slate-500">Help us keep Scholavon accurate and trustworthy.</p>
             </div>
           </div>
 
@@ -154,7 +154,7 @@ export const ReportScholarshipModal: React.FC<ReportScholarshipModalProps> = ({
               <div className="space-y-1">
                 <h3 className="text-base font-bold text-slate-900">Report submitted</h3>
                 <p className="text-xs text-slate-600 max-w-sm mx-auto leading-relaxed">
-                  Thanks for helping us keep ScholarPath accurate. Our team will review this report.
+                  Thanks for helping us keep Scholavon accurate. Our team will review this report.
                 </p>
               </div>
               <div className="pt-2 flex items-center justify-center gap-3">
@@ -264,7 +264,7 @@ export const ReportScholarshipModal: React.FC<ReportScholarshipModalProps> = ({
 
               {/* Disclaimer */}
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                Reports are reviewed by ScholarPath administrators. Submitting a report does not immediately remove or change the scholarship.
+                Reports are reviewed by Scholavon administrators. Submitting a report does not immediately remove or change the scholarship.
               </p>
 
               {/* Action Buttons */}

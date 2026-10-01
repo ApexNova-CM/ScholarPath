@@ -63,12 +63,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
       {/* Header */}
       <div className="text-center space-y-2">
         <img
-          src="/images/scholarpath-logo.png"
-          alt="ScholarPath"
+          src="/images/scholavon-logo.png"
+          alt="Scholavon"
           className="h-16 sm:h-20 w-auto object-contain mx-auto mb-3"
         />
         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-          Sign In to ScholarPath
+          Sign In to Scholavon
         </h1>
         <p className="text-xs text-slate-500 max-w-xs mx-auto">
           Sign in to continue your scholarship journey.

@@ -284,7 +284,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                   <Sparkles size={14} className="animate-pulse text-indigo-200" />
                 </div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-100">
-                  ScholarPath AI
+                  Scholavon AI
                 </h3>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-200 border border-indigo-400/30">

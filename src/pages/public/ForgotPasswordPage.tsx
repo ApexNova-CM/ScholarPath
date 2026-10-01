@@ -33,8 +33,8 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({ onNaviga
     <div className="bg-white rounded-3xl border border-slate-200 p-7 sm:p-9 shadow-sm space-y-6">
       <div className="text-center space-y-1.5">
         <img
-          src="/images/scholarpath-logo.png"
-          alt="ScholarPath"
+          src="/images/scholavon-logo.png"
+          alt="Scholavon"
           className="h-16 sm:h-20 w-auto object-contain mx-auto mb-3"
         />
         <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">

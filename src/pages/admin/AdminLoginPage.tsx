@@ -7,7 +7,7 @@ interface AdminLoginPageProps {
 
 /**
  * Unified Login:
- * ScholarPath uses a single unified login interface for all accounts (Students and Admins).
+ * Scholavon uses a single unified login interface for all accounts (Students and Admins).
  * Logging in with admin credentials automatically routes to the Admin Console (/admin/dashboard),
  * and logging in with student credentials routes to the Student Dashboard (/dashboard).
  */

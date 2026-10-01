@@ -367,7 +367,7 @@ export async function createInitialSeedUsers(): Promise<{
 
   const adminUser: UserRecord = {
     id: 'usr-admin-001',
-    email: 'admin@scholarpath.org',
+    email: 'admin@scholavon.org',
     passwordHash: adminPasswordHash,
     role: 'admin',
     emailVerified: true,
@@ -379,7 +379,7 @@ export async function createInitialSeedUsers(): Promise<{
     id: 'usr-admin-001',
     firstName: 'Sarah',
     lastName: 'Jenkins',
-    email: 'admin@scholarpath.org',
+    email: 'admin@scholavon.org',
     role: 'Super Admin',
     status: 'Active',
     assignedDepartment: 'Operations & Verification',
@@ -411,7 +411,7 @@ export async function createInitialSeedUsers(): Promise<{
 
   const demoStudent: UserRecord = {
     id: 'usr-student-001',
-    email: 'student@scholarpath.org',
+    email: 'student@scholavon.org',
     passwordHash: studentPasswordHash,
     role: 'student',
     emailVerified: true,
@@ -423,7 +423,7 @@ export async function createInitialSeedUsers(): Promise<{
     userId: 'usr-student-001',
     firstName: 'Alex',
     lastName: 'Morgan',
-    email: 'student@scholarpath.org' as any,
+    email: 'student@scholavon.org' as any,
     country: 'International',
     educationLevel: 'Undergraduate',
     institution: 'Tech Institute of Science',

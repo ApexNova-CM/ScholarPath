@@ -6,7 +6,7 @@ export const AboutPage: React.FC = () => {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
       <div className="text-center space-y-3">
         <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">Our Mission</span>
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900">About ScholarPath</h1>
+        <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900">About Scholavon</h1>
         <p className="text-sm text-slate-600 max-w-xl mx-auto">
           Dedicated to removing barriers, eliminating predatory scholarship scams, and connecting hardworking students with genuine academic funding.
         </p>
@@ -18,7 +18,7 @@ export const AboutPage: React.FC = () => {
           Students worldwide spend hundreds of hours browsing through outdated search engines, encountering scam links, dead deadlines, or vague eligibility criteria that leave them uncertain of their chances.
         </p>
         <p>
-          ScholarPath was founded on the principle of complete transparency. We believe every scholarship listed should link to a legitimate provider, clearly disclose all hard and soft requirements, and allow students to evaluate their real fit before applying.
+          Scholavon was founded on the principle of complete transparency. We believe every scholarship listed should link to a legitimate provider, clearly disclose all hard and soft requirements, and allow students to evaluate their real fit before applying.
         </p>
 
         <h2 className="text-lg font-bold text-slate-900 pt-4">Our Verification Philosophy</h2>

@@ -17,13 +17,13 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, onNavigate }) 
           className="flex items-center gap-2.5 cursor-pointer select-none group"
         >
           <img
-            src="/images/scholarpath-logo.png"
-            alt="ScholarPath"
+            src="/images/scholavon-logo.png"
+            alt="Scholavon"
             className="h-9 w-auto object-contain shrink-0 group-hover:scale-105 transition-transform"
           />
           <div>
             <span className="text-sm font-bold tracking-tight block text-slate-900">
-              ScholarPath
+              Scholavon
             </span>
           </div>
         </div>
@@ -46,7 +46,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, onNavigate }) 
 
       {/* Footer */}
       <footer className="py-6 text-center text-xs text-slate-500 border-t border-slate-200/60 bg-white/40">
-        <p>ScholarPath • Your path to the right scholarship</p>
+        <p>Scholavon • Find Scholarships That Fit You</p>
       </footer>
     </div>
   );

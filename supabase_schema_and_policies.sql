@@ -1,5 +1,5 @@
 -- ==============================================================================
--- SCHOLAR PATH — Production Supabase Schema, Row-Level Security (RLS) & Seed
+-- SCHOLAVON — Production Supabase Schema, Row-Level Security (RLS) & Seed
 -- ==============================================================================
 -- Run this entire file in your Supabase SQL Editor:
 -- https://supabase.com/dashboard/project/zfxkmwdvvjwugixtmpml/sql/new
@@ -368,7 +368,7 @@ ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, website = EXCLUDED.website;
 -- Seed Admin User
 INSERT INTO public.admin_users (id, first_name, last_name, email, role, status, assigned_department)
 VALUES
-  ('99999999-9999-4999-a999-999999999999', 'Operations', 'Lead', 'admin@scholarpath.org', 'Super Admin', 'Active', 'Governance & Operations')
+  ('99999999-9999-4999-a999-999999999999', 'Operations', 'Lead', 'admin@scholavon.org', 'Super Admin', 'Active', 'Governance & Operations')
 ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email;
 
 -- Seed Scholarships

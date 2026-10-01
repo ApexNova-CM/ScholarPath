@@ -47,8 +47,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="max-w-3xl mx-auto text-center space-y-6">
             <img
-              src="/images/scholarpath-logo.png"
-              alt="ScholarPath"
+              src="/images/scholavon-logo.png"
+              alt="Scholavon"
               className="h-20 sm:h-28 w-auto object-contain mx-auto"
             />
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.1]">
@@ -150,11 +150,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
-      {/* How ScholarPath Works */}
+      {/* How Scholavon Works */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-2xl mx-auto mb-14">
           <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">Workflow</span>
-          <h2 className="text-3xl font-bold text-slate-900 mt-1">How ScholarPath Works</h2>
+          <h2 className="text-3xl font-bold text-slate-900 mt-1">How Scholavon Works</h2>
           <p className="text-sm text-slate-600 mt-2">
             A structured path from discovering an opportunity to submitting on the official provider portal.
           </p>
@@ -286,7 +286,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               Start Your Scholarship Journey Today
             </h2>
             <p className="text-sm text-indigo-100 leading-relaxed">
-              Create your free student profile in under 2 minutes and let ScholarPath match you with verified opportunities tailored to your goals.
+              Create your free student profile in under 2 minutes and let Scholavon match you with verified opportunities tailored to your goals.
             </p>
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
               <button

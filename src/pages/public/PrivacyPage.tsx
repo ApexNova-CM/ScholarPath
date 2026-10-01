@@ -17,7 +17,7 @@ export const PrivacyPage: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-xs space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
         <h3 className="font-bold text-slate-900 text-base">1. Document Privacy & Security</h3>
         <p>
-          Documents uploaded to your ScholarPath Document Vault (including transcripts, CVs, and letters of recommendation) are strictly private. They are accessible exclusively by you and are never published or made searchable to third parties.
+          Documents uploaded to your Scholavon Document Vault (including transcripts, CVs, and letters of recommendation) are strictly private. They are accessible exclusively by you and are never published or made searchable to third parties.
         </p>
 
         <h3 className="font-bold text-slate-900 text-base pt-2">2. Data We Collect</h3>
@@ -41,7 +41,7 @@ export const TermsPage: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-xs space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
         <h3 className="font-bold text-slate-900 text-base">1. Platform Service</h3>
         <p>
-          ScholarPath operates as an informational discovery, checklist preparation, and application tracker. ScholarPath does not award scholarships directly, nor do we guarantee external admission or funding approval.
+          Scholavon operates as an informational discovery, checklist preparation, and application tracker. Scholavon does not award scholarships directly, nor do we guarantee external admission or funding approval.
         </p>
         <h3 className="font-bold text-slate-900 text-base pt-2">2. Accuracy of Information</h3>
         <p>

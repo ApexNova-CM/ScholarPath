@@ -1,5 +1,5 @@
 /**
- * Unified API Client for ScholarPath
+ * Unified API Client for Scholavon
  * Handles requests, Authorization headers, token management, and JSON error handling.
  */
 
@@ -28,7 +28,7 @@ class ApiClient {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('scholarpath_auth_token');
+      this.token = localStorage.getItem('scholavon_auth_token');
     }
   }
 
@@ -36,16 +36,16 @@ class ApiClient {
     this.token = token;
     if (typeof window !== 'undefined') {
       if (token) {
-        localStorage.setItem('scholarpath_auth_token', token);
+        localStorage.setItem('scholavon_auth_token', token);
       } else {
-        localStorage.removeItem('scholarpath_auth_token');
+        localStorage.removeItem('scholavon_auth_token');
       }
     }
   }
 
   public getToken(): string | null {
     if (!this.token && typeof window !== 'undefined') {
-      this.token = localStorage.getItem('scholarpath_auth_token');
+      this.token = localStorage.getItem('scholavon_auth_token');
     }
     return this.token;
   }

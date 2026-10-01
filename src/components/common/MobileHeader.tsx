@@ -36,20 +36,20 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   return (
     <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 md:hidden shrink-0">
       <div className="px-4 sm:px-6 flex items-center justify-between h-16 max-w-7xl mx-auto">
-        {/* Left: ScholarPath Brand Logo & Title */}
+        {/* Left: Scholavon Brand Logo & Title */}
         <div
           onClick={handleBrandClick}
           className="flex items-center gap-2.5 cursor-pointer select-none group min-w-0"
-          title="ScholarPath Home"
+          title="Scholavon Home"
         >
           <img
-            src="/images/scholarpath-logo.png"
-            alt="ScholarPath"
+            src="/images/scholavon-logo.png"
+            alt="Scholavon"
             className="h-8 w-auto object-contain shrink-0 group-hover:scale-105 transition-transform"
           />
           <div className="min-w-0">
             <span className="text-sm sm:text-base font-bold tracking-tight text-slate-900 block leading-none truncate">
-              ScholarPath
+              Scholavon
             </span>
             <span
               className={`text-[10px] font-medium block mt-0.5 tracking-wide truncate ${

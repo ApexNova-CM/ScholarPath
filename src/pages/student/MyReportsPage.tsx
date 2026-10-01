@@ -80,7 +80,7 @@ export const MyReportsPage: React.FC<MyReportsPageProps> = ({
             My Scholarship Reports
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
-            Track the status of scholarship issue reports you have submitted to help keep ScholarPath verified.
+            Track the status of scholarship issue reports you have submitted to help keep Scholavon verified.
           </p>
         </div>
 
@@ -230,7 +230,7 @@ export const MyReportsPage: React.FC<MyReportsPageProps> = ({
       <div className="p-4 rounded-2xl bg-slate-100/70 border border-slate-200/80 text-xs text-slate-600 flex items-start gap-3">
         <Shield size={16} className="text-indigo-600 shrink-0 mt-0.5" />
         <p className="leading-relaxed">
-          ScholarPath administrators review every community report to maintain trusted, vetted scholarship listings. Reports do not automatically take down scholarships until investigated.
+          Scholavon administrators review every community report to maintain trusted, vetted scholarship listings. Reports do not automatically take down scholarships until investigated.
         </p>
       </div>
     </div>

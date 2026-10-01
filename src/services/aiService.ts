@@ -161,7 +161,7 @@ function generateClientGroundedResponse(
 ): Omit<ChatMessage, 'id' | 'timestamp' | 'role'> {
   const profile = userProfile || StorageService.getUserById('usr-student-001') || {
     id: 'usr-student-001',
-    email: 'student@scholarpath.org',
+    email: 'student@scholavon.org',
     role: 'student',
     firstName: 'Student',
     lastName: '',
@@ -266,7 +266,7 @@ function generateClientGroundedResponse(
   // General fallback
   const topMatch = scholarships[0];
   return {
-    content: `Hello ${profile.firstName}! I'm **ScholarPath AI**.\n\n` +
+    content: `Hello ${profile.firstName}! I'm **Scholavon AI**.\n\n` +
       `You currently have **${applications.length} applications** and **${documents.length} documents** in your vault.\n\n` +
       `Ask me any questions about finding scholarships, checking requirements, or tracking your deadlines!`,
     suggestedActions: [

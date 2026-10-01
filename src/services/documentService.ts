@@ -491,7 +491,7 @@ export function evaluateScholarshipReadiness(
       score: 0,
       category: 'Not Ready Yet',
       categoryColors: getReadinessCategoryColors(0),
-      summary: 'This scholarship does not have enough structured requirements for ScholarPath to calculate your application readiness.',
+      summary: 'This scholarship does not have enough structured requirements for Scholavon to calculate your application readiness.',
       items: [],
       missingCount: 0,
       needsReviewCount: 0,

@@ -213,13 +213,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
             className="flex items-center gap-2.5 cursor-pointer select-none"
           >
             <img
-              src="/images/scholarpath-logo.png"
-              alt="ScholarPath"
+              src="/images/scholavon-logo.png"
+              alt="Scholavon"
               className="h-8 w-auto object-contain shrink-0"
             />
             <div>
               <span className="text-sm font-bold text-slate-900 tracking-tight block leading-none">
-                ScholarPath
+                Scholavon
               </span>
               <span className="text-[10px] text-amber-700 font-bold uppercase tracking-wider block mt-0.5">
                 Admin Console
@@ -290,13 +290,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 className="flex items-center gap-2.5 cursor-pointer select-none"
               >
                 <img
-                  src="/images/scholarpath-logo.png"
-                  alt="ScholarPath"
+                  src="/images/scholavon-logo.png"
+                  alt="Scholavon"
                   className="h-8 w-auto object-contain shrink-0"
                 />
                 <div>
                   <span className="text-sm font-bold text-slate-900 tracking-tight block leading-none">
-                    Scholar Path
+                    Scholavon
                   </span>
                   <span className="text-[10px] text-amber-700 font-bold uppercase tracking-wider block mt-0.5">
                     Admin Console
@@ -359,3 +359,4 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     </>
   );
 };
+

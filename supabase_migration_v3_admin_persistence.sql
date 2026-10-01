@@ -1,5 +1,5 @@
 -- ==============================================================================
--- SCHOLAR PATH — Migration V3: Admin Account Persistence Fix
+-- SCHOLAVON — Migration V3: Admin Account Persistence Fix
 -- ==============================================================================
 -- Run this in your Supabase SQL Editor AFTER supabase_schema_and_policies.sql
 -- Safe to run multiple times (uses DROP POLICY IF EXISTS / CREATE OR REPLACE)
@@ -16,10 +16,10 @@
 -- VALUES
 --   ('<REPLACE_WITH_REAL_AUTH_UUID>', 'miraclemgbemena2007@gmail.com', 'admin',
 --    'Miracle', 'Mgbemena', 'Nigeria', 'Postgraduate (Masters)',
---    'ScholarPath Foundation', 'Platform Administration', 4.0, 4.0, 100),
+--    'Scholavon Foundation', 'Platform Administration', 4.0, 4.0, 100),
 --   ('<REPLACE_WITH_REAL_AUTH_UUID>', 'chrisekpe18@gmail.com', 'admin',
 --    'Chris', 'Ekpe', 'Nigeria', 'Postgraduate (Masters)',
---    'ScholarPath Foundation', 'Scholarship Operations', 4.0, 4.0, 100)
+--    'Scholavon Foundation', 'Scholarship Operations', 4.0, 4.0, 100)
 -- ON CONFLICT (id) DO UPDATE SET role = 'admin';
 
 
@@ -101,7 +101,7 @@ BEGIN
     ),
     'International',
     'Undergraduate',
-    CASE WHEN (NEW.raw_user_meta_data->>'role') = 'admin' THEN 'ScholarPath Foundation' ELSE '' END,
+    CASE WHEN (NEW.raw_user_meta_data->>'role') = 'admin' THEN 'Scholavon Foundation' ELSE '' END,
     COALESCE(NEW.raw_user_meta_data->>'assigned_department', ''),
     4.0,
     4.0,

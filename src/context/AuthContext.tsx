@@ -61,7 +61,7 @@ async function fetchProfileFromSupabase(sbUser: SupabaseUser): Promise<UserProfi
       role,
       country: 'International',
       educationLevel: 'Undergraduate',
-      institution: role === 'admin' ? 'ScholarPath Foundation' : '',
+      institution: role === 'admin' ? 'Scholavon Foundation' : '',
       fieldOfStudy: meta.assigned_department || '',
     });
   }

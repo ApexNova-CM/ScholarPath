@@ -288,7 +288,7 @@ const ADMIN_USERS = [
     id: '99999999-9999-4999-a999-999999999999',
     first_name: 'Lead',
     last_name: 'Administrator',
-    email: 'admin@scholarpath.org',
+    email: 'admin@scholavon.org',
     role: 'Super Admin',
     status: 'Active',
     assigned_department: 'Governance & Operations',
@@ -309,7 +309,7 @@ const ADMIN_USERS = [
 ];
 
 async function seed() {
-  console.log('🚀 Starting Scholar Path Supabase Seed...');
+  console.log('🚀 Starting Scholavon Supabase Seed...');
 
   // 1. Seed Categories
   console.log('📦 Seeding Categories...');

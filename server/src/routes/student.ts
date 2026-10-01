@@ -607,7 +607,7 @@ router.post('/ai/chat', async (req: Request, res: Response): Promise<void> => {
     console.error('AI chat endpoint error:', err);
     res.status(500).json({
       success: false,
-      error: 'ScholarPath AI is temporarily unavailable. Please try again.'
+      error: 'Scholavon AI is temporarily unavailable. Please try again.'
     });
   }
 });

@@ -41,8 +41,8 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
   // Initialize welcoming message
   useEffect(() => {
     const welcomeText = activeScholarship
-      ? `Hello **${userProfile.firstName}**! I'm **ScholarPath AI**.\n\nI'm currently focused on **${activeScholarship.title}**.\n\nYou can ask me about:\n- 🎯 **Why you got your Match Score**\n- 📋 **What documents and requirements you are missing**\n- ✍️ **How to draft your personal statement**\n- ⏰ **Key deadlines and next steps**`
-      : `Hello **${userProfile.firstName}**! I'm **ScholarPath AI**, your personal scholarship advisor.\n\nI have access to your verified academic profile in **${userProfile.fieldOfStudy || 'your degree'}** and your **${applications.length} tracked applications**.\n\nHow can I help you succeed today?`;
+      ? `Hello **${userProfile.firstName}**! I'm **Scholavon AI**.\n\nI'm currently focused on **${activeScholarship.title}**.\n\nYou can ask me about:\n- 🎯 **Why you got your Match Score**\n- 📋 **What documents and requirements you are missing**\n- ✍️ **How to draft your personal statement**\n- ⏰ **Key deadlines and next steps**`
+      : `Hello **${userProfile.firstName}**! I'm **Scholavon AI**, your personal scholarship advisor.\n\nI have access to your verified academic profile in **${userProfile.fieldOfStudy || 'your degree'}** and your **${applications.length} tracked applications**.\n\nHow can I help you succeed today?`;
 
     const initialMsg: ChatMessage = {
       id: 'msg-welcome',
@@ -108,7 +108,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
         {
           id: `msg-err-${Date.now()}`,
           role: 'assistant',
-          content: 'ScholarPath AI is temporarily unavailable. Please try again in a few moments.',
+          content: 'Scholavon AI is temporarily unavailable. Please try again in a few moments.',
           timestamp: new Date().toISOString(),
           isError: true
         }
@@ -182,7 +182,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
-                  ScholarPath AI
+                  Scholavon AI
                 </h1>
                 <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
                   Assistant
@@ -327,7 +327,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
                 <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '150ms' }} />
                 <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
-              <span className="text-xs text-slate-500 font-medium">ScholarPath AI is thinking...</span>
+              <span className="text-xs text-slate-500 font-medium">Scholavon AI is thinking...</span>
             </div>
           </div>
         )}

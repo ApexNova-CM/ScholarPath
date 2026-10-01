@@ -27,7 +27,8 @@ app.use(
 
 // Allowed production and development origins
 const allowedOrigins = [
-  'https://scholar-path-ebon.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:5173',
   ...(config.corsOrigin ? config.corsOrigin.split(',').map((o) => o.trim()) : []),
 ];
 
@@ -88,7 +89,7 @@ export async function startServer(): Promise<void> {
   await db.init();
   const server = app.listen(config.port, () => {
     console.log(`=========================================`);
-    console.log(` ScholarPath REST API Server`);
+    console.log(` Scholavon REST API Server`);
     console.log(` Running on: http://localhost:${config.port}`);
     console.log(` Environment: ${config.env}`);
     console.log(` Persistence: server/data/db.json & uploads/ (Persistent volume required in container hosting)`);
