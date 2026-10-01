@@ -51,11 +51,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               alt="Scholavon"
               className="h-20 sm:h-28 w-auto object-contain mx-auto"
             />
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-50 border border-indigo-200/80 text-indigo-700 text-xs font-bold tracking-wide shadow-2xs mx-auto">
-              <span>Opportunities. Within Reach.</span>
-            </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.1]">
-              Find Scholarships That Fit Your Path.
+              Opportunities. Within Reach.
             </h1>
 
             <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto font-normal">
