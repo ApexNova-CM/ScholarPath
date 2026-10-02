@@ -139,6 +139,10 @@ export interface UserProfile {
     deadlineAlerts?: boolean;
     matchingAlerts?: boolean;
   };
+  emailVerified?: boolean;
+  requiresEmailVerification?: boolean;
+  verificationCode?: string;
+  isGrandfathered?: boolean;
   createdAt: string;
   updatedAt: string;
 }

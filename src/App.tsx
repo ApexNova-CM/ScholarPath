@@ -366,17 +366,35 @@ function MainApp() {
       // PUBLIC ROUTES
       // ----------------------------------------------------
       case '/':
-        if (isAuthenticated && role === 'student' && user) {
+        if (isAuthenticated && role === 'admin') {
+          // Redirect admin to admin dashboard
           return (
-            <StudentLayout currentPath={currentPath} onNavigate={navigate}>
-              <LandingPage
+            <AdminLayout currentPath="/admin/dashboard" onNavigate={navigate}>
+              <AdminDashboardPage
                 scholarships={scholarships}
-                userProfile={user}
+                providers={providers}
+                users={users}
+                applications={applications}
                 onNavigate={navigate}
+                onVerifyScholarship={handleVerifyScholarship}
+                onRejectScholarship={handleRejectScholarship}
+              />
+            </AdminLayout>
+          );
+        }
+        if (isAuthenticated && role === 'student' && user) {
+          // Redirect authenticated students to their dashboard
+          return (
+            <StudentLayout currentPath="/dashboard" onNavigate={navigate}>
+              <StudentDashboardPage
+                userProfile={user}
+                scholarships={scholarships}
+                applications={applications}
+                notifications={notifications}
+                savedScholarshipIds={savedIds}
                 onToggleSave={handleToggleSave}
-                isSaved={(id) => savedIds.includes(id)}
+                onNavigate={navigate}
                 onStartApplication={handleStartApplication}
-                categories={categories}
               />
             </StudentLayout>
           );

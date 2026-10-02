@@ -20,7 +20,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
     if (subtitle) return subtitle;
     if (portalType === 'student') return 'Student Portal';
     if (portalType === 'admin') return 'Admin Console';
-    return 'Your path to the right scholarship';
+    return 'Opportunities within reach';
   };
 
   const handleBrandClick = () => {

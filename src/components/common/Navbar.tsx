@@ -58,7 +58,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, onNavigate }) => {
                   Scholavon
                 </span>
                 <span className="text-[10px] font-medium text-indigo-600 block mt-0.5 tracking-wide">
-                  Opportunities. Within Reach.
+                  Opportunities within reach
                 </span>
               </div>
             </div>
@@ -217,7 +217,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, onNavigate }) => {
                     Scholavon
                   </span>
                   <span className="text-[10px] text-indigo-600 font-medium block mt-0.5">
-                    Opportunities. Within Reach.
+                    Opportunities within reach
                   </span>
                 </div>
               </div>

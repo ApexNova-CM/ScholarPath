@@ -52,7 +52,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               className="h-20 sm:h-28 w-auto object-contain mx-auto"
             />
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.1]">
-              Opportunities. Within Reach.
+              Opportunities within reach
             </h1>
 
             <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto font-normal">

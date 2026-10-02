@@ -22,7 +22,7 @@ interface AuthContextType {
   registerStudent: (
     profileData: Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt' | 'profileCompletion' | 'role'>,
     password?: string
-  ) => Promise<{ success: boolean; error?: string }>;
+  ) => Promise<{ success: boolean; requiresConfirmation?: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<UserProfile>;
   updateUserProfile: (profile: UserProfile | Partial<UserProfile>) => Promise<UserProfile>;
@@ -317,7 +317,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const registerStudent = async (
     profileData: Omit<UserProfile, 'id' | 'createdAt' | 'updatedAt' | 'profileCompletion' | 'role'>,
     password?: string
-  ): Promise<{ success: boolean; error?: string }> => {
+  ): Promise<{ success: boolean; requiresConfirmation?: boolean; error?: string }> => {
     if (!isSupabaseConfigured) {
       return { success: false, error: 'Authentication service is not configured.' };
     }
@@ -343,7 +343,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!data.user) return { success: false, error: 'Registration failed. Please try again.' };
 
       // Create the public profile row with role = 'student'
-      const newProfile = await createProfileInSupabase(data.user, {
+      await createProfileInSupabase(data.user, {
         firstName: profileData.firstName,
         lastName: profileData.lastName,
         role: 'student',
@@ -353,8 +353,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fieldOfStudy: profileData.fieldOfStudy,
       });
 
+      // If Supabase email confirmation is enabled, session will be null after signUp.
+      // This is the grandfathering boundary: new users must confirm; existing users
+      // who already have a session are never touched by this code path.
+      if (!data.session) {
+        // Email confirmation required — do NOT log the user in yet
+        return { success: true, requiresConfirmation: true };
+      }
+
+      // Email confirmation disabled (or auto-confirmed) — log in immediately
+      const newProfile = await fetchProfileFromSupabase(data.user);
       setUser(newProfile);
-      return { success: true };
+      return { success: true, requiresConfirmation: false };
     } finally {
       setIsLoading(false);
     }

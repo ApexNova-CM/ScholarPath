@@ -46,7 +46,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, onNavigate }) 
 
       {/* Footer */}
       <footer className="py-6 text-center text-xs text-slate-500 border-t border-slate-200/60 bg-white/40">
-        <p>Scholavon • Opportunities. Within Reach.</p>
+        <p>Scholavon • Opportunities within reach</p>
       </footer>
     </div>
   );

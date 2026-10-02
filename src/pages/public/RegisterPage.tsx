@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { EducationLevel } from '../../types';
-import { Mail, Lock, User, GraduationCap, Building2, MapPin, Award, ArrowRight, AlertCircle } from 'lucide-react';
+import { Mail, Lock, User, GraduationCap, Building2, MapPin, Award, ArrowRight, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface RegisterPageProps {
   onNavigate: (path: string) => void;
@@ -26,6 +26,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
   const [customGpaScale, setCustomGpaScale] = useState<string>('5.0');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmationRequired, setConfirmationRequired] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +72,13 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
       }, formData.password);
 
       if (res.success) {
-        onNavigate('/dashboard');
+        if (res.requiresConfirmation) {
+          // Email confirmation required — show confirmation screen
+          setRegisteredEmail(formData.email);
+          setConfirmationRequired(true);
+        } else {
+          onNavigate('/dashboard');
+        }
       } else {
         setError(res.error || 'Failed to create student account.');
       }
@@ -78,6 +86,55 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate }) => {
       setIsLoading(false);
     }
   };
+
+  // Email confirmation screen
+  if (confirmationRequired) {
+    return (
+      <div className="bg-white rounded-3xl border border-slate-200 p-7 sm:p-9 shadow-sm space-y-6 max-w-xl mx-auto text-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+            <CheckCircle size={32} className="text-green-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Check Your Email</h1>
+            <p className="text-sm text-slate-600 mt-2">
+              A confirmation link has been sent to:
+            </p>
+            <p className="text-sm font-bold text-indigo-700 mt-1 break-all">{registeredEmail}</p>
+          </div>
+        </div>
+        <div className="bg-slate-50 rounded-2xl border border-slate-200 p-5 text-left space-y-3">
+          <p className="text-xs font-bold text-slate-800">Next steps:</p>
+          <ol className="text-xs text-slate-600 space-y-2 list-decimal list-inside">
+            <li>Open the email from Scholavon in your inbox.</li>
+            <li>Click the <span className="font-semibold">Confirm your email</span> link.</li>
+            <li>You will be automatically redirected to your student dashboard.</li>
+          </ol>
+        </div>
+        <p className="text-xs text-slate-500">
+          Didn't receive an email? Check your spam folder, or{' '}
+          <button
+            type="button"
+            onClick={() => { setConfirmationRequired(false); setError(''); }}
+            className="font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+          >
+            go back
+          </button>{' '}
+          to try again.
+        </p>
+        <button
+          type="button"
+          onClick={() => onNavigate('/login')}
+          className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2"
+        >
+          <span>Go to Sign In</span>
+          <ArrowRight size={14} />
+        </button>
+      </div>
+    );
+  }
+
+
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200 p-7 sm:p-9 shadow-sm space-y-6 max-w-xl mx-auto">
