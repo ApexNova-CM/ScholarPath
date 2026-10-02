@@ -348,32 +348,68 @@ export async function revokeAdminRole(
   }
 }
 
-export async function searchRegisteredUsers(query: string): Promise<UserProfile[]> {
-  const clean = query.trim();
-  if (!clean) return [];
+export async function fetchNonAdminUsers(): Promise<UserProfile[]> {
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        return data.filter((row: any) => row.role !== 'admin').map(mapRowToProfile);
+      }
+    } catch (err) {
+      console.error('Failed to fetch non-admin users from Supabase:', err);
+    }
+  }
+
+  const all = await fetchAllUsers();
+  return all.filter((u) => u.role !== 'admin');
+}
+
+export async function searchRegisteredUsers(query: string = ''): Promise<UserProfile[]> {
+  const clean = query.trim().toLowerCase();
 
   if (isSupabaseConfigured) {
     try {
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .or(`email.ilike.%${clean}%,first_name.ilike.%${clean}%,last_name.ilike.%${clean}%`)
-        .limit(20);
+        .order('created_at', { ascending: false });
 
       if (!error && data) {
-        return data.map(mapRowToProfile);
+        const nonAdmins = data.filter((row: any) => row.role !== 'admin').map(mapRowToProfile);
+        if (!clean) return nonAdmins;
+
+        return nonAdmins.filter(
+          (u) =>
+            u.email.toLowerCase().includes(clean) ||
+            u.firstName.toLowerCase().includes(clean) ||
+            u.lastName.toLowerCase().includes(clean) ||
+            `${u.firstName} ${u.lastName}`.toLowerCase().includes(clean) ||
+            (u.institution && u.institution.toLowerCase().includes(clean)) ||
+            (u.fieldOfStudy && u.fieldOfStudy.toLowerCase().includes(clean)) ||
+            u.id.toLowerCase().includes(clean)
+        );
       }
     } catch (err) {
-      console.error('Failed to search users in Supabase:', err);
+      console.error('Failed to search registered users in Supabase:', err);
     }
   }
 
-  const all = await fetchAllUsers();
-  const q = clean.toLowerCase();
-  return all.filter(u =>
-    u.email.toLowerCase().includes(q) ||
-    u.firstName.toLowerCase().includes(q) ||
-    u.lastName.toLowerCase().includes(q)
+  const all = await fetchNonAdminUsers();
+  if (!clean) return all;
+
+  return all.filter(
+    (u) =>
+      u.email.toLowerCase().includes(clean) ||
+      u.firstName.toLowerCase().includes(clean) ||
+      u.lastName.toLowerCase().includes(clean) ||
+      `${u.firstName} ${u.lastName}`.toLowerCase().includes(clean) ||
+      (u.institution && u.institution.toLowerCase().includes(clean)) ||
+      (u.fieldOfStudy && u.fieldOfStudy.toLowerCase().includes(clean)) ||
+      u.id.toLowerCase().includes(clean)
   );
 }
 

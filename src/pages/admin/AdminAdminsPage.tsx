@@ -4,14 +4,15 @@ import { useAuth } from '../../context/AuthContext';
 import { supabase, isSupabaseConfigured, createAdminAuthClient } from '../../lib/supabase';
 import {
   fetchAdminUsers,
+  fetchNonAdminUsers,
   promoteUserToAdmin,
   revokeAdminRole,
-  searchRegisteredUsers,
 } from '../../services/dataService';
 import {
   ShieldCheck, Search, UserPlus, Mail, Calendar,
   CheckCircle2, X, AlertCircle, Info, Trash2, KeyRound, Eye, EyeOff,
-  Loader2, UserCheck, ArrowRight, ShieldAlert, GraduationCap, Building2
+  Loader2, UserCheck, ArrowRight, ShieldAlert, GraduationCap, Building2,
+  Users, UserCog
 } from 'lucide-react';
 
 interface AdminAdminsPageProps {
@@ -20,26 +21,29 @@ interface AdminAdminsPageProps {
 
 export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
   const { user: currentAuthUser } = useAuth();
+  
+  // Administrators state
   const [admins, setAdmins] = useState<AdminUser[]>([]);
-  const [isLoadingList, setIsLoadingList] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoadingAdmins, setIsLoadingAdmins] = useState(true);
+  const [adminSearchQuery, setAdminSearchQuery] = useState('');
+
+  // Non-Admin Registered Students state
+  const [students, setStudents] = useState<UserProfile[]>([]);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(true);
+  const [studentSearchQuery, setStudentSearchQuery] = useState('');
+
+  // Feedback notifications
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Modal State
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [modalTab, setModalTab] = useState<'promote' | 'create'>('promote');
-
-  // Promote User State
-  const [userSearchQuery, setUserSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
-  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  // Promotion Modal & Action state
+  const [userToPromote, setUserToPromote] = useState<UserProfile | null>(null);
   const [promoteDepartment, setPromoteDepartment] = useState('Scholarship Operations');
   const [isPromoting, setIsPromoting] = useState(false);
   const [promoteError, setPromoteError] = useState<string | null>(null);
 
-  // Create New Admin State
+  // Create New Admin Modal state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -49,80 +53,93 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  // Revoke Admin State
+  // Revoke Admin Modal state
   const [revokingAdmin, setRevokingAdmin] = useState<AdminUser | null>(null);
   const [isRevoking, setIsRevoking] = useState(false);
 
-  // ── Load all admin users ──────────────────────────────────────────────────
-  const loadAdmins = useCallback(async () => {
-    setIsLoadingList(true);
+  // ── Load all data ─────────────────────────────────────────────────────────
+  const loadData = useCallback(async () => {
+    setIsLoadingAdmins(true);
+    setIsLoadingStudents(true);
     try {
-      const data = await fetchAdminUsers();
-      setAdmins(data);
+      const [adminList, studentList] = await Promise.all([
+        fetchAdminUsers(),
+        fetchNonAdminUsers(),
+      ]);
+      setAdmins(adminList);
+      setStudents(studentList);
     } catch (err: any) {
-      console.error('Failed to load admin users:', err);
+      console.error('Failed to load user management data:', err);
     } finally {
-      setIsLoadingList(false);
+      setIsLoadingAdmins(false);
+      setIsLoadingStudents(false);
     }
   }, []);
 
   useEffect(() => {
-    loadAdmins();
-  }, [loadAdmins]);
+    loadData();
+  }, [loadData]);
 
-  // ── Search registered users for promotion ─────────────────────────────────
-  const handleUserSearch = async (query: string) => {
-    setUserSearchQuery(query);
-    setSelectedUser(null);
+  // ── Filtered Admins List ──────────────────────────────────────────────────
+  const filteredAdmins = admins.filter((admin) => {
+    if (!adminSearchQuery.trim()) return true;
+    const q = adminSearchQuery.toLowerCase();
+    return (
+      `${admin.firstName} ${admin.lastName}`.toLowerCase().includes(q) ||
+      admin.email.toLowerCase().includes(q) ||
+      (admin.assignedDepartment ?? '').toLowerCase().includes(q) ||
+      admin.id.toLowerCase().includes(q)
+    );
+  });
+
+  // ── Filtered Students List (excludes any who are admins) ───────────────────
+  const adminIds = new Set(admins.map((a) => a.id));
+  const adminEmails = new Set(admins.map((a) => a.email.toLowerCase()));
+
+  const eligibleStudents = students.filter(
+    (s) => !adminIds.has(s.id) && !adminEmails.has(s.email.toLowerCase()) && s.role !== 'admin'
+  );
+
+  const filteredStudents = eligibleStudents.filter((student) => {
+    if (!studentSearchQuery.trim()) return true;
+    const q = studentSearchQuery.toLowerCase();
+    return (
+      student.email.toLowerCase().includes(q) ||
+      student.firstName.toLowerCase().includes(q) ||
+      student.lastName.toLowerCase().includes(q) ||
+      `${student.firstName} ${student.lastName}`.toLowerCase().includes(q) ||
+      (student.institution && student.institution.toLowerCase().includes(q)) ||
+      (student.fieldOfStudy && student.fieldOfStudy.toLowerCase().includes(q)) ||
+      student.id.toLowerCase().includes(q)
+    );
+  });
+
+  // ── Handle Promote User ───────────────────────────────────────────────────
+  const handleOpenPromote = (user: UserProfile) => {
+    setUserToPromote(user);
+    setPromoteDepartment(user.fieldOfStudy || 'Scholarship Operations');
     setPromoteError(null);
-
-    const clean = query.trim();
-    if (!clean) {
-      setSearchResults([]);
-      return;
-    }
-
-    setIsSearchingUsers(true);
-    try {
-      const results = await searchRegisteredUsers(clean);
-      // Filter out users who are already in the admin list
-      const currentAdminIds = new Set(admins.map((a) => a.id));
-      const currentAdminEmails = new Set(admins.map((a) => a.email.toLowerCase()));
-      const availableStudents = results.filter(
-        (u) => !currentAdminIds.has(u.id) && !currentAdminEmails.has(u.email.toLowerCase()) && u.role !== 'admin'
-      );
-      setSearchResults(availableStudents);
-    } catch (err: any) {
-      console.error('Search error:', err);
-    } finally {
-      setIsSearchingUsers(false);
-    }
   };
 
-  // ── Promote existing student to Admin ─────────────────────────────────────
   const handlePromoteConfirm = async () => {
-    if (!selectedUser) return;
+    if (!userToPromote) return;
     setIsPromoting(true);
     setPromoteError(null);
 
     try {
-      const res = await promoteUserToAdmin(selectedUser.id, promoteDepartment);
+      const res = await promoteUserToAdmin(userToPromote.id, promoteDepartment);
       if (!res.success) {
         setPromoteError(res.error || 'Failed to promote user to Administrator.');
         return;
       }
 
-      await loadAdmins();
-      setIsAddModalOpen(false);
-      setSelectedUser(null);
-      setUserSearchQuery('');
-      setSearchResults([]);
-
-      const fullName = `${selectedUser.firstName} ${selectedUser.lastName}`.trim();
+      await loadData();
+      const fullName = `${userToPromote.firstName} ${userToPromote.lastName}`.trim();
       setSuccessMessage(
-        `${fullName} (${selectedUser.email}) has been successfully promoted to Administrator. Their student data and applications have been preserved.`
+        `${fullName} (${userToPromote.email}) has been successfully promoted to Administrator. Their student profile, applications, and documents have been fully preserved.`
       );
       setTimeout(() => setSuccessMessage(null), 8000);
+      setUserToPromote(null);
     } catch (err: any) {
       setPromoteError(err.message || 'An unexpected error occurred during promotion.');
     } finally {
@@ -130,7 +147,7 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
     }
   };
 
-  // ── Create brand new Admin account ────────────────────────────────────────
+  // ── Handle Create Brand New Admin ─────────────────────────────────────────
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateError(null);
@@ -161,7 +178,6 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
         return;
       }
 
-      // Step 1: Create Supabase Auth user
       const { data: signUpData, error: signUpError } = await tempAuthClient.auth.signUp({
         email: cleanEmail,
         password: password.trim(),
@@ -178,7 +194,7 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
 
       if (signUpError) {
         if (signUpError.message.toLowerCase().includes('already registered') || signUpError.message.toLowerCase().includes('already exists')) {
-          setCreateError('An account with this email address already exists. Try searching for and promoting them instead.');
+          setCreateError('An account with this email address already exists. You can promote them directly from the list below.');
         } else {
           setCreateError(`Auth creation failed: ${signUpError.message}`);
         }
@@ -192,7 +208,6 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
 
       const authUserId = signUpData.user.id;
 
-      // Step 2: Upsert profile row in public.users with role='admin'
       const { error: profileError } = await supabase.from('users').upsert(
         {
           id: authUserId,
@@ -218,12 +233,10 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
         return;
       }
 
-      // Step 3: Refresh admin list
-      await loadAdmins();
-
-      setIsAddModalOpen(false);
+      await loadData();
+      setIsCreateModalOpen(false);
       setSuccessMessage(
-        `Administrator account for ${cleanFirstName} ${cleanLastName} has been created successfully. They can now log in.`
+        `Administrator account for ${cleanFirstName} ${cleanLastName} (${cleanEmail}) has been created successfully.`
       );
       setTimeout(() => setSuccessMessage(null), 8000);
     } catch (err: any) {
@@ -233,7 +246,7 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
     }
   };
 
-  // ── Revoke Admin privileges (demote to 'student') ──────────────────────────
+  // ── Handle Revoke Admin ───────────────────────────────────────────────────
   const handleConfirmRevoke = async () => {
     if (!revokingAdmin) return;
 
@@ -253,7 +266,7 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
         return;
       }
 
-      await loadAdmins();
+      await loadData();
       const adminName = `${revokingAdmin.firstName} ${revokingAdmin.lastName}`.trim();
       setSuccessMessage(
         `Admin privileges revoked for ${adminName} (${revokingAdmin.email}). Their account has been converted back to a standard student account.`
@@ -267,38 +280,8 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
     }
   };
 
-  // Filter admins for main list
-  const filteredAdmins = admins.filter((admin) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      `${admin.firstName} ${admin.lastName}`.toLowerCase().includes(q) ||
-      admin.email.toLowerCase().includes(q) ||
-      (admin.assignedDepartment ?? '').toLowerCase().includes(q)
-    );
-  });
-
-  const openAddModal = (tab: 'promote' | 'create' = 'promote') => {
-    setModalTab(tab);
-    setUserSearchQuery('');
-    setSearchResults([]);
-    setSelectedUser(null);
-    setPromoteDepartment('Scholarship Operations');
-    setPromoteError(null);
-
-    setFirstName('');
-    setLastName('');
-    setEmail('');
-    setPassword('');
-    setShowPassword(false);
-    setDepartment('Platform Administration');
-    setCreateError(null);
-
-    setIsAddModalOpen(true);
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -310,22 +293,30 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
             Admin Management
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
-            Manage multi-admin access, search and promote registered users to administrators, or revoke administrator privileges safely.
+            Manage administrative personnel, review permission levels, promote registered student accounts to administrators, or revoke privileges.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 self-start sm:self-auto">
-          <button
-            id="btn-promote-admin"
-            onClick={() => openAddModal('promote')}
+          <a
+            href="#section-promote-users"
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
           >
             <UserCheck size={15} />
             <span>Promote User to Admin</span>
-          </button>
+          </a>
           <button
             id="btn-create-admin"
-            onClick={() => openAddModal('create')}
+            onClick={() => {
+              setFirstName('');
+              setLastName('');
+              setEmail('');
+              setPassword('');
+              setShowPassword(false);
+              setDepartment('Platform Administration');
+              setCreateError(null);
+              setIsCreateModalOpen(true);
+            }}
             className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl shadow-2xs transition-colors cursor-pointer"
           >
             <UserPlus size={15} />
@@ -372,512 +363,520 @@ export const AdminAdminsPage: React.FC<AdminAdminsPageProps> = () => {
         </div>
       )}
 
-      {/* Multi-Admin Info Banner */}
-      <div className="p-4 rounded-2xl bg-indigo-50/80 border border-indigo-200/90 text-xs text-indigo-800 flex items-start gap-3">
-        <Info size={16} className="text-indigo-600 shrink-0 mt-0.5" />
-        <div className="leading-relaxed">
-          <strong className="text-indigo-950 font-semibold">Role-Based Access Control: </strong>
-          Admin roles are stored securely in the database. When an existing student is promoted, their profile, application history, and documents are preserved without creating a duplicate account.
-        </div>
-      </div>
-
-      {/* Search Toolbar */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
-        <div className="relative flex-1 w-full">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search administrators by name, email, or department..."
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-indigo-500 transition-colors"
-          />
-        </div>
-        <div className="text-xs text-slate-500 font-medium shrink-0">
-          Total Active Administrators: <span className="font-bold text-slate-900">{admins.length}</span>
-        </div>
-      </div>
-
-      {/* Current Admin Users Table */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs">
-        {isLoadingList ? (
-          <div className="flex items-center justify-center gap-2 py-16 text-slate-500 text-xs">
-            <Loader2 size={16} className="animate-spin" />
-            <span>Loading administrators from database…</span>
+      {/* ===================================================================== */}
+      {/* SECTION 1: CURRENT ADMINISTRATORS                                      */}
+      {/* ===================================================================== */}
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <ShieldCheck size={18} className="text-indigo-600" />
+              <h2 className="text-lg font-bold text-slate-900">Current Administrators</h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Users with active administrator permissions and access to the Admin Console.
+            </p>
           </div>
-        ) : filteredAdmins.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-2 text-slate-400 text-xs">
-            <ShieldCheck size={28} className="text-slate-300" />
-            <span>No administrators found matching your search.</span>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200/90">
-                <tr>
-                  <th className="px-5 py-3.5">Administrator</th>
-                  <th className="px-4 py-3.5">Department</th>
-                  <th className="px-4 py-3.5">Role</th>
-                  <th className="px-4 py-3.5">Added Date</th>
-                  <th className="px-4 py-3.5">Status</th>
-                  <th className="px-5 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {filteredAdmins.map((admin) => {
-                  const isCurrentSessionUser = currentAuthUser?.id === admin.id;
-                  const isSoleAdmin = admins.length <= 1;
 
-                  return (
-                    <tr key={admin.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900">
-                            {admin.firstName} {admin.lastName}
-                          </span>
-                          {isCurrentSessionUser && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-                              You
+          <div className="text-xs text-slate-500 font-medium">
+            Active Admins: <span className="font-bold text-slate-900">{admins.length}</span>
+          </div>
+        </div>
+
+        {/* Search & Admin Table */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs space-y-3 p-4">
+          <div className="relative w-full">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={adminSearchQuery}
+              onChange={(e) => setAdminSearchQuery(e.target.value)}
+              placeholder="Filter administrators by name, email, or department..."
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-indigo-500 transition-colors"
+            />
+          </div>
+
+          {isLoadingAdmins ? (
+            <div className="flex items-center justify-center gap-2 py-12 text-slate-500 text-xs">
+              <Loader2 size={16} className="animate-spin" />
+              <span>Loading administrators from database…</span>
+            </div>
+          ) : filteredAdmins.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2 text-slate-400 text-xs">
+              <ShieldCheck size={28} className="text-slate-300" />
+              <span>No administrators found matching your search.</span>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200/90">
+                  <tr>
+                    <th className="px-5 py-3">Administrator</th>
+                    <th className="px-4 py-3">Department</th>
+                    <th className="px-4 py-3">Role</th>
+                    <th className="px-4 py-3">Added Date</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-5 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {filteredAdmins.map((admin) => {
+                    const isCurrentSessionUser = currentAuthUser?.id === admin.id;
+                    const isSoleAdmin = admins.length <= 1;
+
+                    return (
+                      <tr key={admin.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900">
+                              {admin.firstName} {admin.lastName}
                             </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5">
-                          <Mail size={12} className="text-slate-400" />
-                          <span>{admin.email}</span>
-                        </div>
-                      </td>
+                            {isCurrentSessionUser && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                You
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5">
+                            <Mail size={12} className="text-slate-400" />
+                            <span>{admin.email}</span>
+                          </div>
+                        </td>
 
-                      <td className="px-4 py-4 text-slate-600">
-                        {admin.assignedDepartment || 'Platform Operations'}
-                      </td>
+                        <td className="px-4 py-3.5 text-slate-600">
+                          {admin.assignedDepartment || 'Platform Operations'}
+                        </td>
 
-                      <td className="px-4 py-4">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
-                          <ShieldCheck size={12} className="text-amber-600" />
-                          <span>Administrator</span>
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-4 text-slate-500">
-                        <div className="flex items-center gap-1.5">
-                          <Calendar size={13} className="text-slate-400" />
-                          <span>
-                            {admin.createdAt
-                              ? new Date(admin.createdAt).toLocaleDateString(undefined, {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric',
-                                })
-                              : '—'}
+                        <td className="px-4 py-3.5">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+                            <ShieldCheck size={12} className="text-amber-600" />
+                            <span>Administrator</span>
                           </span>
+                        </td>
+
+                        <td className="px-4 py-3.5 text-slate-500">
+                          <div className="flex items-center gap-1.5">
+                            <Calendar size={13} className="text-slate-400" />
+                            <span>
+                              {admin.createdAt
+                                ? new Date(admin.createdAt).toLocaleDateString(undefined, {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })
+                                : '—'}
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3.5">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            Active
+                          </span>
+                        </td>
+
+                        <td className="px-5 py-3.5 text-right">
+                          <button
+                            onClick={() => setRevokingAdmin(admin)}
+                            disabled={isSoleAdmin}
+                            title={
+                              isSoleAdmin
+                                ? 'Cannot revoke privileges: at least one administrator must remain active.'
+                                : `Revoke admin privileges from ${admin.firstName}`
+                            }
+                            className={`p-1.5 rounded-lg transition-colors inline-flex items-center gap-1 text-xs font-semibold ${
+                              isSoleAdmin
+                                ? 'text-slate-300 cursor-not-allowed'
+                                : 'text-slate-500 hover:text-rose-600 hover:bg-rose-50 cursor-pointer'
+                            }`}
+                          >
+                            <Trash2 size={14} />
+                            <span className="hidden sm:inline">Revoke Privileges</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ===================================================================== */}
+      {/* SECTION 2: PROMOTE REGISTERED USERS TO ADMINISTRATOR                   */}
+      {/* ===================================================================== */}
+      <section id="section-promote-users" className="space-y-4 pt-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <UserCheck size={18} className="text-indigo-600" />
+              <h2 className="text-lg font-bold text-slate-900">Promote User to Admin</h2>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Select any registered student account from the database to upgrade them to an Administrator. Existing profiles, documents, and applications are preserved.
+            </p>
+          </div>
+
+          <div className="text-xs text-slate-500 font-medium">
+            Eligible Registered Users: <span className="font-bold text-slate-900">{eligibleStudents.length}</span>
+          </div>
+        </div>
+
+        {/* Search Toolbar for Students */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-xs p-4 space-y-3">
+          <div className="relative w-full">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={studentSearchQuery}
+              onChange={(e) => setStudentSearchQuery(e.target.value)}
+              placeholder="Search registered users by name, email, student ID, department, or institution..."
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200/90 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-indigo-500 transition-colors shadow-2xs"
+            />
+          </div>
+
+          {/* Students Table */}
+          {isLoadingStudents ? (
+            <div className="flex items-center justify-center gap-2 py-14 text-slate-500 text-xs">
+              <Loader2 size={16} className="animate-spin" />
+              <span>Loading registered student accounts from database…</span>
+            </div>
+          ) : filteredStudents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-14 gap-2 text-center">
+              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-1">
+                <Users size={22} />
+              </div>
+              <h3 className="text-sm font-bold text-slate-800">No eligible users found.</h3>
+              <p className="text-xs text-slate-500 max-w-sm">
+                {studentSearchQuery.trim()
+                  ? `No registered non-admin users match "${studentSearchQuery}".`
+                  : 'Only registered users who are not already administrators can be promoted.'}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200/90">
+                  <tr>
+                    <th className="px-5 py-3">Student / User</th>
+                    <th className="px-4 py-3">Institution & Major / Department</th>
+                    <th className="px-4 py-3">Current Role</th>
+                    <th className="px-4 py-3">Level / GPA</th>
+                    <th className="px-5 py-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {filteredStudents.map((student) => (
+                    <tr key={student.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="px-5 py-3.5">
+                        <div className="font-bold text-slate-900">
+                          {student.firstName} {student.lastName}
+                        </div>
+                        <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                          <Mail size={12} className="text-slate-400" />
+                          <span>{student.email}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                          ID: {student.id.slice(0, 8)}…
                         </div>
                       </td>
 
-                      <td className="px-4 py-4">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                          Active
+                      <td className="px-4 py-3.5">
+                        <div className="font-medium text-slate-800 flex items-center gap-1">
+                          <Building2 size={12} className="text-slate-400" />
+                          <span>{student.institution || '—'}</span>
+                        </div>
+                        {student.fieldOfStudy && (
+                          <div className="text-[11px] text-indigo-600 mt-0.5 flex items-center gap-1">
+                            <GraduationCap size={12} className="text-indigo-400" />
+                            <span>{student.fieldOfStudy}</span>
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-3.5">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                          <span>Student</span>
                         </span>
                       </td>
 
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-4 py-3.5 text-slate-600">
+                        <div>{student.educationLevel || 'Undergraduate'}</div>
+                        {student.gpa > 0 && (
+                          <div className="text-[10px] font-semibold text-slate-800 mt-0.5">
+                            CGPA: {student.gpa.toFixed(2)} / {student.gpaScale || 4.0}
+                          </div>
+                        )}
+                      </td>
+
+                      <td className="px-5 py-3.5 text-right">
                         <button
-                          onClick={() => setRevokingAdmin(admin)}
-                          disabled={isSoleAdmin}
-                          title={
-                            isSoleAdmin
-                              ? 'Cannot revoke privileges: at least one administrator must remain active.'
-                              : `Revoke admin privileges from ${admin.firstName}`
-                          }
-                          className={`p-1.5 rounded-lg transition-colors inline-flex items-center gap-1 text-xs font-semibold ${
-                            isSoleAdmin
-                              ? 'text-slate-300 cursor-not-allowed'
-                              : 'text-slate-500 hover:text-rose-600 hover:bg-rose-50 cursor-pointer'
-                          }`}
+                          type="button"
+                          onClick={() => handleOpenPromote(student)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
                         >
-                          <Trash2 size={14} />
-                          <span className="hidden sm:inline">Revoke Privileges</span>
+                          <UserCheck size={14} />
+                          <span>Promote to Admin</span>
                         </button>
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </section>
 
-      {/* ── Promote / Create Admin Modal ─────────────────────────────────────── */}
-      {isAddModalOpen && (
+      {/* ── Promotion Confirmation Dialog ────────────────────────────────────── */}
+      {userToPromote && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between shrink-0">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden animate-fade-in p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <UserCheck size={22} />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">
+                  Promote {userToPromote.firstName} {userToPromote.lastName} to Administrator?
+                </h3>
+                <p className="text-xs text-slate-500">Confirm role modification</p>
+              </div>
+            </div>
+
+            {promoteError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
+                <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                <span>{promoteError}</span>
+              </div>
+            )}
+
+            {/* User Details Preview */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Email Address</span>
+                <span className="font-bold text-slate-900">{userToPromote.email}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">User ID</span>
+                <span className="font-mono text-slate-700 text-[11px]">{userToPromote.id}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Current Role</span>
+                <span className="font-bold text-slate-700">student → <span className="text-indigo-600">admin</span></span>
+              </div>
+              {userToPromote.institution && (
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-medium">Institution</span>
+                  <span className="font-semibold text-slate-800">{userToPromote.institution}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Department Assignment */}
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                Assign Department / Responsibility
+              </label>
+              <input
+                type="text"
+                value={promoteDepartment}
+                onChange={(e) => setPromoteDepartment(e.target.value)}
+                placeholder="e.g. Scholarship Auditing, Platform Operations"
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 transition-colors"
+              />
+            </div>
+
+            {/* Data Preservation Assurance */}
+            <div className="p-3.5 bg-indigo-50/80 rounded-2xl border border-indigo-200/90 text-[11px] text-indigo-900 space-y-1">
+              <span className="font-bold flex items-center gap-1">
+                <CheckCircle2 size={13} className="text-emerald-600" />
+                <span>Existing Account Data Preserved</span>
+              </span>
+              <p className="text-indigo-800 leading-relaxed">
+                The user&apos;s account, student profile, submitted applications, uploaded documents, and saved scholarships will remain intact. On their next sign-in, they will be automatically routed to the Admin Dashboard.
+              </p>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="pt-2 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setUserToPromote(null)}
+                disabled={isPromoting}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handlePromoteConfirm}
+                disabled={isPromoting}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs transition-colors cursor-pointer disabled:opacity-60 inline-flex items-center gap-2"
+              >
+                {isPromoting ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Promoting to Admin…</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck size={15} />
+                    <span>Confirm & Promote to Admin</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Create New Admin Modal ───────────────────────────────────────────── */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden animate-fade-in p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                  {modalTab === 'promote' ? <UserCheck size={20} /> : <UserPlus size={20} />}
+                  <UserPlus size={18} />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">
-                    {modalTab === 'promote' ? 'Promote User to Administrator' : 'Create New Administrator'}
-                  </h2>
-                  <p className="text-[11px] text-slate-500">
-                    {modalTab === 'promote'
-                      ? 'Search registered users and upgrade their role with zero data loss'
-                      : 'Create a brand new login account with administrator privileges'}
-                  </p>
+                  <h3 className="text-base font-bold text-slate-900">Create New Administrator</h3>
+                  <p className="text-[11px] text-slate-500">Create a brand new login account with admin privileges</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsCreateModalOpen(false)}
+                disabled={isCreating}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateAdmin} className="space-y-4">
+              {createError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
+                  <AlertCircle size={15} className="shrink-0 mt-0.5" />
+                  <span>{createError}</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                    First Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    disabled={isCreating}
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="e.g. Eleanor"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 transition-colors disabled:opacity-60"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                    Last Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    disabled={isCreating}
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="e.g. Vance"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 transition-colors disabled:opacity-60"
+                  />
                 </div>
               </div>
 
-              <button
-                onClick={() => setIsAddModalOpen(false)}
-                disabled={isPromoting || isCreating}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
+              <div>
+                <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                  Email Address <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  disabled={isCreating}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. eleanor.vance@scholavon.org"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 transition-colors disabled:opacity-60"
+                />
+              </div>
 
-            {/* Navigation Tabs */}
-            <div className="flex border-b border-slate-100 px-5 pt-2 bg-slate-50/50 shrink-0">
-              <button
-                type="button"
-                onClick={() => setModalTab('promote')}
-                className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
-                  modalTab === 'promote'
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <UserCheck size={14} />
-                <span>Promote Existing User</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setModalTab('create')}
-                className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
-                  modalTab === 'create'
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <UserPlus size={14} />
-                <span>Create New Account</span>
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-5 overflow-y-auto space-y-4 flex-1">
-              {/* TAB 1: PROMOTE EXISTING USER */}
-              {modalTab === 'promote' && (
-                <div className="space-y-4">
-                  {promoteError && (
-                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
-                      <AlertCircle size={15} className="shrink-0 mt-0.5" />
-                      <span>{promoteError}</span>
-                    </div>
-                  )}
-
-                  {!selectedUser ? (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                          Search User by Email or Name
-                        </label>
-                        <div className="relative">
-                          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input
-                            type="text"
-                            value={userSearchQuery}
-                            onChange={(e) => handleUserSearch(e.target.value)}
-                            placeholder="Type email address (e.g. maria@university.edu) or name..."
-                            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 transition-colors"
-                            autoFocus
-                          />
-                          {isSearchingUsers && (
-                            <Loader2 size={15} className="animate-spin absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Search Results List */}
-                      {userSearchQuery.trim().length > 0 && (
-                        <div className="space-y-2 mt-3">
-                          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                            Search Results ({searchResults.length})
-                          </span>
-
-                          {searchResults.length === 0 && !isSearchingUsers && (
-                            <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl border border-slate-100">
-                              No matching unregistered student accounts found for &ldquo;{userSearchQuery}&rdquo;.
-                            </div>
-                          )}
-
-                          <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                            {searchResults.map((user) => (
-                              <div
-                                key={user.id}
-                                onClick={() => setSelectedUser(user)}
-                                className="p-3 rounded-xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/40 transition-all cursor-pointer flex items-center justify-between gap-3 group"
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-bold text-slate-900 text-xs group-hover:text-indigo-700">
-                                      {user.firstName} {user.lastName}
-                                    </span>
-                                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
-                                      Student
-                                    </span>
-                                  </div>
-                                  <div className="text-[11px] text-slate-500 truncate flex items-center gap-1 mt-0.5">
-                                    <Mail size={11} className="text-slate-400 shrink-0" />
-                                    <span>{user.email}</span>
-                                  </div>
-                                  {(user.institution || user.fieldOfStudy) && (
-                                    <div className="text-[10px] text-slate-400 truncate mt-0.5">
-                                      {[user.institution, user.fieldOfStudy].filter(Boolean).join(' • ')}
-                                    </div>
-                                  )}
-                                </div>
-
-                                <button
-                                  type="button"
-                                  className="px-3 py-1.5 bg-indigo-600 group-hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shrink-0 flex items-center gap-1 transition-colors"
-                                >
-                                  <span>Select</span>
-                                  <ArrowRight size={13} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    /* Step 2: Confirm Selected User Promotion */
-                    <div className="space-y-4 animate-fade-in">
-                      {/* User Summary Card */}
-                      <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-3">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">
-                              User Selected for Promotion
-                            </span>
-                            <h3 className="text-sm font-extrabold text-slate-900 mt-0.5">
-                              {selectedUser.firstName} {selectedUser.lastName}
-                            </h3>
-                            <div className="text-xs text-indigo-900 font-medium flex items-center gap-1.5 mt-0.5">
-                              <Mail size={12} className="text-indigo-600" />
-                              <span>{selectedUser.email}</span>
-                            </div>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => setSelectedUser(null)}
-                            className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer underline"
-                          >
-                            Change User
-                          </button>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 pt-2 border-t border-indigo-100">
-                          <div>
-                            <span className="text-slate-400 block">Institution</span>
-                            <span className="font-semibold text-slate-800">{selectedUser.institution || '—'}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-400 block">Education Level</span>
-                            <span className="font-semibold text-slate-800">{selectedUser.educationLevel || 'Undergraduate'}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Assign Department */}
-                      <div>
-                        <label className="text-xs font-bold text-slate-700 block mb-1">
-                          Assign Department / Responsibility
-                        </label>
-                        <input
-                          type="text"
-                          value={promoteDepartment}
-                          onChange={(e) => setPromoteDepartment(e.target.value)}
-                          placeholder="e.g. Scholarship Auditing, Platform Operations"
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 transition-colors"
-                        />
-                      </div>
-
-                      {/* Safety & Preservation Notice */}
-                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs text-slate-600 leading-relaxed">
-                        <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                          <CheckCircle2 size={14} className="text-emerald-600" />
-                          <span>Guaranteed Account Data Preservation</span>
-                        </div>
-                        <p className="text-[11px]">
-                          Promoting this user immediately grants them access to the Admin Portal and scholarship verification queue. Their existing student profile, uploaded documents, and scholarship applications are fully preserved without creating a duplicate account.
-                        </p>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="pt-2 flex items-center justify-end gap-2.5">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedUser(null)}
-                          disabled={isPromoting}
-                          className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors disabled:opacity-50 cursor-pointer"
-                        >
-                          Back to Search
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handlePromoteConfirm}
-                          disabled={isPromoting}
-                          className="px-5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs transition-colors cursor-pointer disabled:opacity-60 inline-flex items-center gap-2"
-                        >
-                          {isPromoting ? (
-                            <>
-                              <Loader2 size={14} className="animate-spin" />
-                              <span>Promoting User…</span>
-                            </>
-                          ) : (
-                            <>
-                              <ShieldCheck size={15} />
-                              <span>Confirm & Promote to Admin</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+              <div>
+                <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                  Password <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    disabled={isCreating}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Minimum 6 characters"
+                    className="w-full pl-3 pr-9 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 transition-colors disabled:opacity-60"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    aria-label="Toggle password visibility"
+                  >
+                    {showPassword ? <Eye size={15} /> : <Eye size={15} />}
+                  </button>
                 </div>
-              )}
+              </div>
 
-              {/* TAB 2: CREATE BRAND NEW ADMIN ACCOUNT */}
-              {modalTab === 'create' && (
-                <form onSubmit={handleCreateAdmin} className="space-y-4">
-                  {createError && (
-                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
-                      <AlertCircle size={15} className="shrink-0 mt-0.5" />
-                      <span>{createError}</span>
-                    </div>
+              <div>
+                <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                  Assigned Department
+                </label>
+                <input
+                  type="text"
+                  disabled={isCreating}
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  placeholder="e.g. Scholarship Auditing"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 transition-colors disabled:opacity-60"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(false)}
+                  disabled={isCreating}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isCreating || !isSupabaseConfigured}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs transition-colors cursor-pointer disabled:opacity-60 inline-flex items-center gap-2"
+                >
+                  {isCreating ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Creating Account…</span>
+                    </>
+                  ) : (
+                    <span>Create Admin Account</span>
                   )}
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-                        First Name <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        disabled={isCreating}
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="e.g. Eleanor"
-                        className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 transition-colors disabled:opacity-60"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-                        Last Name <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        disabled={isCreating}
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        placeholder="e.g. Vance"
-                        className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 transition-colors disabled:opacity-60"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-                      Email Address <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      disabled={isCreating}
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="e.g. eleanor.vance@scholavon.org"
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 transition-colors disabled:opacity-60"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-                      Password <span className="text-rose-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        required
-                        disabled={isCreating}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Minimum 6 characters"
-                        className="w-full pl-3 pr-9 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 transition-colors disabled:opacity-60"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                        aria-label="Toggle password visibility"
-                      >
-                        {showPassword ? <Eye size={15} /> : <Eye size={15} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-                      Assigned Department
-                    </label>
-                    <input
-                      type="text"
-                      disabled={isCreating}
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                      placeholder="e.g. Scholarship Auditing"
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 transition-colors disabled:opacity-60"
-                    />
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="pt-2 flex items-center justify-end gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setIsAddModalOpen(false)}
-                      disabled={isCreating}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors disabled:opacity-50 cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-
-                    <button
-                      type="submit"
-                      disabled={isCreating || !isSupabaseConfigured}
-                      className="px-5 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs transition-colors cursor-pointer disabled:opacity-60 inline-flex items-center gap-2"
-                    >
-                      {isCreating ? (
-                        <>
-                          <Loader2 size={13} className="animate-spin" />
-                          <span>Creating Account…</span>
-                        </>
-                      ) : (
-                        <span>Create Admin Account</span>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
