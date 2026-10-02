@@ -276,6 +276,63 @@ router.get('/users', (req: Request, res: Response): void => {
   });
 });
 
+// PUT /api/v1/admin/users/:id/role
+router.put('/users/:id/role', (req: Request, res: Response): void => {
+  const { role, department } = req.body;
+  if (!role || !['admin', 'student'].includes(role)) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_ROLE', message: 'Role must be either admin or student.' },
+    });
+    return;
+  }
+
+  const user = db.findUserById(req.params.id);
+  if (!user) {
+    res.status(404).json({
+      success: false,
+      error: { code: 'USER_NOT_FOUND', message: 'User not found.' },
+    });
+    return;
+  }
+
+  // Check last remaining admin if demoting
+  if (role === 'student' && user.role === 'admin') {
+    const allAdmins = db.getAdminUsers();
+    if (allAdmins.length <= 1) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'CANNOT_REMOVE_LAST_ADMIN', message: 'Cannot revoke privileges: at least one administrator must remain active.' },
+      });
+      return;
+    }
+  }
+
+  db.updateUser(user.id, { role });
+
+  if (role === 'admin') {
+    const profile = db.findProfileByUserId(user.id);
+    db.createAdminUser({
+      id: user.id,
+      firstName: profile?.firstName || 'Admin',
+      lastName: profile?.lastName || 'User',
+      email: user.email,
+      role: 'Admin',
+      status: 'Active',
+      assignedDepartment: department?.trim() || profile?.fieldOfStudy || 'Operations',
+      createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
+    });
+  } else {
+    db.deleteAdminUser(user.id);
+  }
+
+  res.json({
+    success: true,
+    data: { message: `User role successfully updated to ${role}.` },
+  });
+});
+
 // GET /api/v1/admin/staff
 router.get('/staff', (req: Request, res: Response): void => {
   const staff = db.getAdminUsers();

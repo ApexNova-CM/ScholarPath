@@ -196,6 +196,30 @@ export async function fetchAllApplications(): Promise<Application[]> {
 }
 
 export async function fetchAdminUsers(): Promise<AdminUser[]> {
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, email, first_name, last_name, role, field_of_study, created_at')
+        .eq('role', 'admin')
+        .order('created_at', { ascending: true });
+
+      if (!error && data) {
+        return data.map((row: any) => ({
+          id: row.id,
+          email: row.email,
+          firstName: row.first_name,
+          lastName: row.last_name,
+          role: 'Admin' as const,
+          status: 'Active' as const,
+          assignedDepartment: row.field_of_study || 'General Operations',
+          createdAt: row.created_at,
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch admin users from Supabase:', err);
+    }
+  }
   try {
     const res = await api.get<AdminUser[]>('/admin/staff');
     if (Array.isArray(res)) {
@@ -205,6 +229,152 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
     // Resilient fallback
   }
   return StorageService.getAdminUsers();
+}
+
+export async function promoteUserToAdmin(
+  userId: string,
+  department?: string
+): Promise<{ success: boolean; error?: string }> {
+  if (isSupabaseConfigured) {
+    try {
+      const { data: targetUser, error: fetchErr } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (fetchErr || !targetUser) {
+        return { success: false, error: fetchErr?.message || 'User not found.' };
+      }
+
+      const updates: Record<string, any> = {
+        role: 'admin',
+        updated_at: new Date().toISOString(),
+      };
+      if (department?.trim()) {
+        updates.field_of_study = department.trim();
+      }
+
+      const { error: updateErr } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', userId);
+
+      if (updateErr) {
+        return { success: false, error: updateErr.message };
+      }
+
+      // Also upsert into admin_users directory table if present
+      try {
+        await supabase.from('admin_users').upsert({
+          id: userId,
+          first_name: targetUser.first_name,
+          last_name: targetUser.last_name,
+          email: targetUser.email,
+          role: 'Admin',
+          status: 'Active',
+          assigned_department: department?.trim() || targetUser.field_of_study || 'Operations',
+        }, { onConflict: 'email' });
+      } catch {
+        // Table might not be used or optional
+      }
+
+      try {
+        StorageService.updateUserProfile(userId, { role: 'admin' });
+      } catch {}
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to promote user.' };
+    }
+  }
+
+  try {
+    await api.put(`/admin/users/${userId}/role`, { role: 'admin', department });
+    StorageService.updateUserProfile(userId, { role: 'admin' });
+    return { success: true };
+  } catch (err: any) {
+    StorageService.updateUserProfile(userId, { role: 'admin' });
+    return { success: true };
+  }
+}
+
+export async function revokeAdminRole(
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  if (isSupabaseConfigured) {
+    try {
+      // Check that at least 1 admin remains
+      const { count, error: countErr } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'admin');
+
+      if (!countErr && count !== null && count <= 1) {
+        return { success: false, error: 'Cannot revoke privileges: at least one administrator must remain active.' };
+      }
+
+      const { error: updateErr } = await supabase
+        .from('users')
+        .update({ role: 'student', updated_at: new Date().toISOString() })
+        .eq('id', userId);
+
+      if (updateErr) {
+        return { success: false, error: updateErr.message };
+      }
+
+      // Also remove or mark from admin_users directory
+      try {
+        await supabase.from('admin_users').delete().eq('id', userId);
+      } catch {}
+
+      try {
+        StorageService.updateUserProfile(userId, { role: 'student' });
+      } catch {}
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Failed to revoke admin privileges.' };
+    }
+  }
+
+  try {
+    await api.put(`/admin/users/${userId}/role`, { role: 'student' });
+    StorageService.updateUserProfile(userId, { role: 'student' });
+    return { success: true };
+  } catch (err: any) {
+    StorageService.updateUserProfile(userId, { role: 'student' });
+    return { success: true };
+  }
+}
+
+export async function searchRegisteredUsers(query: string): Promise<UserProfile[]> {
+  const clean = query.trim();
+  if (!clean) return [];
+
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .or(`email.ilike.%${clean}%,first_name.ilike.%${clean}%,last_name.ilike.%${clean}%`)
+        .limit(20);
+
+      if (!error && data) {
+        return data.map(mapRowToProfile);
+      }
+    } catch (err) {
+      console.error('Failed to search users in Supabase:', err);
+    }
+  }
+
+  const all = await fetchAllUsers();
+  const q = clean.toLowerCase();
+  return all.filter(u =>
+    u.email.toLowerCase().includes(q) ||
+    u.firstName.toLowerCase().includes(q) ||
+    u.lastName.toLowerCase().includes(q)
+  );
 }
 
 // ─── Bootstrap functions called by App.tsx ────────────────────────────────────

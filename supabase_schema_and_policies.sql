@@ -265,7 +265,7 @@ CREATE POLICY "Users can read own profile" ON public.users FOR SELECT USING (
 
 DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
 CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE USING (
-  id = auth.uid()
+  id = auth.uid() OR public.is_admin()
 );
 
 DROP POLICY IF EXISTS "Users can insert own profile" ON public.users;

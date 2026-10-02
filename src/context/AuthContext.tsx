@@ -66,14 +66,6 @@ async function fetchProfileFromSupabase(sbUser: SupabaseUser): Promise<UserProfi
     });
   }
 
-  // Auto-healing: If Supabase Auth metadata specifies admin role but public.users row says student, heal DB row
-  if (data.role !== 'admin' && isAuthAdmin) {
-    data.role = 'admin';
-    supabase.from('users').update({ role: 'admin' }).eq('id', sbUser.id).then(({ error: healErr }) => {
-      if (healErr) console.warn('Role auto-healing update notice:', healErr.message);
-    });
-  }
-
   return mapSupabaseRowToProfile(data);
 }
 
@@ -377,6 +369,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await supabase.auth.signOut();
       } catch {}
     }
+    api.setToken(null);
     setUser(null);
     setSupabaseUser(null);
     setSession(null);
