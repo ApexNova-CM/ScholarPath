@@ -17,12 +17,15 @@ declare global {
   }
 }
 
-function resolveSupabaseRole(payload: any): UserRole {
-  const metaRole = payload?.app_metadata?.role || payload?.user_metadata?.role;
-  if (metaRole === 'admin' || payload?.role === 'admin') {
-    return 'admin';
-  }
-  return 'student';
+function normalizeAuthPayload(decoded: any): AuthPayload {
+  const metaRole = decoded?.app_metadata?.role || decoded?.user_metadata?.role;
+  const isExplicitAdmin = decoded?.role === 'admin' || metaRole === 'admin';
+
+  return {
+    id: String(decoded?.sub || decoded?.id || ''),
+    email: String(decoded?.email || ''),
+    role: isExplicitAdmin ? 'admin' : 'student',
+  };
 }
 
 export function authenticateToken(req: Request, res: Response, next: NextFunction): void {
@@ -45,19 +48,15 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
   }
 
   try {
-    const decoded = jwt.verify(token, config.jwtSecret) as AuthPayload;
-    req.user = decoded;
+    const decoded = jwt.verify(token, config.jwtSecret);
+    req.user = normalizeAuthPayload(decoded);
     next();
   } catch (err) {
     // If verification with local jwtSecret fails, check if it's a valid Supabase Auth JWT token
     try {
       const decodedPayload: any = jwt.decode(token);
       if (decodedPayload && (decodedPayload.sub || decodedPayload.id || decodedPayload.email)) {
-        req.user = {
-          id: decodedPayload.sub || decodedPayload.id,
-          email: decodedPayload.email || '',
-          role: resolveSupabaseRole(decodedPayload),
-        };
+        req.user = normalizeAuthPayload(decodedPayload);
         return next();
       }
     } catch {
@@ -84,17 +83,13 @@ export function optionalAuthenticateToken(req: Request, res: Response, next: Nex
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, config.jwtSecret) as AuthPayload;
-      req.user = decoded;
+      const decoded = jwt.verify(token, config.jwtSecret);
+      req.user = normalizeAuthPayload(decoded);
     } catch {
       try {
         const decodedPayload: any = jwt.decode(token);
         if (decodedPayload && (decodedPayload.sub || decodedPayload.id || decodedPayload.email)) {
-          req.user = {
-            id: decodedPayload.sub || decodedPayload.id,
-            email: decodedPayload.email || '',
-            role: resolveSupabaseRole(decodedPayload),
-          };
+          req.user = normalizeAuthPayload(decodedPayload);
         }
       } catch {
         // Ignore invalid token for optional auth
@@ -103,6 +98,7 @@ export function optionalAuthenticateToken(req: Request, res: Response, next: Nex
   }
   next();
 }
+
 
 
 export function requireRole(role: UserRole) {
