@@ -17,6 +17,14 @@ declare global {
   }
 }
 
+function resolveSupabaseRole(payload: any): UserRole {
+  const metaRole = payload?.app_metadata?.role || payload?.user_metadata?.role;
+  if (metaRole === 'admin' || payload?.role === 'admin') {
+    return 'admin';
+  }
+  return 'student';
+}
+
 export function authenticateToken(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
   let token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : undefined;
@@ -48,7 +56,7 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
         req.user = {
           id: decodedPayload.sub || decodedPayload.id,
           email: decodedPayload.email || '',
-          role: decodedPayload.user_metadata?.role || decodedPayload.role || 'student',
+          role: resolveSupabaseRole(decodedPayload),
         };
         return next();
       }
@@ -85,7 +93,7 @@ export function optionalAuthenticateToken(req: Request, res: Response, next: Nex
           req.user = {
             id: decodedPayload.sub || decodedPayload.id,
             email: decodedPayload.email || '',
-            role: decodedPayload.user_metadata?.role || decodedPayload.role || 'student',
+            role: resolveSupabaseRole(decodedPayload),
           };
         }
       } catch {
@@ -95,6 +103,7 @@ export function optionalAuthenticateToken(req: Request, res: Response, next: Nex
   }
   next();
 }
+
 
 export function requireRole(role: UserRole) {
   return (req: Request, res: Response, next: NextFunction): void => {
