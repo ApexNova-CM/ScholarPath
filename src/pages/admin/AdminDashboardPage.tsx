@@ -1,11 +1,19 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Scholarship, Provider, UserProfile, Application } from '../../types';
 import { isScholarshipExpired } from '../../services/scholarshipFilters';
 import { 
   ShieldCheck, Award, Clock, Users, PlusCircle, 
   CheckCircle2, XCircle, ArrowRight, Building2, 
-  FileSpreadsheet, ExternalLink 
+  FileSpreadsheet, ExternalLink, Crown, TrendingUp
 } from 'lucide-react';
+import { api } from '../../lib/apiClient';
+
+interface SubscriptionMetrics {
+  totalPlusUsers: number;
+  byPlan: { premium_monthly: number; premium_annual: number };
+  byStatus: { active: number; cancelled: number; past_due: number; inactive: number };
+  totalRevenuNaira: string;
+}
 
 interface AdminDashboardPageProps {
   scholarships: Scholarship[];
@@ -29,6 +37,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
   const verifiedCount = scholarships.filter(s => s.verificationStatus === 'verified').length;
   const pendingList = scholarships.filter(s => s.verificationStatus === 'pending_verification');
   const expiredCount = scholarships.filter(s => isScholarshipExpired(s)).length;
+
+  const [subMetrics, setSubMetrics] = useState<SubscriptionMetrics | null>(null);
+
+  useEffect(() => {
+    api.get<{ data: SubscriptionMetrics }>('/admin/subscriptions')
+      .then((res: any) => setSubMetrics(res as SubscriptionMetrics))
+      .catch(() => { /* non-fatal */ });
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -117,6 +133,66 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           <div className="text-2xl font-extrabold text-slate-900 mt-1">{applications.length}</div>
           <span className="text-[10px] text-slate-400">Tracked</span>
         </div>
+      </div>
+
+      {/* ── Scholavon Plus Subscription Metrics ── */}
+      <div className="bg-white rounded-2xl border border-amber-200/80 shadow-xs overflow-hidden">
+        <div className="px-5 py-4 border-b border-amber-100 flex items-center gap-2">
+          <Crown size={16} className="text-amber-500" />
+          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+            Scholavon Plus — Subscription Overview
+          </h2>
+          {subMetrics === null && (
+            <span className="ml-auto text-[10px] text-slate-400">Loading…</span>
+          )}
+        </div>
+        {subMetrics ? (
+          <div className="p-5 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl">
+              <span className="text-[10px] font-semibold text-amber-600 block">Plus Users</span>
+              <div className="text-2xl font-extrabold text-amber-700 mt-0.5">{subMetrics.totalPlusUsers}</div>
+              <span className="text-[10px] text-slate-400">Active subscriptions</span>
+            </div>
+            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+              <span className="text-[10px] font-semibold text-slate-600 block">Plan Split</span>
+              <div className="text-sm font-bold text-slate-800 mt-1">
+                {subMetrics.byPlan.premium_monthly} mo / {subMetrics.byPlan.premium_annual} yr
+              </div>
+              <span className="text-[10px] text-slate-400">Monthly / Annual</span>
+            </div>
+            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+              <span className="text-[10px] font-semibold text-slate-600 block">Status</span>
+              <div className="space-y-0.5 mt-1">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-emerald-600 font-semibold">Active</span>
+                  <span className="font-bold text-slate-800">{subMetrics.byStatus.active}</span>
+                </div>
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-rose-500 font-semibold">Past Due</span>
+                  <span className="font-bold text-slate-800">{subMetrics.byStatus.past_due}</span>
+                </div>
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-slate-500 font-semibold">Cancelled</span>
+                  <span className="font-bold text-slate-800">{subMetrics.byStatus.cancelled}</span>
+                </div>
+              </div>
+            </div>
+            <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
+              <div className="flex items-center gap-1">
+                <TrendingUp size={11} className="text-emerald-600" />
+                <span className="text-[10px] font-semibold text-emerald-600">Total Revenue</span>
+              </div>
+              <div className="text-xl font-extrabold text-emerald-700 mt-1">
+                ₦{Number(subMetrics.totalRevenuNaira).toLocaleString('en-NG', { minimumFractionDigits: 2 })}
+              </div>
+              <span className="text-[10px] text-slate-400">Verified payments</span>
+            </div>
+          </div>
+        ) : (
+          <div className="p-5 text-xs text-slate-400 text-center">
+            Subscription metrics unavailable — ensure SUPABASE_SERVICE_ROLE_KEY is set on Railway.
+          </div>
+        )}
       </div>
 
       {/* Verification Queue Section */}

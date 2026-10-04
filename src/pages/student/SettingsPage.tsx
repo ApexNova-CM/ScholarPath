@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { UserProfile } from '../../types';
 import { 
   Settings, Bell, Mail, Smartphone, MessageSquare, 
-  CheckCircle2, Save, Shield, Clock, Lock 
+  CheckCircle2, Save, Shield, Clock, Lock, Crown, Sparkles, ArrowRight
 } from 'lucide-react';
 
 interface SettingsPageProps {
   userProfile: UserProfile;
   onUpdateProfile: (updated: UserProfile) => void;
+  onNavigate: (path: string) => void;
 }
 
-export const SettingsPage: React.FC<SettingsPageProps> = ({ userProfile, onUpdateProfile }) => {
+export const SettingsPage: React.FC<SettingsPageProps> = ({ userProfile, onUpdateProfile, onNavigate }) => {
   const [preferences, setPreferences] = useState({
     inApp: userProfile.notificationPreferences?.inApp ?? true,
     email: userProfile.notificationPreferences?.email ?? true,
@@ -285,6 +286,89 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ userProfile, onUpdat
           </button>
         </div>
       </form>
+
+      {/* ── Plan & Billing ───────────────────────────────────── */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+          <Crown size={15} className="text-amber-500" />
+          <h2 className="text-sm font-bold text-slate-900">Plan &amp; Billing</h2>
+        </div>
+
+        <div className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            {userProfile.subscriptionStatus === 'premium' ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-slate-900">Scholavon Plus</span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 border border-amber-200 text-amber-800 text-[10px] font-bold rounded-full">
+                    <Crown size={9} /> Active
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Your Plus subscription is active. All premium features are enabled.
+                </p>
+              </>
+            ) : userProfile.subscriptionStatus === 'past_due' ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-slate-900">Scholavon Plus</span>
+                  <span className="px-2 py-0.5 bg-rose-100 border border-rose-200 text-rose-700 text-[10px] font-bold rounded-full">
+                    Payment Overdue
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Your payment failed. Please update your payment method via Paystack to restore access.
+                </p>
+              </>
+            ) : userProfile.subscriptionStatus === 'cancelled' ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-slate-900">Free Plan</span>
+                  <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-bold rounded-full">
+                    Subscription Cancelled
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Your Plus subscription has ended. Re-subscribe to restore Plus features.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-slate-900">Free Plan</span>
+                  <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 text-slate-500 text-[10px] font-semibold rounded-full">
+                    Current
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  Upgrade to Scholavon Plus for AI tools and advanced features.
+                </p>
+              </>
+            )}
+          </div>
+
+          <div className="shrink-0">
+            {userProfile.subscriptionStatus === 'premium' ? (
+              <button
+                onClick={() => onNavigate('/pricing')}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+              >
+                Manage Plan
+              </button>
+            ) : (
+              <button
+                onClick={() => onNavigate('/pricing')}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+              >
+                <Sparkles size={13} />
+                Upgrade to Plus
+                <ArrowRight size={12} />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 };

@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Search, Bookmark, Briefcase, 
   UserCheck, FileText, Bell, Settings, HelpCircle, 
   LogOut, ArrowLeft, X, ChevronLeft, ChevronRight, Flag,
-  Sparkles
+  Sparkles, Crown
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -231,6 +231,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                 </div>
               </div>
+            )}{/* end user mini card */}
+
+            {/* Plus Badge / Upgrade CTA */}
+            {user && !isCollapsed && (
+              user.subscriptionStatus === 'premium' ? (
+                <div className="mx-1 mt-1 mb-0 flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded-lg">
+                  <Crown size={11} className="text-amber-500 shrink-0" />
+                  <span className="text-[10px] font-bold text-amber-700">Scholavon Plus</span>
+                  <span className="ml-auto text-[9px] font-semibold text-amber-500 bg-amber-100 px-1.5 py-0.5 rounded-full">Active</span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleNav('/pricing')}
+                  className="w-full mx-0 mt-1 mb-0 flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white text-[10px] font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
+                >
+                  <Crown size={11} className="shrink-0" />
+                  <span className="truncate">Upgrade to Plus</span>
+                </button>
+              )
+            )}
+            {user && isCollapsed && user.subscriptionStatus !== 'premium' && (
+              <button
+                onClick={() => handleNav('/pricing')}
+                title="Upgrade to Plus"
+                className="w-10 h-10 mx-auto flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-400 text-white transition-colors cursor-pointer"
+              >
+                <Crown size={16} />
+              </button>
             )}
           </div>
         )}

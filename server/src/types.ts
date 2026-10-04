@@ -422,3 +422,71 @@ export const VerificationDecisionSchema = z.object({
   decision: z.enum(['verified', 'rejected', 'changes_requested', 'pending_verification']),
   notes: z.string().optional(),
 });
+
+// ─── Subscription & Payment Types ────────────────────────────────────────────
+
+export type SubscriptionStatus = 'free' | 'premium' | 'cancelled' | 'past_due';
+export type SubscriptionPlanId = 'premium_monthly' | 'premium_annual';
+
+export interface SubscriptionRecord {
+  id: string;
+  userId: string;
+  planId: SubscriptionPlanId;
+  status: 'active' | 'inactive' | 'cancelled' | 'past_due' | 'trialing';
+  paystackCustomerCode?: string;
+  paystackSubscriptionCode?: string;
+  paystackEmailToken?: string;
+  paystackPlanCode?: string;
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+  cancelledAt?: string;
+  nextPaymentDate?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaymentEventRecord {
+  id: string;
+  userId?: string;
+  eventType: string;
+  paystackReference?: string;
+  paystackSubCode?: string;
+  amountKobo?: number;
+  currency: string;
+  planId?: string;
+  rawPayload?: Record<string, unknown>;
+  processedAt: string;
+}
+
+/** Server-side plan definitions — amounts are in KOBO (1 NGN = 100 kobo).
+ *  The client NEVER sends the amount — the server derives it from planId only. */
+export interface PlanDefinition {
+  id: SubscriptionPlanId;
+  name: string;
+  amountKobo: number;    // e.g. 150000 = NGN 1,500
+  currency: string;      // 'NGN'
+  intervalLabel: string; // 'monthly' | 'annually' (as Paystack expects)
+}
+
+export const PLAN_DEFINITIONS: Record<SubscriptionPlanId, PlanDefinition> = {
+  premium_monthly: {
+    id: 'premium_monthly',
+    name: 'Scholavon Plus Monthly',
+    amountKobo: 150000,   // NGN 1,500
+    currency: 'NGN',
+    intervalLabel: 'monthly',
+  },
+  premium_annual: {
+    id: 'premium_annual',
+    name: 'Scholavon Plus Annual',
+    amountKobo: 1000000,  // NGN 10,000
+    currency: 'NGN',
+    intervalLabel: 'annually',
+  },
+};
+
+/** Zod schema for POST /api/v1/payments/initialize — only planId accepted from client. */
+export const InitializePaymentSchema = z.object({
+  planId: z.enum(['premium_monthly', 'premium_annual']),
+});
+

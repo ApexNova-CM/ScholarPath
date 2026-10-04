@@ -14,6 +14,7 @@ import scholarshipsRouter from './routes/scholarships';
 import categoriesRouter from './routes/categories';
 import studentRouter from './routes/student';
 import adminRouter from './routes/admin';
+import paymentsRouter from './routes/payments';
 
 export const app = express();
 
@@ -55,8 +56,16 @@ app.use(
 );
 
 app.use(cookieParser(config.cookieSecret));
+
+// ── CRITICAL: Paystack webhook MUST receive the raw body buffer for HMAC-SHA512
+// signature verification. Register express.raw() on this path BEFORE the global
+// express.json() middleware so the raw body is not consumed and discarded first.
+app.use('/api/v1/payments/webhook', express.raw({ type: 'application/json' }));
+
+// Global JSON parsing for all other routes (after the webhook raw-body carve-out)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 
 // Static uploads directory
 const uploadDir = path.resolve(process.cwd(), 'uploads');
@@ -80,6 +89,7 @@ app.use('/api/v1/scholarships', scholarshipsRouter);
 app.use('/api/v1/categories', categoriesRouter);
 app.use('/api/v1/student', studentRouter);
 app.use('/api/v1/admin', adminRouter);
+app.use('/api/v1/payments', paymentsRouter);
 
 // Centralized error handler
 app.use(errorHandler);

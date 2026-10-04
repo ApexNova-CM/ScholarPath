@@ -27,6 +27,7 @@ interface AuthContextType {
   updateProfile: (updates: Partial<UserProfile>) => Promise<UserProfile>;
   updateUserProfile: (profile: UserProfile | Partial<UserProfile>) => Promise<UserProfile>;
   refreshUser: () => void;
+  refreshProfile: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>;
 }
 
@@ -147,10 +148,15 @@ function mapSupabaseRowToProfile(row: Record<string, unknown>): UserProfile {
     workExperience: (row.work_experience as string[]) ?? [],
     profileCompletion: (row.profile_completion as number) ?? 0,
     notificationPreferences: row.notification_preferences as UserProfile['notificationPreferences'],
+    // Subscription status from public.users.subscription_status.
+    // Written by server webhook only — never trusted from client.
+    // Falls back to 'free' for users who haven't subscribed or before migration v4.
+    subscriptionStatus: ((row.subscription_status as string) || 'free') as UserProfile['subscriptionStatus'],
     createdAt: (row.created_at as string) ?? new Date().toISOString(),
     updatedAt: (row.updated_at as string) ?? new Date().toISOString(),
   };
 }
+
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -209,6 +215,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchProfileFromSupabase(supabaseUser).then((p) => {
       if (p) setUser(p);
     });
+  };
+
+  const refreshProfile = async (): Promise<void> => {
+    if (!isSupabaseConfigured || !supabaseUser) return;
+    const p = await fetchProfileFromSupabase(supabaseUser);
+    if (p) setUser(p);
   };
 
   // ── Sign in with email + password ────────────────────────────────────────
@@ -449,6 +461,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateProfile,
         updateUserProfile: updateProfile,
         refreshUser,
+        refreshProfile,
         sendPasswordReset,
       }}
     >

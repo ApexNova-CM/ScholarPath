@@ -15,4 +15,21 @@ export const config = {
   uploadDir: path.resolve(process.cwd(), 'uploads'),
   emailSender: process.env.EMAIL_SENDER_ADDRESS || 'scholarships@scholavon.org',
   geminiApiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '',
+
+  // ── Paystack — server-side ONLY, never expose to frontend or VITE_ vars ──
+  // Your Paystack secret key (sk_live_... or sk_test_...) from the dashboard.
+  // Used for API calls AND for HMAC-SHA512 webhook signature verification.
+  paystackSecretKey: process.env.PAYSTACK_SECRET_KEY || '',
+
+  // ── Paystack Plan Codes — set in Railway, read from Paystack dashboard ────
+  // These are the PLN_xxxxxxxxx codes of the recurring plans you created.
+  paystackMonthlyPlanCode: process.env.PAYSTACK_MONTHLY_PLAN_CODE || '',
+  paystackAnnualPlanCode: process.env.PAYSTACK_ANNUAL_PLAN_CODE || '',
+
+  // ── Supabase Service Role — server-side ONLY, bypasses RLS for webhook ───
+  supabaseUrl: process.env.VITE_SUPABASE_URL || '',
+  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+
+  // ── App/Frontend URL (used to build Paystack callback_url) ───────────────
+  appUrl: process.env.APP_URL || 'http://localhost:3000',
 };

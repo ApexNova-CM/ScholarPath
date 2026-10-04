@@ -1,9 +1,11 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { createClient } from '@supabase/supabase-js';
 import { db } from '../db/store';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
+import { config } from '../config';
 import {
   CreateScholarshipSchema,
   VerificationDecisionSchema,
@@ -311,7 +313,7 @@ router.put('/users/:id/role', (req: Request, res: Response): void => {
   db.updateUser(user.id, { role });
 
   if (role === 'admin') {
-    const profile = db.findProfileByUserId(user.id);
+    const profile = db.getProfile(user.id);
     db.createAdminUser({
       id: user.id,
       firstName: profile?.firstName || 'Admin',
@@ -414,6 +416,79 @@ router.delete('/staff/:id', (req: Request, res: Response): void => {
     success: true,
     data: { message: 'Staff member removed successfully.' },
   });
+});
+
+// GET /api/v1/admin/subscriptions
+// Returns Paystack subscription metrics from Supabase for the admin dashboard.
+router.get('/subscriptions', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    if (!config.supabaseUrl || !config.supabaseServiceRoleKey) {
+      // Gracefully degrade when Supabase service role is not configured
+      res.json({
+        success: true,
+        data: {
+          totalPlusUsers: 0,
+          byPlan: { premium_monthly: 0, premium_annual: 0 },
+          byStatus: { active: 0, cancelled: 0, past_due: 0, inactive: 0 },
+          totalRevenueKobo: 0,
+          totalRevenuNaira: '0.00',
+          note: 'Supabase service role not configured. Set SUPABASE_SERVICE_ROLE_KEY on Railway.',
+        },
+      });
+      return;
+    }
+
+    const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    // Subscription counts by plan and status
+    const { data: subs, error: subErr } = await supabase
+      .from('subscriptions')
+      .select('plan_id, status');
+
+    if (subErr) throw new Error(subErr.message);
+
+    const subsData = subs || [];
+    const totalPlusUsers = subsData.filter((s: any) => s.status === 'active').length;
+    const byPlan = {
+      premium_monthly: subsData.filter((s: any) => s.plan_id === 'premium_monthly' && s.status === 'active').length,
+      premium_annual: subsData.filter((s: any) => s.plan_id === 'premium_annual' && s.status === 'active').length,
+    };
+    const byStatus = {
+      active: subsData.filter((s: any) => s.status === 'active').length,
+      cancelled: subsData.filter((s: any) => s.status === 'cancelled').length,
+      past_due: subsData.filter((s: any) => s.status === 'past_due').length,
+      inactive: subsData.filter((s: any) => s.status === 'inactive').length,
+    };
+
+    // Total revenue from verified payment_events
+    const { data: events, error: evtErr } = await supabase
+      .from('payment_events')
+      .select('amount_kobo')
+      .in('event_type', ['charge.success', 'charge.success.verify', 'invoice.payment_success'])
+      .not('amount_kobo', 'is', null);
+
+    if (evtErr) throw new Error(evtErr.message);
+
+    const totalRevenueKobo = (events || []).reduce(
+      (sum: number, e: any) => sum + (e.amount_kobo || 0),
+      0
+    );
+
+    res.json({
+      success: true,
+      data: {
+        totalPlusUsers,
+        byPlan,
+        byStatus,
+        totalRevenueKobo,
+        totalRevenuNaira: (totalRevenueKobo / 100).toFixed(2),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;

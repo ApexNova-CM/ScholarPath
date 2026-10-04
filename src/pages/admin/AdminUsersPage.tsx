@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../../types';
-import { Users, Search, GraduationCap, MapPin, CheckCircle2, Shield } from 'lucide-react';
+import { Users, Search, GraduationCap, MapPin, CheckCircle2, Shield, Crown } from 'lucide-react';
 
 interface AdminUsersPageProps {
   users: UserProfile[];
@@ -17,7 +17,8 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({ users }) => {
       u.lastName.toLowerCase().includes(q) ||
       u.email.toLowerCase().includes(q) ||
       u.institution.toLowerCase().includes(q) ||
-      u.fieldOfStudy.toLowerCase().includes(q)
+      u.fieldOfStudy.toLowerCase().includes(q) ||
+      (u.subscriptionStatus && u.subscriptionStatus.toLowerCase().includes(q))
     );
   });
 
@@ -55,6 +56,7 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({ users }) => {
             <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200/90">
               <tr>
                 <th className="px-5 py-3.5">Student</th>
+                <th className="px-4 py-3.5">Plan</th>
                 <th className="px-4 py-3.5">Institution & Major</th>
                 <th className="px-4 py-3.5">Level</th>
                 <th className="px-4 py-3.5">GPA</th>
@@ -70,6 +72,27 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({ users }) => {
                       {u.firstName} {u.lastName}
                     </div>
                     <div className="text-[11px] text-slate-500">{u.email}</div>
+                  </td>
+
+                  <td className="px-4 py-4">
+                    {u.subscriptionStatus === 'premium' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold">
+                        <Crown size={11} className="text-amber-600" />
+                        Plus
+                      </span>
+                    ) : u.subscriptionStatus === 'past_due' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-semibold">
+                        Past Due
+                      </span>
+                    ) : u.subscriptionStatus === 'cancelled' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-600 text-[11px] font-semibold">
+                        Cancelled
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-500 text-[11px] font-medium">
+                        Free
+                      </span>
+                    )}
                   </td>
 
                   <td className="px-4 py-4">

@@ -37,6 +37,8 @@ import { SettingsPage } from './pages/student/SettingsPage';
 import { MyReportsPage } from './pages/student/MyReportsPage';
 import { ApplicationWorkspacePage } from './pages/student/ApplicationWorkspacePage';
 import { AiAssistantPage } from './pages/student/AiAssistantPage';
+import { PricingPage } from './pages/student/PricingPage';
+import { PaymentCallbackPage } from './pages/student/PaymentCallbackPage';
 
 // Admin Pages
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
@@ -709,9 +711,31 @@ function MainApp() {
             <SettingsPage
               userProfile={user}
               onUpdateProfile={(updated) => updateUserProfile(updated)}
+              onNavigate={navigate}
             />
           </StudentLayout>
         );
+
+      case '/pricing':
+        // Accessible to everyone — shows pricing plans.
+        // Authenticated students see their current plan status.
+        if (isAuthenticated && role === 'student' && user) {
+          return (
+            <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+              <PricingPage userProfile={user} onNavigate={navigate} />
+            </StudentLayout>
+          );
+        }
+        return (
+          <PublicLayout currentPath={currentPath} onNavigate={navigate}>
+            <PricingPage userProfile={user} onNavigate={navigate} />
+          </PublicLayout>
+        );
+
+      case '/payment/callback':
+        // Standalone callback page — no layout, full screen verification UI.
+        // Any authenticated user can access (Paystack will include reference in URL).
+        return <PaymentCallbackPage onNavigate={navigate} />;
 
       case '/my-reports':
         if (!isAuthenticated || !user || role !== 'student') {

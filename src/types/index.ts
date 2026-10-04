@@ -1,5 +1,13 @@
 export type UserRole = 'student' | 'admin';
 
+/** Subscription plan status for a student account.
+ *  Source of truth: public.users.subscription_status (Supabase).
+ *  Only written by the server-side webhook handler via service-role. */
+export type SubscriptionStatus = 'free' | 'premium' | 'cancelled' | 'past_due';
+
+/** Our internal plan IDs — match the server-side PLAN_DEFINITIONS. */
+export type SubscriptionPlanId = 'premium_monthly' | 'premium_annual';
+
 export type EducationLevel = 
   | 'High School'
   | 'Undergraduate'
@@ -143,6 +151,9 @@ export interface UserProfile {
   requiresEmailVerification?: boolean;
   verificationCode?: string;
   isGrandfathered?: boolean;
+  /** Subscription status from public.users.subscription_status.
+   *  Only updated by server webhook. Never trust client-set values. */
+  subscriptionStatus?: SubscriptionStatus;
   createdAt: string;
   updatedAt: string;
 }
