@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { createClient } from '@supabase/supabase-js';
 import { config } from '../config';
 import { db } from '../db/store';
 import {
@@ -328,5 +329,60 @@ router.post('/reset-password', async (req: Request, res: Response, next: NextFun
     next(err);
   }
 });
+
+// DELETE /api/v1/auth/account
+// Authenticated self-deletion. Identity comes exclusively from req.user (the
+// verified token) — no userId is ever accepted from the request body.
+// Deletes: Supabase Auth user, public.users row (cascades subscriptions),
+//          all flat-file data (profile, applications, saved, documents, etc.)
+router.delete(
+  '/account',
+  authenticateToken,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!.id;
+
+      // ── 1. Supabase deletions (service-role — never exposed to frontend) ──
+      if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+        const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+
+        // Delete public.users row:
+        //   → public.subscriptions.user_id ON DELETE CASCADE  (auto-deleted)
+        //   → public.payment_events.user_id ON DELETE SET NULL (audit log preserved)
+        const { error: dbErr } = await supabase
+          .from('users')
+          .delete()
+          .eq('id', userId);
+
+        if (dbErr) {
+          // Log but don't fail — auth deletion will still proceed
+          console.error('[auth] account delete: public.users error:', dbErr.message);
+        }
+
+        // Delete Supabase Auth user (requires service-role key; server-side only)
+        const { error: authErr } = await supabase.auth.admin.deleteUser(userId);
+        if (authErr) {
+          // If user never existed in Supabase Auth (custom-auth-only account), ignore
+          console.warn('[auth] account delete: auth.admin.deleteUser warning:', authErr.message);
+        }
+      }
+
+      // ── 2. Delete all flat-file data owned by this user ───────────────────
+      db.deleteUserData(userId);
+
+      // ── 3. Clear session cookie ───────────────────────────────────────────
+      res.clearCookie('token');
+
+      res.json({
+        success: true,
+        data: { message: 'Your account has been permanently deleted.' },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 export default router;

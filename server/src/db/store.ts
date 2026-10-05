@@ -460,6 +460,62 @@ class Store {
   public getAllStudentProfiles(): StudentProfileRecord[] {
     return Object.values(this.state.profiles);
   }
+
+  // --- ACCOUNT DELETION ---
+  // Removes all flat-file data owned by userId in a single atomic save.
+  // Called only by the authenticated self-deletion endpoint (DELETE /auth/account).
+  public deleteUserData(userId: string): void {
+    // Auth record
+    delete this.state.users[userId];
+
+    // Student profile
+    delete this.state.profiles[userId];
+
+    // Applications owned by user
+    Object.keys(this.state.applications).forEach((id) => {
+      if (this.state.applications[id]?.userId === userId) {
+        delete this.state.applications[id];
+      }
+    });
+
+    // Saved scholarship bookmarks (keys are `${userId}-${scholarshipId}`)
+    Object.keys(this.state.saved).forEach((key) => {
+      if (this.state.saved[key]?.userId === userId) {
+        delete this.state.saved[key];
+      }
+    });
+
+    // Documents
+    Object.keys(this.state.documents).forEach((id) => {
+      if (this.state.documents[id]?.userId === userId) {
+        delete this.state.documents[id];
+      }
+    });
+
+    // Notifications
+    Object.keys(this.state.notifications).forEach((id) => {
+      if (this.state.notifications[id]?.userId === userId) {
+        delete this.state.notifications[id];
+      }
+    });
+
+    // Reminders
+    if (this.state.reminders) {
+      Object.keys(this.state.reminders).forEach((id) => {
+        if (this.state.reminders[id]?.userId === userId) {
+          delete this.state.reminders[id];
+        }
+      });
+    }
+
+    // Admin directory entry (if user was an admin)
+    if (this.state.adminUsers[userId]) {
+      delete this.state.adminUsers[userId];
+    }
+
+    this.save();
+  }
 }
+
 
 export const db = new Store();

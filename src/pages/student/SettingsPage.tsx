@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { UserProfile } from '../../types';
 import { 
   Settings, Bell, Mail, Smartphone, MessageSquare, 
-  CheckCircle2, Save, Shield, Clock, Lock, Crown, Sparkles, ArrowRight
+  CheckCircle2, Save, Shield, Clock, Lock, Crown, Sparkles, ArrowRight,
+  Trash2, AlertTriangle, Loader2
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { api } from '../../lib/apiClient';
 
 interface SettingsPageProps {
   userProfile: UserProfile;
@@ -12,6 +15,8 @@ interface SettingsPageProps {
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ userProfile, onUpdateProfile, onNavigate }) => {
+  const { logout } = useAuth();
+
   const [preferences, setPreferences] = useState({
     inApp: userProfile.notificationPreferences?.inApp ?? true,
     email: userProfile.notificationPreferences?.email ?? true,
@@ -23,6 +28,30 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ userProfile, onUpdat
   });
 
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // ── Delete account state machine ──────────────────────────────────────────
+  // 'none' → 'confirm1' (first dialog) → 'confirm2' (type DELETE) → deleting
+  type DeleteStep = 'none' | 'confirm1' | 'confirm2';
+  const [deleteStep, setDeleteStep] = useState<DeleteStep>('none');
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText.trim().toUpperCase() !== 'DELETE') return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await api.delete('/auth/account');
+      // Sign out locally — clears Supabase session, apiClient token, React state
+      await logout();
+      // Redirect to public landing page
+      onNavigate('/');
+    } catch (err: any) {
+      setDeleteError(err?.message || 'Account deletion failed. Please try again or contact support.');
+      setIsDeleting(false);
+    }
+  };
 
   const toggleDeadlineDay = (day: number) => {
     const currentDays = preferences.deadlineDays || [7, 3, 1, 0];
@@ -368,6 +397,136 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ userProfile, onUpdat
           </div>
         </div>
       </div>
+
+      {/* ── Danger Zone ───────────────────────────────────────── */}
+      <div className="bg-white border border-rose-200 rounded-2xl shadow-xs overflow-hidden">
+        <div className="px-6 py-4 border-b border-rose-100 flex items-center gap-2">
+          <AlertTriangle size={15} className="text-rose-500" />
+          <h2 className="text-sm font-bold text-rose-700">Danger Zone</h2>
+        </div>
+        <div className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-slate-900">Delete Account</p>
+            <p className="text-xs text-slate-500 leading-relaxed max-w-sm">
+              Permanently delete your Scholavon account and all associated data.
+              This action is irreversible and cannot be undone.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setDeleteStep('confirm1'); setDeleteError(null); }}
+            className="shrink-0 inline-flex items-center gap-2 px-4 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+          >
+            <Trash2 size={13} />
+            Delete Account
+          </button>
+        </div>
+      </div>
+
+      {/* ── Confirmation Modal 1: First warning ───────────────── */}
+      {deleteStep === 'confirm1' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md p-6 space-y-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+                <AlertTriangle size={20} className="text-rose-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Delete your account?</h3>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  This will permanently delete your Scholavon account, profile, all saved scholarships,
+                  applications, documents, and notifications.
+                </p>
+              </div>
+            </div>
+            <ul className="text-xs text-slate-600 space-y-1.5 bg-rose-50 border border-rose-100 rounded-xl p-4">
+              <li className="flex items-center gap-2"><span className="text-rose-500 font-bold">✕</span> Your profile and academic data</li>
+              <li className="flex items-center gap-2"><span className="text-rose-500 font-bold">✕</span> All scholarship applications and saved grants</li>
+              <li className="flex items-center gap-2"><span className="text-rose-500 font-bold">✕</span> All uploaded documents and notifications</li>
+              <li className="flex items-center gap-2"><span className="text-rose-500 font-bold">✕</span> Your Scholavon Plus subscription (if active)</li>
+              <li className="flex items-center gap-2"><span className="text-slate-400 font-bold">○</span> Payment history records (retained for accounting)</li>
+            </ul>
+            <p className="text-xs font-semibold text-rose-700">
+              This action is permanent and cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setDeleteStep('none')}
+                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => { setDeleteStep('confirm2'); setDeleteConfirmText(''); }}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 rounded-xl transition-colors cursor-pointer"
+              >
+                Continue to Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirmation Modal 2: Type DELETE to confirm ─────── */}
+      {deleteStep === 'confirm2' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md p-6 space-y-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+                <Trash2 size={20} className="text-rose-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Final confirmation</h3>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Type <span className="font-bold text-rose-700 tracking-wide">DELETE</span> in
+                  the box below to permanently delete your account ({userProfile.email}).
+                </p>
+              </div>
+            </div>
+
+            {deleteError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+                {deleteError}
+              </div>
+            )}
+
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="Type DELETE to confirm"
+              disabled={isDeleting}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-400 text-sm font-mono placeholder:text-slate-400 disabled:opacity-60"
+              autoComplete="off"
+            />
+
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => { setDeleteStep('none'); setDeleteConfirmText(''); setDeleteError(null); }}
+                disabled={isDeleting}
+                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirmText.trim().toUpperCase() !== 'DELETE' || isDeleting}
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-colors cursor-pointer flex items-center gap-2"
+              >
+                {isDeleting ? (
+                  <><Loader2 size={13} className="animate-spin" /> Deleting…</>
+                ) : (
+                  <><Trash2 size={13} /> Delete My Account</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
