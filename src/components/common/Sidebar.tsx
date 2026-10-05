@@ -536,6 +536,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             )}
 
+            {/* Plus Badge / Upgrade CTA — Mobile Drawer */}
+            {user && (
+              user.subscriptionStatus === 'premium' ? (
+                <div className="mx-3 mb-1 flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded-lg">
+                  <Crown size={11} className="text-amber-500 shrink-0" />
+                  <span className="text-[10px] font-bold text-amber-700">Scholavon Plus</span>
+                  <span className="ml-auto text-[9px] font-semibold text-amber-500 bg-amber-100 px-1.5 py-0.5 rounded-full">Active</span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleNav('/pricing', true)}
+                  className="w-[calc(100%-1.5rem)] mx-3 mb-1 flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white text-[10px] font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
+                >
+                  <Crown size={11} className="shrink-0" />
+                  <span className="truncate">Upgrade to Plus</span>
+                </button>
+              )
+            )}
+
             {/* Independently Scrollable Navigation */}
             <div className="relative flex-1 min-h-0 overflow-hidden">
               {canScrollUpMobile && (
