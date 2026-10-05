@@ -1,0 +1,8 @@
+﻿# Nixpacks build configuration for Railway deployment.
+# Explicitly sets the start command so Railway always runs the Express API
+# server via tsx (TypeScript execution without a pre-compile step).
+# Without this file, Nixpacks guesses the start command and may fall back
+# to an earlier cached deployment when it cannot determine the entry point.
+
+[start]
+cmd = "npm run server"
