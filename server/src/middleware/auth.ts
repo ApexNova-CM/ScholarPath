@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { createClient } from '@supabase/supabase-js';
 import { config } from '../config';
 import { UserRole } from '../types';
 
@@ -17,18 +18,59 @@ declare global {
   }
 }
 
-function normalizeAuthPayload(decoded: any): AuthPayload {
-  const metaRole = decoded?.app_metadata?.role || decoded?.user_metadata?.role;
-  const isExplicitAdmin = decoded?.role === 'admin' || metaRole === 'admin';
+// ─── Supabase service-role client (same pattern as payments.ts) ───────────────
+// Used to look up public.users.role — the single authoritative source of
+// application roles. Created lazily; returns null if env vars are absent.
+function getSupabaseAdminClient() {
+  if (!config.supabaseUrl || !config.supabaseServiceRoleKey) return null;
+  return createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
 
+// ─── Resolve application role from public.users ───────────────────────────────
+// This is the ONLY authoritative source for Scholavon application roles.
+// JWT metadata claims (app_metadata.role, user_metadata.role) are NOT trusted
+// because they can contain stale or incorrectly provisioned values.
+// Defaults to 'student' on any error or missing row — never grants admin by accident.
+async function resolveRoleFromDatabase(userId: string): Promise<UserRole> {
+  if (!userId) return 'student';
+  try {
+    const supabase = getSupabaseAdminClient();
+    if (!supabase) {
+      // Supabase not configured — fall back to 'student' (safe default)
+      return 'student';
+    }
+    const { data, error } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error || !data) return 'student';
+    return (data.role as string) === 'admin' ? 'admin' : 'student';
+  } catch {
+    return 'student';
+  }
+}
+
+// ─── Extract base identity fields from a decoded JWT ─────────────────────────
+// Role is intentionally NOT sourced from the JWT — it comes from the database.
+function extractTokenIdentity(decoded: any): { id: string; email: string } {
   return {
     id: String(decoded?.sub || decoded?.id || ''),
     email: String(decoded?.email || ''),
-    role: isExplicitAdmin ? 'admin' : 'student',
   };
 }
 
-export function authenticateToken(req: Request, res: Response, next: NextFunction): void {
+// ─── authenticateToken ────────────────────────────────────────────────────────
+// Validates the bearer token, then resolves the application role from
+// public.users. Any authenticated user without a DB row defaults to 'student'.
+export async function authenticateToken(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   const authHeader = req.headers.authorization;
   let token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : undefined;
 
@@ -39,30 +81,30 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
   if (!token) {
     res.status(401).json({
       success: false,
-      error: {
-        code: 'UNAUTHORIZED',
-        message: 'Authentication token required.',
-      },
+      error: { code: 'UNAUTHORIZED', message: 'Authentication token required.' },
     });
     return;
   }
 
+  let identity: { id: string; email: string } | null = null;
+
+  // ── Path 1: verify with Railway JWT_SECRET (custom-issued tokens) ──────────
   try {
     const decoded = jwt.verify(token, config.jwtSecret);
-    req.user = normalizeAuthPayload(decoded);
-    next();
-  } catch (err) {
-    // If verification with local jwtSecret fails, check if it's a valid Supabase Auth JWT token
+    identity = extractTokenIdentity(decoded);
+  } catch {
+    // ── Path 2: Supabase JWT — decode without verification ─────────────────
     try {
-      const decodedPayload: any = jwt.decode(token);
-      if (decodedPayload && (decodedPayload.sub || decodedPayload.id || decodedPayload.email)) {
-        req.user = normalizeAuthPayload(decodedPayload);
-        return next();
+      const decoded: any = jwt.decode(token);
+      if (decoded && (decoded.sub || decoded.id || decoded.email)) {
+        identity = extractTokenIdentity(decoded);
       }
     } catch {
       // ignore
     }
+  }
 
+  if (!identity || !identity.id) {
     res.status(401).json({
       success: false,
       error: {
@@ -70,10 +112,23 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
         message: 'Session has expired or token is invalid. Please log in again.',
       },
     });
+    return;
   }
+
+  // ── Resolve authoritative role from public.users ───────────────────────────
+  const role = await resolveRoleFromDatabase(identity.id);
+  req.user = { id: identity.id, email: identity.email, role };
+  next();
 }
 
-export function optionalAuthenticateToken(req: Request, res: Response, next: NextFunction): void {
+// ─── optionalAuthenticateToken ────────────────────────────────────────────────
+// Same token validation + DB role lookup, but does not reject unauthenticated
+// requests. Sets req.user if a valid token is present; otherwise continues.
+export async function optionalAuthenticateToken(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   const authHeader = req.headers.authorization;
   let token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : undefined;
 
@@ -82,25 +137,32 @@ export function optionalAuthenticateToken(req: Request, res: Response, next: Nex
   }
 
   if (token) {
+    let identity: { id: string; email: string } | null = null;
+
     try {
       const decoded = jwt.verify(token, config.jwtSecret);
-      req.user = normalizeAuthPayload(decoded);
+      identity = extractTokenIdentity(decoded);
     } catch {
       try {
-        const decodedPayload: any = jwt.decode(token);
-        if (decodedPayload && (decodedPayload.sub || decodedPayload.id || decodedPayload.email)) {
-          req.user = normalizeAuthPayload(decodedPayload);
+        const decoded: any = jwt.decode(token);
+        if (decoded && (decoded.sub || decoded.id || decoded.email)) {
+          identity = extractTokenIdentity(decoded);
         }
       } catch {
         // Ignore invalid token for optional auth
       }
     }
+
+    if (identity && identity.id) {
+      const role = await resolveRoleFromDatabase(identity.id);
+      req.user = { id: identity.id, email: identity.email, role };
+    }
   }
+
   next();
 }
 
-
-
+// ─── requireRole ──────────────────────────────────────────────────────────────
 export function requireRole(role: UserRole) {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
@@ -126,6 +188,7 @@ export function requireRole(role: UserRole) {
   };
 }
 
+// ─── requireOwnership ─────────────────────────────────────────────────────────
 export function requireOwnership(paramKey = 'userId') {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
