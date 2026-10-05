@@ -36,7 +36,7 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
   }, [user, currentPath]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-slate-900 relative">
+    <div className="h-screen overflow-hidden bg-slate-50 flex flex-col md:flex-row text-slate-900 relative">
       {/* Sidebar handles both desktop persistent navigation and the mobile sliding drawer */}
       <Sidebar
         currentPath={currentPath}
