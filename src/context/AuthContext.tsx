@@ -46,12 +46,13 @@ async function fetchProfileFromSupabase(sbUser: SupabaseUser): Promise<UserProfi
     .single();
 
   const meta = sbUser.user_metadata || {};
-  const isAuthAdmin = meta.role === 'admin' || sbUser.app_metadata?.role === 'admin';
 
   if (error || !data) {
     // If authenticated in Supabase Auth but public.users row is missing:
-    // Auto-provision profile row using Supabase Auth metadata
-    const role: UserRole = isAuthAdmin ? 'admin' : 'student';
+    // Auto-provision profile row. Role ALWAYS defaults to 'student' —
+    // JWT metadata claims (user_metadata.role, app_metadata.role) are NOT
+    // trusted for application role assignment per security policy.
+    const role: UserRole = 'student';
     const fullName: string = meta.full_name || meta.name || '';
     const [firstName = 'User', ...rest] = fullName.split(' ');
     const lastName = rest.join(' ') || '';
@@ -62,7 +63,7 @@ async function fetchProfileFromSupabase(sbUser: SupabaseUser): Promise<UserProfi
       role,
       country: 'International',
       educationLevel: 'Undergraduate',
-      institution: role === 'admin' ? 'Scholavon Foundation' : '',
+      institution: '',
       fieldOfStudy: meta.assigned_department || '',
     });
   }
@@ -254,9 +255,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const profile = await fetchProfileFromSupabase(data.user);
 
       if (!profile) {
-        // Auth user exists but no profile row yet — create one using role from user_metadata
+        // Auth user exists but no profile row yet — create one.
+        // Role ALWAYS defaults to 'student' — JWT metadata claims are NOT trusted
+        // for application role assignment per security policy.
         const meta = data.user.user_metadata || {};
-        const role: UserRole = meta.role === 'admin' || data.user.app_metadata?.role === 'admin' ? 'admin' : 'student';
+        const role: UserRole = 'student';
         const fullName: string = meta.full_name || meta.name || '';
         const [firstName = 'User', ...rest] = fullName.split(' ');
         const lastName = rest.join(' ') || '';
