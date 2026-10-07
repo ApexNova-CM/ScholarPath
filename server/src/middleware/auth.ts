@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { createClient } from '@supabase/supabase-js';
 import { config } from '../config';
+import { db } from '../db/store';
 import { UserRole } from '../types';
 
 export interface AuthPayload {
@@ -37,19 +38,28 @@ async function resolveRoleFromDatabase(userId: string): Promise<UserRole> {
   if (!userId) return 'student';
   try {
     const supabase = getSupabaseAdminClient();
-    if (!supabase) {
-      // Supabase not configured — fall back to 'student' (safe default)
-      return 'student';
-    }
-    const { data, error } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', userId)
-      .maybeSingle();
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle();
 
-    if (error || !data) return 'student';
-    return (data.role as string) === 'admin' ? 'admin' : 'student';
+      if (!error && data && data.role) {
+        return (data.role as string) === 'admin' ? 'admin' : 'student';
+      }
+    }
+    // Fallback to local store for development/testing when Supabase is unconfigured
+    const localUser = db.findUserById(userId);
+    if (localUser) {
+      return localUser.role === 'admin' ? 'admin' : 'student';
+    }
+    return 'student';
   } catch {
+    const localUser = db.findUserById(userId);
+    if (localUser) {
+      return localUser.role === 'admin' ? 'admin' : 'student';
+    }
     return 'student';
   }
 }

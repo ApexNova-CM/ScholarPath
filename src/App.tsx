@@ -577,6 +577,21 @@ function MainApp() {
       // STUDENT PORTAL ROUTES
       // ----------------------------------------------------
       case '/dashboard':
+        if (isAuthenticated && role === 'admin') {
+          return (
+            <AdminLayout currentPath="/admin/dashboard" onNavigate={navigate}>
+              <AdminDashboardPage
+                scholarships={scholarships}
+                providers={providers}
+                users={users}
+                applications={applications}
+                onNavigate={navigate}
+                onVerifyScholarship={handleVerifyScholarship}
+                onRejectScholarship={handleRejectScholarship}
+              />
+            </AdminLayout>
+          );
+        }
         if (!isAuthenticated || !user || role !== 'student') {
           return (
             <AuthLayout portal="student" onNavigate={navigate}>
@@ -601,6 +616,21 @@ function MainApp() {
         );
 
       case '/saved':
+        if (isAuthenticated && role === 'admin') {
+          return (
+            <AdminLayout currentPath="/admin/dashboard" onNavigate={navigate}>
+              <AdminDashboardPage
+                scholarships={scholarships}
+                providers={providers}
+                users={users}
+                applications={applications}
+                onNavigate={navigate}
+                onVerifyScholarship={handleVerifyScholarship}
+                onRejectScholarship={handleRejectScholarship}
+              />
+            </AdminLayout>
+          );
+        }
         if (!isAuthenticated || !user || role !== 'student') {
           return (
             <AuthLayout portal="student" onNavigate={navigate}>
@@ -818,6 +848,22 @@ function MainApp() {
 
       case '/admin':
       case '/admin/dashboard':
+        if (isAuthenticated && role === 'student' && user) {
+          return (
+            <StudentLayout currentPath="/dashboard" onNavigate={navigate}>
+              <StudentDashboardPage
+                userProfile={user}
+                scholarships={scholarships}
+                applications={applications}
+                notifications={notifications}
+                savedScholarshipIds={savedIds}
+                onToggleSave={handleToggleSave}
+                onNavigate={navigate}
+                onStartApplication={handleStartApplication}
+              />
+            </StudentLayout>
+          );
+        }
         if (!isAuthenticated || role !== 'admin') {
           return (
             <AuthLayout portal="unified" onNavigate={navigate}>

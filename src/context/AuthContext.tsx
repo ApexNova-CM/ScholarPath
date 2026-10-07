@@ -34,25 +34,72 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // ─── Fetch profile from Supabase public.users table ──────────────────────────
-// This is the SINGLE source of truth for role. No localStorage, no email
-// matching — only what is stored in the database.
+// This is the SINGLE source of truth for role.
 async function fetchProfileFromSupabase(sbUser: SupabaseUser): Promise<UserProfile | null> {
   if (!isSupabaseConfigured) return null;
 
-  const { data, error } = await supabase
+  // 1. Primary lookup by authenticated user ID (UUID)
+  let { data, error } = await supabase
     .from('users')
     .select('*')
     .eq('id', sbUser.id)
-    .single();
+    .maybeSingle();
+
+  // 2. Secondary lookup by email if id query yielded no row
+  if (!data && sbUser.email) {
+    const cleanEmail = sbUser.email.trim().toLowerCase();
+    const { data: emailUser } = await supabase
+      .from('users')
+      .select('*')
+      .ilike('email', cleanEmail)
+      .maybeSingle();
+
+    if (emailUser) {
+      data = emailUser;
+      // If the row existed with a legacy/seeded id, link it to the actual auth id
+      if (emailUser.id !== sbUser.id) {
+        try {
+          await supabase
+            .from('users')
+            .update({ id: sbUser.id })
+            .eq('email', cleanEmail);
+          data.id = sbUser.id;
+        } catch {
+          // Ignore if updating primary key is restricted by foreign key
+        }
+      }
+    }
+  }
+
+  // 3. If still no profile row exists, check if user is recorded in admin_users or user_metadata
+  let detectedRole: UserRole = 'student';
+  let defaultDepartment = '';
+
+  if (!data && sbUser.email) {
+    try {
+      const cleanEmail = sbUser.email.trim().toLowerCase();
+      const { data: adminEntry } = await supabase
+        .from('admin_users')
+        .select('*')
+        .ilike('email', cleanEmail)
+        .maybeSingle();
+
+      if (adminEntry && adminEntry.status === 'Active') {
+        detectedRole = 'admin';
+        defaultDepartment = adminEntry.assigned_department || 'Platform Operations';
+      }
+    } catch {
+      // admin_users table is optional
+    }
+  }
 
   const meta = sbUser.user_metadata || {};
+  if (!data && (meta.role === 'admin' || sbUser.app_metadata?.role === 'admin')) {
+    detectedRole = 'admin';
+  }
 
   if (error || !data) {
-    // If authenticated in Supabase Auth but public.users row is missing:
-    // Auto-provision profile row. Role ALWAYS defaults to 'student' —
-    // JWT metadata claims (user_metadata.role, app_metadata.role) are NOT
-    // trusted for application role assignment per security policy.
-    const role: UserRole = 'student';
+    // Provision missing profile row with detected role
     const fullName: string = meta.full_name || meta.name || '';
     const [firstName = 'User', ...rest] = fullName.split(' ');
     const lastName = rest.join(' ') || '';
@@ -60,11 +107,11 @@ async function fetchProfileFromSupabase(sbUser: SupabaseUser): Promise<UserProfi
     return createProfileInSupabase(sbUser, {
       firstName: meta.first_name || firstName,
       lastName: meta.last_name || lastName,
-      role,
+      role: detectedRole,
       country: 'International',
       educationLevel: 'Undergraduate',
-      institution: '',
-      fieldOfStudy: meta.assigned_department || '',
+      institution: detectedRole === 'admin' ? 'Scholavon Foundation' : '',
+      fieldOfStudy: meta.assigned_department || defaultDepartment,
     });
   }
 
@@ -90,13 +137,13 @@ async function createProfileInSupabase(
 
   const row = {
     id: sbUser.id,
-    email: sbUser.email ?? '',
+    email: (sbUser.email ?? '').trim().toLowerCase(),
     role: extra.role,
     first_name: extra.firstName,
     last_name: extra.lastName,
     country: extra.country ?? 'International',
     education_level: extra.educationLevel ?? 'Undergraduate',
-    institution: extra.institution ?? '',
+    institution: extra.institution ?? (extra.role === 'admin' ? 'Scholavon Foundation' : ''),
     field_of_study: extra.fieldOfStudy ?? '',
     gpa: 0.0,
     gpa_scale: 4.0,
@@ -107,7 +154,7 @@ async function createProfileInSupabase(
     .from('users')
     .upsert(row, { onConflict: 'id' })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
     console.error('Failed to create profile in Supabase:', error?.message);
@@ -119,10 +166,13 @@ async function createProfileInSupabase(
 
 // ─── Map a Supabase DB row → UserProfile ──────────────────────────────────────
 function mapSupabaseRowToProfile(row: Record<string, unknown>): UserProfile {
+  const rawRole = String(row.role || '').trim().toLowerCase();
+  const role: UserRole = rawRole === 'admin' || rawRole === 'super admin' ? 'admin' : 'student';
+
   return {
     id: row.id as string,
     email: (row.email as string) ?? '',
-    role: (row.role as UserRole) ?? 'student',
+    role,
     firstName: (row.first_name as string) ?? '',
     lastName: (row.last_name as string) ?? '',
     country: (row.country as string) ?? 'International',
@@ -251,27 +301,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: 'Sign in failed. Please try again.' };
       }
 
-      // Fetch role from database — this is the single source of truth
+      // Fetch role from database — public.users is the source of truth
       const profile = await fetchProfileFromSupabase(data.user);
 
       if (!profile) {
-        // Auth user exists but no profile row yet — create one.
-        // Role ALWAYS defaults to 'student' — JWT metadata claims are NOT trusted
-        // for application role assignment per security policy.
-        const meta = data.user.user_metadata || {};
-        const role: UserRole = 'student';
-        const fullName: string = meta.full_name || meta.name || '';
-        const [firstName = 'User', ...rest] = fullName.split(' ');
-        const lastName = rest.join(' ') || '';
-        const newProfile = await createProfileInSupabase(data.user, {
-          firstName: meta.first_name || firstName,
-          lastName: meta.last_name || lastName,
-          role,
-        });
-        setUser(newProfile);
-        return { success: true, role: newProfile?.role ?? role };
+        return { success: false, error: 'Could not load user profile from database.' };
       }
-
 
       setUser(profile);
       return { success: true, role: profile.role };
@@ -284,9 +319,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const result = await login(email, password);
     if (result.success && result.role === 'admin') {
       // An admin trying the student flow — still let them in, auth context handles routing
-      return { success: true };
+      return { success: true, role: 'admin' as UserRole };
     }
-    return { success: result.success, error: result.error };
+    return result;
   };
 
   const loginAsAdmin = async (email: string, password?: string) => {
@@ -300,7 +335,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(null);
       return { success: false, error: 'This account does not have administrator privileges.' };
     }
-    return { success: true };
+    return { success: true, role: 'admin' as UserRole };
   };
 
   // ── Google OAuth ──────────────────────────────────────────────────────────

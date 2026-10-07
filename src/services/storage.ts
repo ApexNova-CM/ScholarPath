@@ -929,7 +929,21 @@ export const StorageService = {
   // hardcoded mock admins.
   // ----------------------------------------------------
   getAdminUsers(): AdminUser[] {
-    return read<AdminUser[]>(STORAGE_KEYS.ADMIN_USERS, []);
+    const fromAdminUsers = read<AdminUser[]>(STORAGE_KEYS.ADMIN_USERS, []);
+    if (fromAdminUsers.length > 0) return fromAdminUsers;
+    const users = this.getUsers();
+    return users
+      .filter(u => u.role === 'admin')
+      .map(u => ({
+        id: u.id,
+        email: u.email,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        role: 'Admin' as const,
+        status: 'Active' as const,
+        assignedDepartment: u.fieldOfStudy || 'Platform Operations',
+        createdAt: u.createdAt,
+      }));
   },
 
   addAdminUser(adminData: Omit<AdminUser, 'id' | 'createdAt'>): AdminUser {
