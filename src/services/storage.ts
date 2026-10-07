@@ -1034,5 +1034,24 @@ export const StorageService = {
     write(STORAGE_KEYS.REPORTS, all);
     syncToSupabase('scholarship_reports', updated);
     return updated;
+  },
+
+  // --- AI PROMPT USAGE (FREE TIER LIMIT: 3 PROMPTS / MONTH) ---
+  getMonthlyAiPromptUsage(userId: string): { used: number; limit: number; remaining: number } {
+    const monthKey = new Date().toISOString().slice(0, 7);
+    const key = `scholavon_ai_prompts_${userId}_${monthKey}`;
+    const used = read<number>(key, 0);
+    const limit = 3;
+    const remaining = Math.max(0, limit - used);
+    return { used, limit, remaining };
+  },
+
+  incrementMonthlyAiPromptUsage(userId: string): number {
+    const monthKey = new Date().toISOString().slice(0, 7);
+    const key = `scholavon_ai_prompts_${userId}_${monthKey}`;
+    const current = read<number>(key, 0);
+    const next = current + 1;
+    write(key, next);
+    return next;
   }
 };

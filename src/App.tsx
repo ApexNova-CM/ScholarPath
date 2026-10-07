@@ -675,6 +675,7 @@ function MainApp() {
               userProfile={user}
               documents={documents}
               onDocumentsChange={(docs) => setDocuments(docs)}
+              onNavigate={navigate}
             />
           </StudentLayout>
         );

@@ -19,6 +19,7 @@ import {
   Sparkles, User, GraduationCap, ChevronRight, ChevronLeft,
   UploadCloud, Loader2, Eye, RefreshCw, Shield
 } from 'lucide-react';
+import { PremiumGate } from './PremiumGate';
 
 interface ApplicationModalProps {
   scholarship: Scholarship | null;
@@ -293,6 +294,36 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
       onClose();
     } catch {}
   };
+
+  const existingApps = userProfile ? StorageService.getApplications(userProfile.id) : [];
+  const isAlreadyTracked = Boolean(scholarship && existingApps.some(a => a.scholarshipId === scholarship.id));
+  const isLimitReached = userProfile?.subscriptionStatus !== 'premium' && !isAlreadyTracked && existingApps.length >= 3;
+
+  if (isLimitReached) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Application Limit</span>
+            <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-600">
+              <X size={18} />
+            </button>
+          </div>
+          <PremiumGate
+            userProfile={userProfile}
+            featureName="Unlimited Application Tracking"
+            featureDescription="You have reached the Free plan limit of 3 tracked applications. Upgrade to Scholavon Plus to apply for and track unlimited scholarships."
+            onNavigate={(path) => {
+              onClose();
+              onNavigate?.(path);
+            }}
+          >
+            <div />
+          </PremiumGate>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">

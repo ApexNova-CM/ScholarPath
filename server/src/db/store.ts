@@ -37,6 +37,7 @@ export interface DatabaseState {
   verifications: Record<string, VerificationLogRecord>;
   adminUsers: Record<string, AdminUserRecord>;
   reminders: Record<string, ReminderRecord>;
+  aiPromptUsage?: Record<string, Record<string, number>>; // userId -> { "YYYY-MM": count }
 }
 
 class Store {
@@ -53,6 +54,7 @@ class Store {
     verifications: {},
     adminUsers: {},
     reminders: {},
+    aiPromptUsage: {},
   };
 
   private initialized = false;
@@ -459,6 +461,22 @@ class Store {
 
   public getAllStudentProfiles(): StudentProfileRecord[] {
     return Object.values(this.state.profiles);
+  }
+
+  // --- AI PROMPT TRACKING ---
+  public getMonthlyAiPromptCount(userId: string, monthKey: string): number {
+    if (!this.state.aiPromptUsage) this.state.aiPromptUsage = {};
+    return this.state.aiPromptUsage[userId]?.[monthKey] || 0;
+  }
+
+  public incrementMonthlyAiPromptCount(userId: string, monthKey: string): number {
+    if (!this.state.aiPromptUsage) this.state.aiPromptUsage = {};
+    if (!this.state.aiPromptUsage[userId]) this.state.aiPromptUsage[userId] = {};
+    const current = this.state.aiPromptUsage[userId][monthKey] || 0;
+    const next = current + 1;
+    this.state.aiPromptUsage[userId][monthKey] = next;
+    this.save();
+    return next;
   }
 
   // --- ACCOUNT DELETION ---

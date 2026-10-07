@@ -147,15 +147,21 @@ export function isReminderTypeEnabledForUser(
   reminderType: ReminderType
 ): boolean {
   const prefs = userProfile.notificationPreferences;
-  if (!prefs) return true; // default all enabled
 
-  if (prefs.deadlineAlerts === false) {
+  if (prefs?.deadlineAlerts === false) {
     return false;
   }
 
+  const isPlus = userProfile.subscriptionStatus === 'premium';
   const targetDay = getDaysForReminderType(reminderType);
-  const enabledDays = prefs.deadlineDays ?? [7, 3, 1, 0];
 
+  // Free users receive standard 7-day and 1-day reminders.
+  // Plus users receive full intervals (30d, 14d, 7d, 3d, 1d, 0) and custom schedules.
+  if (!isPlus) {
+    return targetDay === 7 || targetDay === 1;
+  }
+
+  const enabledDays = prefs?.deadlineDays ?? [30, 14, 7, 3, 1, 0];
   return enabledDays.includes(targetDay);
 }
 

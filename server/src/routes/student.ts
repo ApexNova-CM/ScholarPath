@@ -3,14 +3,43 @@ import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
+import { createClient } from '@supabase/supabase-js';
 import { db } from '../db/store';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
-import { UpdateProfileSchema, ApplicationRecord, StoredDocumentRecord } from '../types';
+import { UpdateProfileSchema, ApplicationRecord, StoredDocumentRecord, SubscriptionStatus } from '../types';
 import { config } from '../config';
 import { processAIChat } from '../services/aiService';
 
 const router = Router();
+
+// Helper to determine authoritative subscription status from Supabase (or flat file fallback)
+async function getUserSubscriptionStatus(userId: string): Promise<SubscriptionStatus> {
+  if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+    try {
+      const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data } = await supabase
+        .from('users')
+        .select('subscription_status')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (data?.subscription_status === 'premium') {
+        return 'premium';
+      }
+      if (data?.subscription_status === 'past_due' || data?.subscription_status === 'cancelled') {
+        return data.subscription_status as SubscriptionStatus;
+      }
+    } catch (err) {
+      console.warn('[student] subscription status check warning:', err);
+    }
+  }
+
+  const user = db.findUserById(userId);
+  return (user as any)?.subscriptionStatus || 'free';
+}
 
 // Ensure upload directory exists
 const uploadDir = path.resolve(process.cwd(), 'uploads');
@@ -176,7 +205,7 @@ router.get('/applications', (req: Request, res: Response): void => {
 });
 
 // POST /api/v1/student/applications
-router.post('/applications', (req: Request, res: Response): void => {
+router.post('/applications', async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
   const { scholarshipId, notes } = req.body;
 
@@ -204,6 +233,22 @@ router.post('/applications', (req: Request, res: Response): void => {
     res.json({
       success: true,
       data: alreadyTracking,
+    });
+    return;
+  }
+
+  // Enforce Free plan limit of 3 active applications
+  const subStatus = await getUserSubscriptionStatus(userId);
+  if (subStatus !== 'premium' && existingApps.length >= 3) {
+    res.status(403).json({
+      success: false,
+      error: {
+        code: 'UPGRADE_REQUIRED',
+        message: 'You have reached the Free plan limit of 3 tracked applications. Upgrade to Scholavon Plus for unlimited applications.',
+        upgradeUrl: '/pricing',
+        currentCount: existingApps.length,
+        limit: 3,
+      },
     });
     return;
   }
@@ -364,7 +409,7 @@ router.get('/documents', (req: Request, res: Response): void => {
 });
 
 // POST /api/v1/student/documents/upload
-router.post('/documents/upload', upload.single('file'), (req: Request, res: Response): void => {
+router.post('/documents/upload', upload.single('file'), async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
   const file = req.file;
   const { name, type } = req.body;
@@ -373,6 +418,27 @@ router.post('/documents/upload', upload.single('file'), (req: Request, res: Resp
     res.status(400).json({
       success: false,
       error: { code: 'FILE_REQUIRED', message: 'Please provide a file or document name.' },
+    });
+    return;
+  }
+
+  // Enforce Free plan limit of 3 stored documents
+  const subStatus = await getUserSubscriptionStatus(userId);
+  const existingDocs = db.getDocumentsByUser(userId);
+  if (subStatus !== 'premium' && existingDocs.length >= 3) {
+    // If file was uploaded to disk by multer, clean it up
+    if (file && file.path && fs.existsSync(file.path)) {
+      try { fs.unlinkSync(file.path); } catch {}
+    }
+    res.status(403).json({
+      success: false,
+      error: {
+        code: 'UPGRADE_REQUIRED',
+        message: 'You have reached the Free plan limit of 3 stored documents. Upgrade to Scholavon Plus for unlimited document storage.',
+        upgradeUrl: '/pricing',
+        currentCount: existingDocs.length,
+        limit: 3,
+      },
     });
     return;
   }
@@ -471,11 +537,10 @@ router.get('/reminders', (req: Request, res: Response): void => {
 });
 
 // POST /api/v1/student/reminders/process
-router.post('/reminders/process', (req: Request, res: Response): void => {
+router.post('/reminders/process', async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
   const profile = db.getProfile(userId);
-  const user = db.findUserById(userId);
-  const userRole = user?.role || req.user!.role;
+  const subStatus = await getUserSubscriptionStatus(userId);
 
   // Process reminders for the student
   const savedIds = db.getSavedIdsByUser(userId);
@@ -486,7 +551,11 @@ router.post('/reminders/process', (req: Request, res: Response): void => {
   const allScholarships = db.getScholarships();
   const currentDate = req.body.currentDate ? new Date(req.body.currentDate) : new Date();
 
-  const enabledDays = profile?.notificationPreferences?.deadlineDays ?? [7, 3, 1, 0];
+  // Free users receive standard 7-day and 1-day reminders. Plus users receive full intervals (30d, 14d, 7d, 3d, 1d, 0).
+  const allowedIntervals = subStatus === 'premium'
+    ? (profile?.notificationPreferences?.deadlineDays ?? [30, 14, 7, 3, 1, 0])
+    : [7, 1];
+
   const deadlineAlertsEnabled = profile?.notificationPreferences?.deadlineAlerts !== false;
 
   const generatedReminders: any[] = [];
@@ -507,10 +576,12 @@ router.post('/reminders/process', (req: Request, res: Response): void => {
       if (daysLeft < 0) continue;
 
       let reminderType: string | null = null;
-      if (daysLeft === 7 && enabledDays.includes(7)) reminderType = '7_day';
-      else if (daysLeft === 3 && enabledDays.includes(3)) reminderType = '3_day';
-      else if (daysLeft === 1 && enabledDays.includes(1)) reminderType = '1_day';
-      else if (daysLeft === 0 && enabledDays.includes(0)) reminderType = 'deadline_day';
+      if (daysLeft === 30 && allowedIntervals.includes(30)) reminderType = '30_day';
+      else if (daysLeft === 14 && allowedIntervals.includes(14)) reminderType = '14_day';
+      else if (daysLeft === 7 && allowedIntervals.includes(7)) reminderType = '7_day';
+      else if (daysLeft === 3 && allowedIntervals.includes(3)) reminderType = '3_day';
+      else if (daysLeft === 1 && allowedIntervals.includes(1)) reminderType = '1_day';
+      else if (daysLeft === 0 && allowedIntervals.includes(0)) reminderType = 'deadline_day';
 
       if (!reminderType) continue;
 
@@ -518,12 +589,16 @@ router.post('/reminders/process', (req: Request, res: Response): void => {
       if (alreadySent) continue;
 
       const titleMap: Record<string, string> = {
+        '30_day': '⏰ Deadline in 30 days',
+        '14_day': '⏰ Deadline in 14 days',
         '7_day': '⏰ Deadline in 7 days',
         '3_day': '⏰ Deadline in 3 days',
         '1_day': '🚨 Deadline tomorrow',
         'deadline_day': '🚨 Deadline today',
       };
       const bodyMap: Record<string, string> = {
+        '30_day': `${sch.title} closes in 30 days. Begin preparing your required application materials.`,
+        '14_day': `${sch.title} closes in 14 days. Review your essays and request recommendations.`,
         '7_day': `${sch.title} closes in 7 days. You still have time to complete your application.`,
         '3_day': `${sch.title} closes in 3 days. Make sure your required documents are ready.`,
         '1_day': `${sch.title} closes tomorrow. Complete your application before the deadline.`,
@@ -552,9 +627,9 @@ router.post('/reminders/process', (req: Request, res: Response): void => {
       db.createNotification({
         id: notifId,
         userId,
-        title: titleMap[reminderType],
-        message: bodyMap[reminderType],
-        body: bodyMap[reminderType],
+        title: titleMap[reminderType] || '⏰ Scholarship Reminder',
+        message: bodyMap[reminderType] || `${sch.title} deadline is approaching.`,
+        body: bodyMap[reminderType] || `${sch.title} deadline is approaching.`,
         type: 'deadline_alert',
         read: false,
         link: `/scholarships/${sch.id}`,
@@ -590,6 +665,31 @@ router.post('/ai/chat', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Enforce 3 free AI prompts per month for Free plan users
+    const subStatus = await getUserSubscriptionStatus(userId);
+    const currentMonth = new Date().toISOString().slice(0, 7); // e.g. '2026-10'
+    let remainingPrompts = -1; // -1 means unlimited (Plus)
+
+    if (subStatus !== 'premium') {
+      const usedCount = db.getMonthlyAiPromptCount(userId, currentMonth);
+      if (usedCount >= 3) {
+        res.status(403).json({
+          success: false,
+          error: {
+            code: 'UPGRADE_REQUIRED',
+            message: 'You have reached your Free plan limit of 3 AI prompts this month. Upgrade to Scholavon Plus for unlimited AI scholarship assistance.',
+            upgradeUrl: '/pricing',
+            promptsUsed: usedCount,
+            promptsLimit: 3
+          }
+        });
+        return;
+      }
+
+      const nextCount = db.incrementMonthlyAiPromptCount(userId, currentMonth);
+      remainingPrompts = Math.max(0, 3 - nextCount);
+    }
+
     const aiResponse = await processAIChat(userId, {
       message: message.trim(),
       history: Array.isArray(history) ? history : [],
@@ -601,7 +701,11 @@ router.post('/ai/chat', async (req: Request, res: Response): Promise<void> => {
 
     res.json({
       success: true,
-      data: aiResponse
+      data: {
+        ...aiResponse,
+        remainingPrompts: subStatus === 'premium' ? null : remainingPrompts,
+        isPlus: subStatus === 'premium'
+      }
     });
   } catch (err: any) {
     console.error('AI chat endpoint error:', err);

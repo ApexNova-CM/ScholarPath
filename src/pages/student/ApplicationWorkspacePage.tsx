@@ -18,11 +18,12 @@ import { DeadlineBadge } from '../../components/common/DeadlineBadge';
 import { ReportScholarshipModal } from '../../components/common/ReportScholarshipModal';
 import { ApplicationOutcomeModal } from '../../components/common/ApplicationOutcomeModal';
 import { ApplicationHistoryTimeline } from '../../components/common/ApplicationHistoryTimeline';
+import { PremiumGate, isPremiumUser } from '../../components/common/PremiumGate';
 import { 
   ArrowLeft, Bookmark, ExternalLink, CheckCircle2, AlertCircle, 
   XCircle, Clock, FileText, Sparkles, Plus, Trash2, Save, 
   Flag, Share2, Shield, Calendar, Edit3, HelpCircle, Check, 
-  ChevronRight, Bell, ArrowUpRight, Lock, AlertTriangle, Trophy, History
+  ChevronRight, Bell, ArrowUpRight, Lock, AlertTriangle, Trophy, History, Crown
 } from 'lucide-react';
 
 interface ApplicationWorkspacePageProps {
@@ -47,6 +48,7 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
   onUpdateApplication,
 }) => {
   const scholarship = scholarships.find((s) => s.id === scholarshipId);
+  const isPremium = isPremiumUser(userProfile);
 
   // Load or create application tracker record
   const [application, setApplication] = useState<Application | null>(() => {
@@ -362,13 +364,24 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
               {application?.status || 'Preparing'}
             </span>
 
-            <button
-              onClick={() => setIsOutcomeModalOpen(true)}
-              className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-2xs flex items-center gap-1.5 cursor-pointer"
-            >
-              <Edit3 size={13} />
-              <span>Update Status</span>
-            </button>
+            {isPremium ? (
+              <button
+                onClick={() => setIsOutcomeModalOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-2xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Edit3 size={13} />
+                <span>Update Status</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => onNavigate('/pricing')}
+                className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-semibold shadow-2xs flex items-center gap-1.5 cursor-pointer"
+                title="Outcome Tracking is a Plus feature"
+              >
+                <Crown size={12} className="text-amber-600" />
+                <span>Update Status</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -431,76 +444,83 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
 
       {/* ── 2B. Post-Submission Outcome & Milestone Card ──────────────────── */}
       {application?.status !== 'Interested' && application?.status !== 'Preparing' && (
-        <div className="bg-white rounded-3xl border border-indigo-100 p-6 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-            <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 block">
-                Post-Submission Status
-              </span>
-              <h2 className="text-lg font-bold text-slate-900">
-                Application Outcome: {application?.status}
-              </h2>
+        <PremiumGate
+          userProfile={userProfile}
+          featureName="Application Outcome & Timeline Tracking"
+          featureDescription="Track shortlist decisions, interview dates, award amounts, and historical milestone logs."
+          onNavigate={onNavigate}
+        >
+          <div className="bg-white rounded-3xl border border-indigo-100 p-6 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-600 block">
+                  Post-Submission Status
+                </span>
+                <h2 className="text-lg font-bold text-slate-900">
+                  Application Outcome: {application?.status}
+                </h2>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsOutcomeModalOpen(true)}
+                  className="px-3.5 py-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Edit3 size={13} />
+                  <span>Edit Outcome Details</span>
+                </button>
+                <button
+                  onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-1 cursor-pointer"
+                >
+                  <History size={13} className="text-indigo-600" />
+                  <span>{isHistoryExpanded ? 'Hide History' : 'View Timeline'}</span>
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsOutcomeModalOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
-              >
-                <Edit3 size={13} />
-                <span>Edit Outcome Details</span>
-              </button>
-              <button
-                onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
-                className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-1 cursor-pointer"
-              >
-                <History size={13} className="text-indigo-600" />
-                <span>{isHistoryExpanded ? 'Hide History' : 'View Timeline'}</span>
-              </button>
+            {/* Outcome Details Highlight */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+                <span className="text-slate-400 block font-medium">Submission Timestamp</span>
+                <span className="font-bold text-slate-800 mt-0.5 block">
+                  {application?.appliedAt || application?.appliedDate ? new Date(application.appliedAt || application.appliedDate!).toLocaleDateString() : 'Recorded'}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+                <span className="text-slate-400 block font-medium">Next Step / Guidance</span>
+                <span className="font-bold text-slate-800 mt-0.5 block">
+                  {application?.status === 'Shortlisted' ? `Interview prep: ${application.outcomeDetails?.nextStep || 'Follow-up'}` :
+                   application?.status === 'Interview' ? `Interview on ${application.outcomeDetails?.interviewDate ? new Date(application.outcomeDetails.interviewDate).toLocaleDateString() : 'Scheduled'}` :
+                   application?.status === 'Awarded' ? 'Congratulations! Award recorded.' :
+                   application?.status === 'Under Review' ? 'Awaiting committee decision' :
+                   'Outcome recorded'}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+                <span className="text-slate-400 block font-medium">Award / Decision</span>
+                <span className="font-bold text-slate-800 mt-0.5 block">
+                  {application?.outcomeDetails?.awardAmount ? `$${Number(application.outcomeDetails.awardAmount).toLocaleString()} (${application.outcomeDetails.awardDuration || 'Awarded'})` :
+                   application?.outcomeDetails?.rejectionReason ? `Reason: ${application.outcomeDetails.rejectionReason}` :
+                   'In progress'}
+                </span>
+              </div>
             </div>
+
+            {/* Expanded History Timeline */}
+            {isHistoryExpanded && (
+              <div className="pt-4 border-t border-slate-100">
+                <ApplicationHistoryTimeline
+                  history={application?.statusHistory}
+                  currentStatus={application?.status || 'Applied'}
+                  createdAt={application?.createdAt || new Date().toISOString()}
+                />
+              </div>
+            )}
           </div>
-
-          {/* Outcome Details Highlight */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-slate-400 block font-medium">Submission Timestamp</span>
-              <span className="font-bold text-slate-800 mt-0.5 block">
-                {application?.appliedAt || application?.appliedDate ? new Date(application.appliedAt || application.appliedDate!).toLocaleDateString() : 'Recorded'}
-              </span>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-slate-400 block font-medium">Next Step / Guidance</span>
-              <span className="font-bold text-slate-800 mt-0.5 block">
-                {application?.status === 'Shortlisted' ? `Interview prep: ${application.outcomeDetails?.nextStep || 'Follow-up'}` :
-                 application?.status === 'Interview' ? `Interview on ${application.outcomeDetails?.interviewDate ? new Date(application.outcomeDetails.interviewDate).toLocaleDateString() : 'Scheduled'}` :
-                 application?.status === 'Awarded' ? 'Congratulations! Award recorded.' :
-                 application?.status === 'Under Review' ? 'Awaiting committee decision' :
-                 'Outcome recorded'}
-              </span>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-slate-400 block font-medium">Award / Decision</span>
-              <span className="font-bold text-slate-800 mt-0.5 block">
-                {application?.outcomeDetails?.awardAmount ? `$${Number(application.outcomeDetails.awardAmount).toLocaleString()} (${application.outcomeDetails.awardDuration || 'Awarded'})` :
-                 application?.outcomeDetails?.rejectionReason ? `Reason: ${application.outcomeDetails.rejectionReason}` :
-                 'In progress'}
-              </span>
-            </div>
-          </div>
-
-          {/* Expanded History Timeline */}
-          {isHistoryExpanded && (
-            <div className="pt-4 border-t border-slate-100">
-              <ApplicationHistoryTimeline
-                history={application?.statusHistory}
-                currentStatus={application?.status || 'Applied'}
-                createdAt={application?.createdAt || new Date().toISOString()}
-              />
-            </div>
-          )}
-        </div>
+        </PremiumGate>
       )}
 
       {/* ── 3. Preparation Progress Meter ─────────────────────────────────── */}
@@ -575,11 +595,11 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
             </div>
 
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl sm:text-4xl font-black text-slate-900">
-                🎯 {eligibility.score}%
+              <span className="text-2xl sm:text-3xl font-black text-slate-900">
+                🎯 {isPremium ? `${eligibility.score}%` : matchCategory}
               </span>
               <span className="text-xs text-slate-500 font-medium">
-                Personalized Match Score
+                {isPremium ? 'Personalized Match Score' : 'Compatibility Rating'}
               </span>
             </div>
 
@@ -588,23 +608,37 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
             </p>
 
             {/* Criteria summary */}
-            <div className="space-y-2 pt-2">
-              {eligibility.criteria.slice(0, 3).map((c, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs">
-                  {c.met ? (
-                    <CheckCircle2 size={14} className="text-emerald-600 shrink-0 mt-0.5" />
-                  ) : c.isHardRequirement ? (
-                    <XCircle size={14} className="text-rose-600 shrink-0 mt-0.5" />
-                  ) : (
-                    <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
-                  )}
-                  <div>
-                    <span className="font-semibold text-slate-800">{c.factor}: </span>
-                    <span className="text-slate-500">{c.detail}</span>
+            {isPremium ? (
+              <div className="space-y-2 pt-2">
+                {eligibility.criteria.slice(0, 3).map((c, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs">
+                    {c.met ? (
+                      <CheckCircle2 size={14} className="text-emerald-600 shrink-0 mt-0.5" />
+                    ) : c.isHardRequirement ? (
+                      <XCircle size={14} className="text-rose-600 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                    )}
+                    <div>
+                      <span className="font-semibold text-slate-800">{c.factor}: </span>
+                      <span className="text-slate-500">{c.detail}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="pt-2">
+                <PremiumGate
+                  userProfile={userProfile}
+                  compact
+                  featureName="Detailed Eligibility Criteria Breakdown"
+                  featureDescription="Upgrade to Scholavon Plus to see individual criteria satisfaction and GPA analysis."
+                  onNavigate={onNavigate}
+                >
+                  <span className="text-xs text-slate-500">Detailed Criteria Breakdown</span>
+                </PremiumGate>
+              </div>
+            )}
           </div>
 
           <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
@@ -631,11 +665,11 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
             </div>
 
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl sm:text-4xl font-black text-slate-900">
-                📋 {readiness.score}%
+              <span className="text-2xl sm:text-3xl font-black text-slate-900">
+                📋 {isPremium ? `${readiness.score}%` : readiness.category}
               </span>
               <span className="text-xs text-slate-500 font-medium">
-                Application Readiness
+                {isPremium ? 'Application Readiness' : 'Readiness Status'}
               </span>
             </div>
 
@@ -801,23 +835,39 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
         </div>
 
         {/* Add new personal task form */}
-        <form onSubmit={handleAddChecklistItem} className="flex gap-2 pt-2">
-          <input
-            type="text"
-            value={newChecklistLabel}
-            onChange={(e) => setNewChecklistLabel(e.target.value)}
-            placeholder="Add custom task (e.g. Request reference from Prof. Smith)..."
-            className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500"
-          />
-          <button
-            type="submit"
-            disabled={!newChecklistLabel.trim()}
-            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
-          >
-            <Plus size={14} />
-            <span>Add Task</span>
-          </button>
-        </form>
+        {isPremium ? (
+          <form onSubmit={handleAddChecklistItem} className="flex gap-2 pt-2">
+            <input
+              type="text"
+              value={newChecklistLabel}
+              onChange={(e) => setNewChecklistLabel(e.target.value)}
+              placeholder="Add custom task (e.g. Request reference from Prof. Smith)..."
+              className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500"
+            />
+            <button
+              type="submit"
+              disabled={!newChecklistLabel.trim()}
+              className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
+            >
+              <Plus size={14} />
+              <span>Add Task</span>
+            </button>
+          </form>
+        ) : (
+          <div className="pt-2 flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+            <div className="flex items-center gap-2 text-xs text-slate-600">
+              <Plus size={14} className="text-slate-400" />
+              <span>Add custom tasks & personal milestones (Scholavon Plus)</span>
+            </div>
+            <button
+              onClick={() => onNavigate('/pricing')}
+              className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-white text-[11px] font-bold rounded-lg transition-colors cursor-pointer"
+            >
+              <Crown size={11} />
+              <span>Unlock Plus</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── 7. Document Vault Matching Section ────────────────────────────── */}
@@ -893,78 +943,92 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
       </div>
 
       {/* ── 8. Personal Statement / Essay Draft Preparation ───────────────── */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <PremiumGate
+        userProfile={userProfile}
+        featureName="Essay & Personal Statement Workspace"
+        featureDescription="Draft, polish, track word counts, and organize your scholarship essays and personal statements directly inside this workspace."
+        onNavigate={onNavigate}
+      >
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">Personal Statement & Essay Draft</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Draft, polish, and store your scholarship essay or motivational statement.
+              </p>
+            </div>
+
+            {/* Status selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 font-medium">Status:</span>
+              <select
+                value={essayStatus}
+                onChange={(e) => setEssayStatus(e.target.value as any)}
+                className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-hidden focus:border-indigo-500 cursor-pointer"
+              >
+                <option value="not_started">Not Started</option>
+                <option value="drafting">Drafting</option>
+                <option value="ready">Ready for Submission</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Essay Text Area */}
+          <div className="space-y-2">
+            <textarea
+              rows={8}
+              value={essayDraft}
+              onChange={(e) => setEssayDraft(e.target.value)}
+              placeholder="Type or paste your scholarship essay, personal statement, or response to provider prompts..."
+              className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-900 leading-relaxed focus:outline-hidden focus:border-indigo-500 focus:bg-white transition-colors"
+            />
+
+            <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+              <span>{essayWordCount} words · {essayDraft.length} characters</span>
+              <button
+                onClick={handleSaveWorkspaceDraft}
+                className="text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer"
+              >
+                Save Draft
+              </button>
+            </div>
+          </div>
+        </div>
+      </PremiumGate>
+
+      {/* ── 9. Private Preparation Notes ──────────────────────────────────── */}
+      <PremiumGate
+        userProfile={userProfile}
+        featureName="Internal Application Notes"
+        featureDescription="Save private interview notes, professor recommendation statuses, and reminders for each application."
+        onNavigate={onNavigate}
+      >
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-4">
           <div>
-            <h3 className="text-lg font-bold text-slate-900">Personal Statement & Essay Draft</h3>
+            <h3 className="text-lg font-bold text-slate-900">My Application Notes</h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Draft, polish, and store your scholarship essay or motivational statement.
+              Private notes for interview questions, follow-ups, and special instructions.
             </p>
           </div>
 
-          {/* Status selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 font-medium">Status:</span>
-            <select
-              value={essayStatus}
-              onChange={(e) => setEssayStatus(e.target.value as any)}
-              className="text-xs font-semibold px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 focus:outline-hidden focus:border-indigo-500 cursor-pointer"
-            >
-              <option value="not_started">Not Started</option>
-              <option value="drafting">Drafting</option>
-              <option value="ready">Ready for Submission</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Essay Text Area */}
-        <div className="space-y-2">
           <textarea
-            rows={8}
-            value={essayDraft}
-            onChange={(e) => setEssayDraft(e.target.value)}
-            placeholder="Type or paste your scholarship essay, personal statement, or response to provider prompts..."
+            rows={4}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Record notes (e.g. Contacted Dr. Miller for letter, interview scheduled for May 12th)..."
             className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-900 leading-relaxed focus:outline-hidden focus:border-indigo-500 focus:bg-white transition-colors"
           />
 
-          <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
-            <span>{essayWordCount} words · {essayDraft.length} characters</span>
+          <div className="flex justify-end">
             <button
               onClick={handleSaveWorkspaceDraft}
-              className="text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors cursor-pointer"
             >
-              Save Draft
+              Save Notes
             </button>
           </div>
         </div>
-      </div>
-
-      {/* ── 9. Private Preparation Notes ──────────────────────────────────── */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-4">
-        <div>
-          <h3 className="text-lg font-bold text-slate-900">My Application Notes</h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Private notes for interview questions, follow-ups, and special instructions.
-          </p>
-        </div>
-
-        <textarea
-          rows={4}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Record notes (e.g. Contacted Dr. Miller for letter, interview scheduled for May 12th)..."
-          className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-900 leading-relaxed focus:outline-hidden focus:border-indigo-500 focus:bg-white transition-colors"
-        />
-
-        <div className="flex justify-end">
-          <button
-            onClick={handleSaveWorkspaceDraft}
-            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-colors cursor-pointer"
-          >
-            Save Notes
-          </button>
-        </div>
-      </div>
+      </PremiumGate>
 
       {/* ── 10. Official Application Launch & Tracker Confirmation ────────── */}
       <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-3xl p-6 sm:p-8 text-white space-y-6 shadow-md">

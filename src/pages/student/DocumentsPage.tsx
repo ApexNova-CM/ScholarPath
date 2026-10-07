@@ -10,6 +10,7 @@ import {
   replaceDocumentFile,
 } from '../../services/documentService';
 import { StorageService } from '../../services/storage';
+import { PremiumGate } from '../../components/common/PremiumGate';
 import {
   FileText, UploadCloud, Trash2, Download, CheckCircle2,
   Plus, X, AlertCircle, Eye, RefreshCw, Clock, Shield,
@@ -20,6 +21,7 @@ interface DocumentsPageProps {
   userProfile: UserProfile;
   documents: StoredDocument[];
   onDocumentsChange: (docs: StoredDocument[]) => void;
+  onNavigate?: (path: string) => void;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -49,6 +51,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({
   userProfile,
   documents,
   onDocumentsChange,
+  onNavigate,
 }) => {
   const [docTypes, setDocTypes] = useState<DocumentType[]>([]);
   const [localDocs, setLocalDocs] = useState<StoredDocument[]>(documents);
@@ -56,6 +59,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({
 
   // Upload modal state
   const [showUpload, setShowUpload] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [selectedTypeId, setSelectedTypeId] = useState('');
   const [docName, setDocName] = useState('');
   const [description, setDescription] = useState('');
@@ -251,13 +255,74 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({
           </p>
         </div>
         <button
-          onClick={() => { setShowUpload(true); resetUploadForm(); }}
+          onClick={() => {
+            if (userProfile.subscriptionStatus !== 'premium' && localDocs.length >= 3) {
+              setShowUpgradeModal(true);
+            } else {
+              setShowUpload(true);
+              resetUploadForm();
+            }
+          }}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors self-start sm:self-auto cursor-pointer"
         >
           <Plus size={15} />
           <span>Upload Document</span>
         </button>
       </div>
+
+      {/* Free Plan Quota Warning */}
+      {userProfile.subscriptionStatus !== 'premium' && (
+        <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+          localDocs.length >= 3 
+            ? 'bg-amber-50/80 border-amber-200 text-amber-900' 
+            : 'bg-slate-50 border-slate-200 text-slate-700'
+        }`}>
+          <div className="flex items-center gap-2.5">
+            <HardDrive size={16} className={localDocs.length >= 3 ? 'text-amber-600' : 'text-slate-500'} />
+            <div>
+              <span className="text-xs font-bold">
+                Free Plan: {localDocs.length} / 3 Documents Stored
+              </span>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                {localDocs.length >= 3
+                  ? 'You have reached the Free plan storage limit of 3 documents. Upgrade to Scholavon Plus for unlimited document storage.'
+                  : 'Upgrade to Scholavon Plus for unlimited document uploads and organized storage vault.'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => onNavigate?.('/pricing')}
+            className="shrink-0 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer"
+          >
+            Upgrade to Unlimited
+          </button>
+        </div>
+      )}
+
+      {/* Upgrade Limit Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Storage Limit</span>
+              <button onClick={() => setShowUpgradeModal(false)} className="p-1 rounded-lg text-slate-400 hover:text-slate-600">
+                <X size={18} />
+              </button>
+            </div>
+            <PremiumGate
+              userProfile={userProfile}
+              featureName="Unlimited Document Storage"
+              featureDescription="You have reached the Free plan limit of 3 stored documents. Upgrade to Scholavon Plus to upload and manage unlimited transcripts, certificates, CVs, and recommendations."
+              onNavigate={(path) => {
+                setShowUpgradeModal(false);
+                onNavigate?.(path);
+              }}
+            >
+              <div />
+            </PremiumGate>
+          </div>
+        </div>
+      )}
 
       {/* Summary Cards */}
       {isLoading ? (

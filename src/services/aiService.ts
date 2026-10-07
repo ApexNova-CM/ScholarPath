@@ -137,13 +137,29 @@ export async function sendStudentAIChat(
     });
 
     if (res && res.reply) {
+      if (userProfile?.id && userProfile.subscriptionStatus !== 'premium') {
+        StorageService.incrementMonthlyAiPromptUsage(userProfile.id);
+      }
       return {
         content: res.reply,
         suggestedActions: res.suggestedActions,
         relatedScholarships: res.relatedScholarships
       };
     }
-  } catch (err) {
+  } catch (err: any) {
+    const isUpgradeRequired = 
+      err?.code === 'UPGRADE_REQUIRED' || 
+      err?.response?.data?.code === 'UPGRADE_REQUIRED' ||
+      err?.response?.status === 403 ||
+      err?.message?.includes('UPGRADE_REQUIRED') ||
+      err?.message?.includes('limit reached');
+
+    if (isUpgradeRequired) {
+      const customErr: any = new Error(err?.response?.data?.error || err?.message || 'Monthly AI prompt limit reached. Upgrade to Scholavon Plus for unlimited AI assistance.');
+      customErr.code = 'UPGRADE_REQUIRED';
+      throw customErr;
+    }
+
     console.warn('Backend AI route unavailable or offline, generating client-side grounded response:', err);
   }
 
@@ -175,6 +191,16 @@ function generateClientGroundedResponse(
     createdAt: '',
     updatedAt: ''
   };
+
+  if (profile.subscriptionStatus !== 'premium') {
+    const currentUsage = StorageService.getMonthlyAiPromptUsage(profile.id);
+    if (currentUsage.used >= 3) {
+      const quotaErr: any = new Error('Monthly AI assistant prompt limit reached (3 prompts/month on Free tier). Upgrade to Scholavon Plus for unlimited AI assistance.');
+      quotaErr.code = 'UPGRADE_REQUIRED';
+      throw quotaErr;
+    }
+    StorageService.incrementMonthlyAiPromptUsage(profile.id);
+  }
 
   const scholarships = StorageService.getScholarships().filter(s => s.status !== 'archived' && s.status !== 'rejected');
   const applications = StorageService.getApplications(profile.id);

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Sparkles, Send, Bot, User, ArrowRight, RefreshCw, 
   Target, Clock, FileText, CheckCircle2, AlertCircle, 
-  Trash2, X, ChevronRight, ExternalLink, HelpCircle
+  Trash2, X, ChevronRight, ExternalLink, HelpCircle, Crown, Lock
 } from 'lucide-react';
 import { UserProfile, Scholarship, Application } from '../../types';
 import { 
@@ -11,6 +11,8 @@ import {
   WORKSPACE_STARTER_PROMPTS, 
   sendStudentAIChat 
 } from '../../services/aiService';
+import { StorageService } from '../../services/storage';
+import { PremiumGate, isPremiumUser } from '../../components/common/PremiumGate';
 
 interface AiAssistantPageProps {
   userProfile: UserProfile;
@@ -27,12 +29,19 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
   initialScholarshipId,
   onNavigate
 }) => {
+  const isPremium = isPremiumUser(userProfile);
   const [activeScholarshipId, setActiveScholarshipId] = useState<string | undefined>(initialScholarshipId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [promptUsage, setPromptUsage] = useState<number>(() => {
+    return userProfile?.id ? StorageService.getMonthlyAiPromptUsage(userProfile.id).used : 0;
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const isLimitReached = !isPremium && promptUsage >= 3;
+  const remainingPrompts = Math.max(0, 3 - promptUsage);
 
   const activeScholarship = activeScholarshipId 
     ? scholarships.find(s => s.id === activeScholarshipId) 
@@ -73,6 +82,22 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
     const query = (textToSend || inputMessage).trim();
     if (!query || isLoading) return;
 
+    if (isLimitReached) {
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `msg-limit-${Date.now()}`,
+          role: 'assistant',
+          content: `You have reached your limit of **3 free monthly prompts**. Upgrade to **Scholavon Plus** for unlimited AI scholarship intelligence, essay drafting, and requirement reviews.`,
+          timestamp: new Date().toISOString(),
+          suggestedActions: [
+            { label: 'Upgrade to Plus', path: '/pricing', type: 'primary' }
+          ]
+        }
+      ]);
+      return;
+    }
+
     const userMsg: ChatMessage = {
       id: `msg-user-${Date.now()}`,
       role: 'user',
@@ -102,17 +127,38 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
       };
 
       setMessages(prev => [...prev, assistantMsg]);
-    } catch (err) {
-      setMessages(prev => [
-        ...prev,
-        {
-          id: `msg-err-${Date.now()}`,
-          role: 'assistant',
-          content: 'Scholavon AI is temporarily unavailable. Please try again in a few moments.',
-          timestamp: new Date().toISOString(),
-          isError: true
+      if (userProfile?.id) {
+        setPromptUsage(StorageService.getMonthlyAiPromptUsage(userProfile.id).used);
+      }
+    } catch (err: any) {
+      if (err?.code === 'UPGRADE_REQUIRED' || err?.message?.includes('limit reached')) {
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `msg-limit-${Date.now()}`,
+            role: 'assistant',
+            content: `You have reached your limit of **3 free monthly prompts**. Upgrade to **Scholavon Plus** for unlimited AI assistance, document drafting, and customized eligibility breakdowns.`,
+            timestamp: new Date().toISOString(),
+            suggestedActions: [
+              { label: 'Upgrade to Scholavon Plus', path: '/pricing', type: 'primary' }
+            ]
+          }
+        ]);
+        if (userProfile?.id) {
+          setPromptUsage(3);
         }
-      ]);
+      } else {
+        setMessages(prev => [
+          ...prev,
+          {
+            id: `msg-err-${Date.now()}`,
+            role: 'assistant',
+            content: 'Scholavon AI is temporarily unavailable. Please try again in a few moments.',
+            timestamp: new Date().toISOString(),
+            isError: true
+          }
+        ]);
+      }
     } finally {
       setIsLoading(false);
       inputRef.current?.focus();
@@ -187,6 +233,20 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
                 <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
                   Assistant
                 </span>
+                {isPremium ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-50 text-amber-800 border border-amber-300">
+                    <Crown size={11} className="text-amber-600" />
+                    Plus Unlimited
+                  </span>
+                ) : (
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-bold rounded-full border ${
+                    promptUsage >= 3 
+                      ? 'bg-rose-50 text-rose-700 border-rose-200' 
+                      : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                  }`}>
+                    {promptUsage >= 3 ? '0/3 prompts left' : `${remainingPrompts}/3 free monthly prompts`}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-500">
                 Personalized scholarship intelligence, readiness checks & application advisor
@@ -195,6 +255,15 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {!isPremium && promptUsage >= 3 && (
+              <button
+                onClick={() => onNavigate('/pricing')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold transition-colors shadow-2xs cursor-pointer"
+              >
+                <Crown size={13} />
+                <span>Upgrade to Plus</span>
+              </button>
+            )}
             <button
               onClick={handleClearChat}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold transition-colors cursor-pointer"
@@ -342,8 +411,8 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
             <button
               key={p.id}
               onClick={() => handleSendMessage(p.prompt)}
-              disabled={isLoading}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-slate-700 text-xs font-semibold transition-all shadow-2xs cursor-pointer disabled:opacity-50"
+              disabled={isLoading || isLimitReached}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-slate-700 text-xs font-semibold transition-all shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <span>{p.icon}</span>
               <span>{p.prompt}</span>
@@ -352,34 +421,60 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
         </div>
       </div>
 
-      {/* Input Bar */}
-      <div className="mt-2 bg-white rounded-2xl border border-slate-200/90 p-2 shadow-2xs shrink-0">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSendMessage();
-          }}
-          className="flex items-center gap-2"
-        >
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            placeholder="Ask me anything about scholarships, readiness, or deadlines..."
-            disabled={isLoading}
-            className="flex-1 px-4 py-2.5 text-xs sm:text-sm bg-transparent border-none focus:outline-hidden text-slate-900 placeholder:text-slate-400"
-          />
+      {/* Input Bar or Upgrade Gate */}
+      {isLimitReached ? (
+        <div className="mt-2 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 p-4 shadow-2xs shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center shrink-0">
+              <Lock size={18} className="text-amber-700" />
+            </div>
+            <div>
+              <h4 className="text-xs sm:text-sm font-bold text-slate-900">
+                Monthly AI Prompt Limit Reached (3 / 3 Used)
+              </h4>
+              <p className="text-[11px] text-slate-600">
+                Upgrade to <strong>Scholavon Plus</strong> for unlimited AI questions, essay drafting, and requirement reviews.
+              </p>
+            </div>
+          </div>
           <button
-            type="submit"
-            disabled={!inputMessage.trim() || isLoading}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
+            onClick={() => onNavigate('/pricing')}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0 cursor-pointer"
           >
-            <Send size={14} />
-            <span className="hidden sm:inline">Send</span>
+            <Crown size={14} />
+            <span>Upgrade to Plus</span>
+            <ArrowRight size={13} />
           </button>
-        </form>
-      </div>
+        </div>
+      ) : (
+        <div className="mt-2 bg-white rounded-2xl border border-slate-200/90 p-2 shadow-2xs shrink-0">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendMessage();
+            }}
+            className="flex items-center gap-2"
+          >
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              placeholder="Ask me anything about scholarships, readiness, or deadlines..."
+              disabled={isLoading}
+              className="flex-1 px-4 py-2.5 text-xs sm:text-sm bg-transparent border-none focus:outline-hidden text-slate-900 placeholder:text-slate-400"
+            />
+            <button
+              type="submit"
+              disabled={!inputMessage.trim() || isLoading}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-semibold rounded-xl shadow-xs transition-all cursor-pointer shrink-0"
+            >
+              <Send size={14} />
+              <span className="hidden sm:inline">Send</span>
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 };

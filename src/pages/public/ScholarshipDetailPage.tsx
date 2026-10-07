@@ -5,6 +5,7 @@ import { MatchScore } from '../../components/common/MatchScore';
 import { DeadlineBadge } from '../../components/common/DeadlineBadge';
 import { LifecycleBadge } from '../../components/common/LifecycleBadge';
 import { ApplicationReadinessCard } from '../../components/common/ApplicationReadinessCard';
+import { PremiumGate } from '../../components/common/PremiumGate';
 import { evaluateEligibility } from '../../services/eligibility';
 import { evaluateScholarshipReadiness } from '../../services/documentService';
 import { computeLifecycleStatus } from '../../services/scholarshipFilters';
@@ -349,7 +350,13 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
                 <Sparkles size={16} className="text-indigo-600" />
                 <span>Why This Matches You</span>
               </h2>
-              <span className="text-xs font-bold text-indigo-600">{eligibility.score}%</span>
+              {userProfile?.subscriptionStatus === 'premium' ? (
+                <span className="text-xs font-bold text-indigo-600">{eligibility.score}% Match</span>
+              ) : (
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                  Scholavon Plus
+                </span>
+              )}
             </div>
 
             {userProfile ? (
@@ -393,39 +400,46 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-3.5">
-                    {eligibility.criteria.map((c, i) => (
-                      <div key={i} className="text-xs space-y-1">
-                        <div className="flex items-center gap-2 font-semibold">
-                          {c.met ? (
-                            <CheckCircle2 size={15} className="text-emerald-600 shrink-0 stroke-[2.5]" />
-                          ) : c.isHardRequirement ? (
-                            <XCircle size={15} className="text-rose-600 shrink-0 stroke-[2.5]" />
-                          ) : (
-                            <AlertCircle size={15} className="text-amber-500 shrink-0 stroke-[2.5]" />
-                          )}
-                          <span className={c.met ? 'text-slate-900' : c.isHardRequirement ? 'text-rose-900' : 'text-amber-900'}>
-                            {c.factor}
-                          </span>
+                  <PremiumGate
+                    userProfile={userProfile}
+                    featureName="Detailed Eligibility & Criteria Breakdown"
+                    featureDescription="Upgrade to Scholavon Plus to see your exact percentage match score, GPA gap analysis, and criteria-by-criteria breakdown."
+                    onNavigate={onNavigate}
+                  >
+                    <div className="space-y-3.5">
+                      {eligibility.criteria.map((c, i) => (
+                        <div key={i} className="text-xs space-y-1">
+                          <div className="flex items-center gap-2 font-semibold">
+                            {c.met ? (
+                              <CheckCircle2 size={15} className="text-emerald-600 shrink-0 stroke-[2.5]" />
+                            ) : c.isHardRequirement ? (
+                              <XCircle size={15} className="text-rose-600 shrink-0 stroke-[2.5]" />
+                            ) : (
+                              <AlertCircle size={15} className="text-amber-500 shrink-0 stroke-[2.5]" />
+                            )}
+                            <span className={c.met ? 'text-slate-900' : c.isHardRequirement ? 'text-rose-900' : 'text-amber-900'}>
+                              {c.factor}
+                            </span>
+                          </div>
+                          <p className={`pl-6 text-[11px] leading-relaxed ${c.met ? 'text-slate-500' : c.isHardRequirement ? 'text-rose-700 font-medium' : 'text-amber-700'}`}>
+                            {c.detail}
+                          </p>
                         </div>
-                        <p className={`pl-6 text-[11px] leading-relaxed ${c.met ? 'text-slate-500' : c.isHardRequirement ? 'text-rose-700 font-medium' : 'text-amber-700'}`}>
-                          {c.detail}
-                        </p>
-                      </div>
-                    ))}
+                      ))}
 
-                    <div className="pt-3 border-t border-slate-100 space-y-2.5">
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Match scores are based on your profile and are not a guarantee of eligibility. Always review the full requirements before applying.
-                      </p>
-                      <button
-                        onClick={() => onNavigate('/profile')}
-                        className="w-full text-center text-xs font-semibold text-indigo-600 hover:text-indigo-800 py-1.5"
-                      >
-                        Edit Academic Profile
-                      </button>
+                      <div className="pt-3 border-t border-slate-100 space-y-2.5">
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          Match scores are based on your profile and are not a guarantee of eligibility. Always review the full requirements before applying.
+                        </p>
+                        <button
+                          onClick={() => onNavigate('/profile')}
+                          className="w-full text-center text-xs font-semibold text-indigo-600 hover:text-indigo-800 py-1.5"
+                        >
+                          Edit Academic Profile
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  </PremiumGate>
                 )}
               </>
             ) : (

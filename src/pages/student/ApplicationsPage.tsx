@@ -120,7 +120,13 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
           </button>
 
           <button
-            onClick={() => onNavigate('/scholarships')}
+            onClick={() => {
+              if (user?.subscriptionStatus !== 'premium' && applications.length >= 3) {
+                onNavigate('/pricing');
+              } else {
+                onNavigate('/scholarships');
+              }
+            }}
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
           >
             <Plus size={15} />
@@ -128,6 +134,35 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Free Plan Quota Warning */}
+      {user?.subscriptionStatus !== 'premium' && (
+        <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+          applications.length >= 3 
+            ? 'bg-amber-50/80 border-amber-200 text-amber-900' 
+            : 'bg-slate-50 border-slate-200 text-slate-700'
+        }`}>
+          <div className="flex items-center gap-2.5">
+            <Briefcase size={16} className={applications.length >= 3 ? 'text-amber-600' : 'text-slate-500'} />
+            <div>
+              <span className="text-xs font-bold">
+                Free Plan: {applications.length} / 3 Tracked Applications Used
+              </span>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                {applications.length >= 3
+                  ? 'You have reached the free application tracking limit. Upgrade to Scholavon Plus to track unlimited scholarships.'
+                  : 'Upgrade to Scholavon Plus for unlimited application tracking, essay draft workspaces, and outcome history.'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => onNavigate('/pricing')}
+            className="shrink-0 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer"
+          >
+            Upgrade to Unlimited
+          </button>
+        </div>
+      )}
 
       {/* Status Filter Pills */}
       <div className="flex flex-wrap items-center gap-2">

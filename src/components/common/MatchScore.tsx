@@ -1,18 +1,24 @@
 import React from 'react';
 import { EligibilityResult } from '../../types';
 import { Sparkles, AlertCircle, CheckCircle2, HelpCircle } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface MatchScoreProps {
   result: EligibilityResult;
   size?: 'sm' | 'md' | 'lg';
   showLabel?: boolean;
+  isPremium?: boolean;
 }
 
 export const MatchScore: React.FC<MatchScoreProps> = ({
   result,
   size = 'md',
-  showLabel = true
+  showLabel = true,
+  isPremium: isPremiumProp,
 }) => {
+  const { user } = useAuth();
+  const isPlus = isPremiumProp !== undefined ? isPremiumProp : user?.subscriptionStatus === 'premium';
+
   let badgeClasses = 'bg-slate-100 text-slate-700 border-slate-200';
   let Icon = HelpCircle;
 
@@ -39,7 +45,15 @@ export const MatchScore: React.FC<MatchScoreProps> = ({
   const getLabel = () => {
     if (result.hardDisqualified) return 'Ineligible';
     if (result.status === 'profile_incomplete') return 'Profile Incomplete';
-    return `${result.score}% Match`;
+
+    // Plus users see exact percentage; Free users see High / Medium / Low match category
+    if (isPlus) {
+      return `${result.score}% Match`;
+    }
+
+    if (result.status === 'strong_match') return 'High Match';
+    if (result.status === 'eligible') return 'Medium Match';
+    return 'Possible Match';
   };
 
   return (
