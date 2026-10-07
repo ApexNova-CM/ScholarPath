@@ -277,6 +277,69 @@ router.get('/me', authenticateToken, (req: Request, res: Response): void => {
   });
 });
 
+// DELETE /api/v1/auth/account
+// Authenticated self-deletion. Identity comes exclusively from req.user (the
+// verified token) — no userId is ever accepted from the request body.
+router.delete(
+  '/account',
+  authenticateToken,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.user || !req.user.id) {
+        res.status(401).json({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required to delete account.',
+          },
+        });
+        return;
+      }
+
+      const userId = req.user.id;
+
+      // 1. Supabase cleanup (if configured)
+      if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+        try {
+          const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+            auth: { persistSession: false, autoRefreshToken: false },
+          });
+
+          await supabase.from('users').delete().eq('id', userId);
+          await supabase.auth.admin.deleteUser(userId);
+        } catch (supabaseErr) {
+          console.warn('[auth] Supabase account deletion note:', supabaseErr);
+        }
+      }
+
+      // 2. Delete all flat-file data owned by this user
+      const deleted = db.deleteUserAccount(userId);
+      if (!deleted) {
+        res.status(404).json({
+          success: false,
+          error: {
+            code: 'USER_NOT_FOUND',
+            message: 'User account not found or already deleted.',
+          },
+        });
+        return;
+      }
+
+      // 3. Clear session cookie
+      res.clearCookie('token');
+
+      res.json({
+        success: true,
+        data: {
+          message: 'Account deleted successfully.',
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 // POST /api/v1/auth/forgot-password
 router.post('/forgot-password', (req: Request, res: Response): void => {
   const { email } = req.body;
@@ -330,59 +393,5 @@ router.post('/reset-password', async (req: Request, res: Response, next: NextFun
   }
 });
 
-// DELETE /api/v1/auth/account
-// Authenticated self-deletion. Identity comes exclusively from req.user (the
-// verified token) — no userId is ever accepted from the request body.
-// Deletes: Supabase Auth user, public.users row (cascades subscriptions),
-//          all flat-file data (profile, applications, saved, documents, etc.)
-router.delete(
-  '/account',
-  authenticateToken,
-  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const userId = req.user!.id;
-
-      // ── 1. Supabase deletions (service-role — never exposed to frontend) ──
-      if (config.supabaseUrl && config.supabaseServiceRoleKey) {
-        const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
-          auth: { persistSession: false, autoRefreshToken: false },
-        });
-
-        // Delete public.users row:
-        //   → public.subscriptions.user_id ON DELETE CASCADE  (auto-deleted)
-        //   → public.payment_events.user_id ON DELETE SET NULL (audit log preserved)
-        const { error: dbErr } = await supabase
-          .from('users')
-          .delete()
-          .eq('id', userId);
-
-        if (dbErr) {
-          // Log but don't fail — auth deletion will still proceed
-          console.error('[auth] account delete: public.users error:', dbErr.message);
-        }
-
-        // Delete Supabase Auth user (requires service-role key; server-side only)
-        const { error: authErr } = await supabase.auth.admin.deleteUser(userId);
-        if (authErr) {
-          // If user never existed in Supabase Auth (custom-auth-only account), ignore
-          console.warn('[auth] account delete: auth.admin.deleteUser warning:', authErr.message);
-        }
-      }
-
-      // ── 2. Delete all flat-file data owned by this user ───────────────────
-      db.deleteUserData(userId);
-
-      // ── 3. Clear session cookie ───────────────────────────────────────────
-      res.clearCookie('token');
-
-      res.json({
-        success: true,
-        data: { message: 'Your account has been permanently deleted.' },
-      });
-    } catch (err) {
-      next(err);
-    }
-  }
-);
 
 export default router;

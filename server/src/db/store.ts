@@ -463,8 +463,18 @@ class Store {
 
   // --- ACCOUNT DELETION ---
   // Removes all flat-file data owned by userId in a single atomic save.
-  // Called only by the authenticated self-deletion endpoint (DELETE /auth/account).
-  public deleteUserData(userId: string): void {
+  // Returns true if user existed and was deleted, false if user was not found.
+  public deleteUserAccount(userId: string): boolean {
+    const userExists = Boolean(
+      this.state.users[userId] ||
+      this.state.profiles[userId] ||
+      (this.state.adminUsers && this.state.adminUsers[userId])
+    );
+
+    if (!userExists) {
+      return false;
+    }
+
     // Auth record
     delete this.state.users[userId];
 
@@ -472,32 +482,40 @@ class Store {
     delete this.state.profiles[userId];
 
     // Applications owned by user
-    Object.keys(this.state.applications).forEach((id) => {
-      if (this.state.applications[id]?.userId === userId) {
-        delete this.state.applications[id];
-      }
-    });
+    if (this.state.applications) {
+      Object.keys(this.state.applications).forEach((id) => {
+        if (this.state.applications[id]?.userId === userId) {
+          delete this.state.applications[id];
+        }
+      });
+    }
 
     // Saved scholarship bookmarks (keys are `${userId}-${scholarshipId}`)
-    Object.keys(this.state.saved).forEach((key) => {
-      if (this.state.saved[key]?.userId === userId) {
-        delete this.state.saved[key];
-      }
-    });
+    if (this.state.saved) {
+      Object.keys(this.state.saved).forEach((key) => {
+        if (this.state.saved[key]?.userId === userId) {
+          delete this.state.saved[key];
+        }
+      });
+    }
 
     // Documents
-    Object.keys(this.state.documents).forEach((id) => {
-      if (this.state.documents[id]?.userId === userId) {
-        delete this.state.documents[id];
-      }
-    });
+    if (this.state.documents) {
+      Object.keys(this.state.documents).forEach((id) => {
+        if (this.state.documents[id]?.userId === userId) {
+          delete this.state.documents[id];
+        }
+      });
+    }
 
     // Notifications
-    Object.keys(this.state.notifications).forEach((id) => {
-      if (this.state.notifications[id]?.userId === userId) {
-        delete this.state.notifications[id];
-      }
-    });
+    if (this.state.notifications) {
+      Object.keys(this.state.notifications).forEach((id) => {
+        if (this.state.notifications[id]?.userId === userId) {
+          delete this.state.notifications[id];
+        }
+      });
+    }
 
     // Reminders
     if (this.state.reminders) {
@@ -508,12 +526,27 @@ class Store {
       });
     }
 
+    // Verification records
+    if (this.state.verifications) {
+      Object.keys(this.state.verifications).forEach((id) => {
+        const rec = this.state.verifications[id] as any;
+        if (rec?.userId === userId || rec?.adminId === userId) {
+          delete this.state.verifications[id];
+        }
+      });
+    }
+
     // Admin directory entry (if user was an admin)
-    if (this.state.adminUsers[userId]) {
+    if (this.state.adminUsers && this.state.adminUsers[userId]) {
       delete this.state.adminUsers[userId];
     }
 
     this.save();
+    return true;
+  }
+
+  public deleteUserData(userId: string): void {
+    this.deleteUserAccount(userId);
   }
 }
 
