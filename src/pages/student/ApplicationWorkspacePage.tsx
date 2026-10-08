@@ -50,9 +50,14 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
   const scholarship = scholarships.find((s) => s.id === scholarshipId);
   const isPremium = isPremiumUser(userProfile);
 
+  // Check if scholarship is already tracked or if limit is reached
+  const existingApps = userProfile ? StorageService.getApplications(userProfile.id) : [];
+  const existingApp = existingApps.find((a) => a.scholarshipId === scholarshipId);
+  const isLimitReached = !isPremium && !existingApp && existingApps.length >= 3;
+
   // Load or create application tracker record
   const [application, setApplication] = useState<Application | null>(() => {
-    if (!userProfile || !scholarship) return null;
+    if (!userProfile || !scholarship || isLimitReached) return null;
     return StorageService.getOrCreateApplication(userProfile.id, scholarship);
   });
 
@@ -73,7 +78,7 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
 
   // Sync application state if props/user changes
   useEffect(() => {
-    if (userProfile && scholarship) {
+    if (userProfile && scholarship && !isLimitReached) {
       const app = StorageService.getOrCreateApplication(userProfile.id, scholarship);
       setApplication(app);
       setNotes(app.notes || '');
@@ -81,7 +86,7 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
       setEssayStatus(app.essayStatus || 'not_started');
       setEssayNotes(app.essayNotes || '');
     }
-  }, [userProfile?.id, scholarship?.id]);
+  }, [userProfile?.id, scholarship?.id, isLimitReached]);
 
   // If scholarship not found
   if (!scholarship) {
@@ -101,6 +106,30 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
           <ArrowLeft size={14} />
           <span>Back to Scholarships</span>
         </button>
+      </div>
+    );
+  }
+
+  if (isLimitReached) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12 space-y-6">
+        <button
+          onClick={() => onNavigate('/scholarships')}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-600 transition-colors"
+        >
+          <ArrowLeft size={14} />
+          <span>Back to Scholarships</span>
+        </button>
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
+          <PremiumGate
+            userProfile={userProfile}
+            featureName="Unlimited Application Workspaces"
+            featureDescription="You have reached the Free plan limit of 3 tracked applications. Upgrade to Scholavon Plus to create application workspaces and track unlimited scholarships."
+            onNavigate={onNavigate}
+          >
+            <div />
+          </PremiumGate>
+        </div>
       </div>
     );
   }

@@ -230,6 +230,7 @@ export interface ApplicationRecord {
   currency: string;
   status: ApplicationStatus;
   appliedAt?: string;
+  submittedAt?: string;
   resultDate?: string;
   notes: string;
   checklist: ApplicationChecklistItem[];

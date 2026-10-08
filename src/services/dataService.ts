@@ -111,6 +111,7 @@ export async function fetchApplications(userId: string): Promise<Application[]> 
   try {
     const res = await api.get<Application[]>('/student/applications');
     if (Array.isArray(res)) {
+      localStorage.setItem('scholavon_applications', JSON.stringify(res));
       return res;
     }
   } catch (err) {
@@ -187,6 +188,7 @@ export async function fetchAllApplications(): Promise<Application[]> {
   try {
     const res = await api.get<Application[]>('/student/applications');
     if (Array.isArray(res)) {
+      localStorage.setItem('scholavon_applications', JSON.stringify(res));
       return res;
     }
   } catch (err) {

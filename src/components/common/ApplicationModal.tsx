@@ -29,6 +29,7 @@ interface ApplicationModalProps {
   onClose: () => void;
   onApplicationCreated?: (app: Application) => void;
   onNavigate?: (path: string) => void;
+  applications?: Application[];
 }
 
 type Step = 'profile' | 'documents' | 'review' | 'submitting' | 'done';
@@ -81,10 +82,12 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
   onClose,
   onApplicationCreated,
   onNavigate,
+  applications,
 }) => {
   const [step, setStep] = useState<Step>('profile');
   const [isLoadingReqs, setIsLoadingReqs] = useState(false);
   const [freshDocs, setFreshDocs] = useState<StoredDocument[]>(documents);
+  const [showUpgradeGate, setShowUpgradeGate] = useState(false);
 
   // Editable profile fields (pre-filled)
   const [profileFields, setProfileFields] = useState({
@@ -116,6 +119,7 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
     setStep('profile');
     setSubmitError(null);
     setCreatedApp(null);
+    setShowUpgradeGate(false);
 
     // Reset profile fields
     setProfileFields({
@@ -170,6 +174,10 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
 
   if (!isOpen || !scholarship) return null;
 
+  const existingApps = applications ?? (userProfile ? StorageService.getApplications(userProfile.id) : []);
+  const isAlreadyTracked = Boolean(scholarship && existingApps.some(a => a.scholarshipId === scholarship.id));
+  const isLimitReached = showUpgradeGate || (userProfile?.subscriptionStatus !== 'premium' && !isAlreadyTracked && existingApps.length >= 3);
+
   const eligibility = evaluateEligibility(scholarship, userProfile);
   const requiredItems = docItems.filter((i) => i.isRequired);
   const availableCount = requiredItems.filter((i) => i.status === 'available').length;
@@ -189,6 +197,12 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
 
   const handleSubmitApplication = async () => {
     if (!userProfile) return;
+
+    if (userProfile.subscriptionStatus !== 'premium' && !isAlreadyTracked && existingApps.length >= 3) {
+      setShowUpgradeGate(true);
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
     setStep('submitting');
@@ -208,9 +222,22 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
           appliedAt: new Date().toISOString(),
         });
         if (res?.id) { newApp = res; appId = res.id; }
-      } catch {}
+      } catch (err: any) {
+        if (err?.code === 'UPGRADE_REQUIRED' || err?.status === 403) {
+          setShowUpgradeGate(true);
+          setIsSubmitting(false);
+          setStep('review');
+          return;
+        }
+      }
 
       if (!newApp) {
+        if (userProfile.subscriptionStatus !== 'premium' && !isAlreadyTracked && StorageService.getApplications(userProfile.id).length >= 3) {
+          setShowUpgradeGate(true);
+          setIsSubmitting(false);
+          setStep('review');
+          return;
+        }
         newApp = StorageService.createApplication(userProfile.id, scholarship, 'Applied', notes);
         appId = newApp.id;
       }
@@ -282,22 +309,35 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
 
   const handleTrackAsPreparing = async () => {
     if (!userProfile) return;
+    if (userProfile.subscriptionStatus !== 'premium' && !isAlreadyTracked && existingApps.length >= 3) {
+      setShowUpgradeGate(true);
+      return;
+    }
     try {
       const notes = 'Added to application tracker for document preparation.';
       let newApp: Application | null = null;
       try {
         const res = await api.post<Application>('/student/applications', { scholarshipId: scholarship.id, notes });
         if (res?.id) newApp = res;
-      } catch {}
-      if (!newApp) newApp = StorageService.createApplication(userProfile.id, scholarship, 'Preparing', notes);
-      onApplicationCreated?.(newApp);
-      onClose();
+      } catch (err: any) {
+        if (err?.code === 'UPGRADE_REQUIRED' || err?.status === 403) {
+          setShowUpgradeGate(true);
+          return;
+        }
+      }
+      if (!newApp) {
+        if (userProfile.subscriptionStatus !== 'premium' && !isAlreadyTracked && StorageService.getApplications(userProfile.id).length >= 3) {
+          setShowUpgradeGate(true);
+          return;
+        }
+        newApp = StorageService.createApplication(userProfile.id, scholarship, 'Preparing', notes);
+      }
+      if (newApp) {
+        onApplicationCreated?.(newApp);
+        onClose();
+      }
     } catch {}
   };
-
-  const existingApps = userProfile ? StorageService.getApplications(userProfile.id) : [];
-  const isAlreadyTracked = Boolean(scholarship && existingApps.some(a => a.scholarshipId === scholarship.id));
-  const isLimitReached = userProfile?.subscriptionStatus !== 'premium' && !isAlreadyTracked && existingApps.length >= 3;
 
   if (isLimitReached) {
     return (

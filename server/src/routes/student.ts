@@ -194,10 +194,57 @@ router.post('/saved/:scholarshipId', (req: Request, res: Response): void => {
   });
 });
 
+// Helper to retrieve applications for a user merging local DB and Supabase if configured
+async function getApplicationsForUser(userId: string): Promise<ApplicationRecord[]> {
+  const localApps = db.getApplicationsByUser(userId);
+  if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+    try {
+      const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data } = await supabase
+        .from('applications')
+        .select('*')
+        .eq('user_id', userId);
+      if (data && Array.isArray(data)) {
+        const map = new Map<string, ApplicationRecord>();
+        for (const app of localApps) {
+          map.set(app.id, app);
+        }
+        for (const row of data) {
+          if (!map.has(row.id)) {
+            map.set(row.id, {
+              id: row.id,
+              userId: row.user_id,
+              scholarshipId: row.scholarship_id,
+              scholarshipTitle: row.scholarship_title,
+              providerName: row.provider_name,
+              deadline: row.deadline,
+              amount: row.amount,
+              currency: row.currency,
+              status: row.status,
+              notes: row.notes || '',
+              appliedAt: row.applied_at,
+              submittedAt: row.submitted_at,
+              checklist: row.checklist || [],
+              createdAt: row.created_at || new Date().toISOString(),
+              updatedAt: row.updated_at || new Date().toISOString(),
+            });
+          }
+        }
+        return Array.from(map.values());
+      }
+    } catch (err) {
+      console.warn('[student] error fetching applications from Supabase:', err);
+    }
+  }
+  return localApps;
+}
+
 // GET /api/v1/student/applications
-router.get('/applications', (req: Request, res: Response): void => {
+router.get('/applications', async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
-  const applications = db.getApplicationsByUser(userId);
+  const applications = await getApplicationsForUser(userId);
   res.json({
     success: true,
     data: applications,
@@ -227,7 +274,7 @@ router.post('/applications', async (req: Request, res: Response): Promise<void> 
   }
 
   // Check if already tracking
-  const existingApps = db.getApplicationsByUser(userId);
+  const existingApps = await getApplicationsForUser(userId);
   const alreadyTracking = existingApps.find((a) => a.scholarshipId === scholarshipId);
   if (alreadyTracking) {
     res.json({
@@ -277,6 +324,29 @@ router.post('/applications', async (req: Request, res: Response): Promise<void> 
   };
 
   db.createApplication(newApp);
+
+  if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+    try {
+      const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      await supabase.from('applications').upsert({
+        id: newApp.id,
+        user_id: userId,
+        scholarship_id: scholarship.id,
+        scholarship_title: scholarship.title,
+        provider_name: scholarship.providerName,
+        deadline: scholarship.deadline,
+        amount: scholarship.amount || 0,
+        currency: scholarship.currency || 'USD',
+        status: newApp.status,
+        notes: newApp.notes,
+        checklist: newApp.checklist,
+      }, { onConflict: 'id' });
+    } catch (err) {
+      console.warn('[student] error syncing new application to Supabase:', err);
+    }
+  }
 
   // Send confirmation notification
   db.createNotification({
@@ -371,11 +441,39 @@ router.put('/applications/:id/checklist', (req: Request, res: Response): void =>
 });
 
 // DELETE /api/v1/student/applications/:id
-router.delete('/applications/:id', (req: Request, res: Response): void => {
+router.delete('/applications/:id', async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
-  const app = db.findApplicationById(req.params.id);
+  const appId = req.params.id;
+  const app = db.findApplicationById(appId);
 
   if (!app) {
+    // Check if it exists in Supabase
+    if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+      try {
+        const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+        const { data } = await supabase.from('applications').select('*').eq('id', appId).maybeSingle();
+        if (data) {
+          if (data.user_id !== userId && req.user!.role !== 'admin') {
+            res.status(403).json({
+              success: false,
+              error: { code: 'FORBIDDEN', message: 'Access denied.' },
+            });
+            return;
+          }
+          await supabase.from('applications').delete().eq('id', appId);
+          res.json({
+            success: true,
+            data: { message: 'Application deleted successfully.' },
+          });
+          return;
+        }
+      } catch (err) {
+        console.warn('[student] error deleting application from Supabase:', err);
+      }
+    }
+
     res.status(404).json({
       success: false,
       error: { code: 'APPLICATION_NOT_FOUND', message: 'Application not found.' },
@@ -392,6 +490,18 @@ router.delete('/applications/:id', (req: Request, res: Response): void => {
   }
 
   db.deleteApplication(app.id);
+
+  if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+    try {
+      const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      await supabase.from('applications').delete().eq('id', app.id);
+    } catch (err) {
+      console.warn('[student] error deleting application from Supabase:', err);
+    }
+  }
+
   res.json({
     success: true,
     data: { message: 'Application deleted successfully.' },

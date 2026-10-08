@@ -1105,6 +1105,7 @@ function MainApp() {
         scholarship={modalScholarship}
         userProfile={user}
         documents={documents}
+        applications={applications}
         isOpen={isAppModalOpen}
         onClose={() => {
           setIsAppModalOpen(false);

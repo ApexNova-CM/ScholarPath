@@ -244,3 +244,165 @@ describe('Phase 7 & 10: Verification Queue & Audit Trail', () => {
     expect(res.body.data.auditLog.newStatus).toBe('verified');
   });
 });
+
+describe('Free Plan Application Limit & Slot Management', () => {
+  let freeToken = '';
+  let freeId = '';
+  let plusToken = '';
+  let plusId = '';
+  let app1Id = '';
+  let app2Id = '';
+  let app3Id = '';
+
+  beforeAll(async () => {
+    // Register free student
+    const freeEmail = `free_limit_${Date.now()}@example.com`;
+    const regFree = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: freeEmail,
+        password: 'password123',
+        firstName: 'Free',
+        lastName: 'Student',
+        country: 'Nigeria',
+        educationLevel: 'Undergraduate',
+        institution: 'UNILAG',
+        fieldOfStudy: 'Engineering',
+        gpa: 3.8,
+        gpaScale: 4.0,
+      });
+    freeToken = regFree.body.data.token;
+    freeId = regFree.body.data.user.id;
+
+    // Register plus student
+    const plusEmail = `plus_limit_${Date.now()}@example.com`;
+    const regPlus = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        email: plusEmail,
+        password: 'password123',
+        firstName: 'Plus',
+        lastName: 'Student',
+        country: 'Ghana',
+        educationLevel: 'Undergraduate',
+        institution: 'Legon',
+        fieldOfStudy: 'Computer Science',
+        gpa: 4.0,
+        gpaScale: 4.0,
+      });
+    plusToken = regPlus.body.data.token;
+    plusId = regPlus.body.data.user.id;
+
+    const plusUser = db.findUserById(plusId);
+    if (plusUser) {
+      db.updateUser(plusId, { ...plusUser, subscriptionStatus: 'premium' } as any);
+    }
+  });
+
+  it('Free student can track 1st application', async () => {
+    const res = await request(app)
+      .post('/api/v1/student/applications')
+      .set('Authorization', `Bearer ${freeToken}`)
+      .send({ scholarshipId: 'sch-001', notes: 'First app' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    app1Id = res.body.data.id;
+  });
+
+  it('Re-applying to already tracked scholarship does not consume another slot', async () => {
+    const res = await request(app)
+      .post('/api/v1/student/applications')
+      .set('Authorization', `Bearer ${freeToken}`)
+      .send({ scholarshipId: 'sch-001', notes: 'First app updated' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.id).toBe(app1Id);
+  });
+
+  it('Free student can track 2nd application', async () => {
+    const res = await request(app)
+      .post('/api/v1/student/applications')
+      .set('Authorization', `Bearer ${freeToken}`)
+      .send({ scholarshipId: 'sch-002', notes: 'Second app' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    app2Id = res.body.data.id;
+  });
+
+  it('Free student can track 3rd application (3/3 used)', async () => {
+    const res = await request(app)
+      .post('/api/v1/student/applications')
+      .set('Authorization', `Bearer ${freeToken}`)
+      .send({ scholarshipId: 'sch-003', notes: 'Third app' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    app3Id = res.body.data.id;
+  });
+
+  it('4th application attempt must be rejected with 403 UPGRADE_REQUIRED', async () => {
+    const res = await request(app)
+      .post('/api/v1/student/applications')
+      .set('Authorization', `Bearer ${freeToken}`)
+      .send({ scholarshipId: 'sch-004', notes: 'Fourth app' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('UPGRADE_REQUIRED');
+    expect(res.body.error.upgradeUrl).toBe('/pricing');
+  });
+
+  it('Deleting an application frees the slot', async () => {
+    const delRes = await request(app)
+      .delete(`/api/v1/student/applications/${app3Id}`)
+      .set('Authorization', `Bearer ${freeToken}`);
+
+    expect(delRes.status).toBe(200);
+    expect(delRes.body.success).toBe(true);
+
+    // Now tracking 2 applications, so 3rd one can be created
+    const newRes = await request(app)
+      .post('/api/v1/student/applications')
+      .set('Authorization', `Bearer ${freeToken}`)
+      .send({ scholarshipId: 'sch-004', notes: 'New third app after deleting old one' });
+
+    expect(newRes.status).toBe(201);
+    expect(newRes.body.success).toBe(true);
+  });
+
+  it('Plus/Premium student can track unlimited applications (4+)', async () => {
+    const res1 = await request(app)
+      .post('/api/v1/student/applications')
+      .set('Authorization', `Bearer ${plusToken}`)
+      .send({ scholarshipId: 'sch-001' });
+    expect(res1.status).toBe(201);
+
+    const res2 = await request(app)
+      .post('/api/v1/student/applications')
+      .set('Authorization', `Bearer ${plusToken}`)
+      .send({ scholarshipId: 'sch-002' });
+    expect(res2.status).toBe(201);
+
+    const res3 = await request(app)
+      .post('/api/v1/student/applications')
+      .set('Authorization', `Bearer ${plusToken}`)
+      .send({ scholarshipId: 'sch-003' });
+    expect(res3.status).toBe(201);
+
+    const res4 = await request(app)
+      .post('/api/v1/student/applications')
+      .set('Authorization', `Bearer ${plusToken}`)
+      .send({ scholarshipId: 'sch-004' });
+    expect(res4.status).toBe(201);
+
+    const res5 = await request(app)
+      .post('/api/v1/student/applications')
+      .set('Authorization', `Bearer ${plusToken}`)
+      .send({ scholarshipId: 'sch-005' });
+    expect(res5.status).toBe(201);
+    expect(res5.body.success).toBe(true);
+  });
+});
