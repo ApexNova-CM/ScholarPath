@@ -206,6 +206,62 @@
       "emailVerified": false,
       "createdAt": "2026-09-29T12:47:25.374Z",
       "updatedAt": "2026-09-29T12:47:25.374Z"
+    },
+    "usr-9470bffc-70e0-48b2-9c16-84d81c7e25f7": {
+      "id": "usr-9470bffc-70e0-48b2-9c16-84d81c7e25f7",
+      "email": "test_1791468764807@example.com",
+      "passwordHash": "$2a$10$MeMPxOzG/vrCh0c25f2M6uhMIhxO6313Api7v9jYhTwxB63xs5ibG",
+      "role": "student",
+      "emailVerified": false,
+      "createdAt": "2026-10-08T14:12:47.404Z",
+      "updatedAt": "2026-10-08T14:12:47.404Z"
+    },
+    "usr-589d67ff-49c3-4c0a-b141-f3b785e572e1": {
+      "id": "usr-589d67ff-49c3-4c0a-b141-f3b785e572e1",
+      "email": "free_limit_1791468769701@example.com",
+      "passwordHash": "$2a$10$7HAKrsCDqBJyoaSCmHuaPu1f1lgneAuuwTDEtK3rxBQ0FpA4Lu/SK",
+      "role": "student",
+      "emailVerified": false,
+      "createdAt": "2026-10-08T14:12:50.130Z",
+      "updatedAt": "2026-10-08T14:12:50.130Z"
+    },
+    "usr-a8ccc536-fa56-47d1-9245-1bf9183f888b": {
+      "id": "usr-a8ccc536-fa56-47d1-9245-1bf9183f888b",
+      "email": "plus_limit_1791468770171@example.com",
+      "passwordHash": "$2a$10$QaK3WPGluljUwFv65zQSzeq9vEpZsVHL5ht3n57FYNsCsf0WzWyBS",
+      "role": "student",
+      "emailVerified": false,
+      "createdAt": "2026-10-08T14:12:50.572Z",
+      "updatedAt": "2026-10-08T14:12:50.593Z",
+      "subscriptionStatus": "premium"
+    },
+    "usr-53ce6a4e-3b46-451d-a143-92d141309713": {
+      "id": "usr-53ce6a4e-3b46-451d-a143-92d141309713",
+      "email": "test_1791468801033@example.com",
+      "passwordHash": "$2a$10$USY2hH0NfVxQALNqhOXuHu0mAFu/6g5kU9GYD6TsX75wCRiA6ASq2",
+      "role": "student",
+      "emailVerified": false,
+      "createdAt": "2026-10-08T14:13:21.587Z",
+      "updatedAt": "2026-10-08T14:13:21.587Z"
+    },
+    "usr-0c4e10ca-08d2-420b-ba55-0c866e16b58d": {
+      "id": "usr-0c4e10ca-08d2-420b-ba55-0c866e16b58d",
+      "email": "free_limit_1791468803677@example.com",
+      "passwordHash": "$2a$10$HRh77eiMTVstay5bpO7uwe2oxpwpTAqA99m8yv/jvIAU3IJiT92ve",
+      "role": "student",
+      "emailVerified": false,
+      "createdAt": "2026-10-08T14:13:23.990Z",
+      "updatedAt": "2026-10-08T14:13:23.990Z"
+    },
+    "usr-771bd776-7bb4-472d-8f15-b450dd065b9e": {
+      "id": "usr-771bd776-7bb4-472d-8f15-b450dd065b9e",
+      "email": "plus_limit_1791468804014@example.com",
+      "passwordHash": "$2a$10$MbEfciNBfH7p7xFm32bVXu/vXxFbROny9MJ6o.uJgD27eLp7B43YC",
+      "role": "student",
+      "emailVerified": false,
+      "createdAt": "2026-10-08T14:13:24.326Z",
+      "updatedAt": "2026-10-08T14:13:24.367Z",
+      "subscriptionStatus": "premium"
     }
   },
   "profiles": {
@@ -628,6 +684,126 @@
       },
       "createdAt": "2026-09-29T12:47:25.380Z",
       "updatedAt": "2026-09-29T12:47:25.381Z"
+    },
+    "usr-9470bffc-70e0-48b2-9c16-84d81c7e25f7": {
+      "userId": "usr-9470bffc-70e0-48b2-9c16-84d81c7e25f7",
+      "firstName": "Taylor",
+      "lastName": "Swift",
+      "country": "United States",
+      "educationLevel": "Undergraduate",
+      "institution": "Stanford University",
+      "fieldOfStudy": "Computer Science",
+      "gpa": 3.9,
+      "gpaScale": 4,
+      "profileCompletion": 75,
+      "notificationPreferences": {
+        "inApp": true,
+        "email": true,
+        "deadlineAlerts": true,
+        "matchingAlerts": true
+      },
+      "createdAt": "2026-10-08T14:12:47.411Z",
+      "updatedAt": "2026-10-08T14:12:47.412Z"
+    },
+    "usr-589d67ff-49c3-4c0a-b141-f3b785e572e1": {
+      "userId": "usr-589d67ff-49c3-4c0a-b141-f3b785e572e1",
+      "firstName": "Free",
+      "lastName": "Student",
+      "country": "Nigeria",
+      "educationLevel": "Undergraduate",
+      "institution": "UNILAG",
+      "fieldOfStudy": "Engineering",
+      "gpa": 3.8,
+      "gpaScale": 4,
+      "profileCompletion": 75,
+      "notificationPreferences": {
+        "inApp": true,
+        "email": true,
+        "deadlineAlerts": true,
+        "matchingAlerts": true
+      },
+      "createdAt": "2026-10-08T14:12:50.139Z",
+      "updatedAt": "2026-10-08T14:12:50.139Z"
+    },
+    "usr-a8ccc536-fa56-47d1-9245-1bf9183f888b": {
+      "userId": "usr-a8ccc536-fa56-47d1-9245-1bf9183f888b",
+      "firstName": "Plus",
+      "lastName": "Student",
+      "country": "Ghana",
+      "educationLevel": "Undergraduate",
+      "institution": "Legon",
+      "fieldOfStudy": "Computer Science",
+      "gpa": 4,
+      "gpaScale": 4,
+      "profileCompletion": 75,
+      "notificationPreferences": {
+        "inApp": true,
+        "email": true,
+        "deadlineAlerts": true,
+        "matchingAlerts": true
+      },
+      "createdAt": "2026-10-08T14:12:50.577Z",
+      "updatedAt": "2026-10-08T14:12:50.577Z"
+    },
+    "usr-53ce6a4e-3b46-451d-a143-92d141309713": {
+      "userId": "usr-53ce6a4e-3b46-451d-a143-92d141309713",
+      "firstName": "Taylor",
+      "lastName": "Swift",
+      "country": "United States",
+      "educationLevel": "Undergraduate",
+      "institution": "Stanford University",
+      "fieldOfStudy": "Computer Science",
+      "gpa": 3.9,
+      "gpaScale": 4,
+      "profileCompletion": 75,
+      "notificationPreferences": {
+        "inApp": true,
+        "email": true,
+        "deadlineAlerts": true,
+        "matchingAlerts": true
+      },
+      "createdAt": "2026-10-08T14:13:21.595Z",
+      "updatedAt": "2026-10-08T14:13:21.595Z"
+    },
+    "usr-0c4e10ca-08d2-420b-ba55-0c866e16b58d": {
+      "userId": "usr-0c4e10ca-08d2-420b-ba55-0c866e16b58d",
+      "firstName": "Free",
+      "lastName": "Student",
+      "country": "Nigeria",
+      "educationLevel": "Undergraduate",
+      "institution": "UNILAG",
+      "fieldOfStudy": "Engineering",
+      "gpa": 3.8,
+      "gpaScale": 4,
+      "profileCompletion": 75,
+      "notificationPreferences": {
+        "inApp": true,
+        "email": true,
+        "deadlineAlerts": true,
+        "matchingAlerts": true
+      },
+      "createdAt": "2026-10-08T14:13:23.995Z",
+      "updatedAt": "2026-10-08T14:13:23.996Z"
+    },
+    "usr-771bd776-7bb4-472d-8f15-b450dd065b9e": {
+      "userId": "usr-771bd776-7bb4-472d-8f15-b450dd065b9e",
+      "firstName": "Plus",
+      "lastName": "Student",
+      "country": "Ghana",
+      "educationLevel": "Undergraduate",
+      "institution": "Legon",
+      "fieldOfStudy": "Computer Science",
+      "gpa": 4,
+      "gpaScale": 4,
+      "profileCompletion": 75,
+      "notificationPreferences": {
+        "inApp": true,
+        "email": true,
+        "deadlineAlerts": true,
+        "matchingAlerts": true
+      },
+      "createdAt": "2026-10-08T14:13:24.339Z",
+      "updatedAt": "2026-10-08T14:13:24.339Z"
     }
   },
   "providers": {
@@ -794,7 +970,7 @@
       "status": "verified",
       "verificationStatus": "verified",
       "viewCount": 1420,
-      "saveCount": 330,
+      "saveCount": 332,
       "createdAt": "2026-09-19T08:13:53.822Z",
       "updatedAt": "2026-09-19T08:13:53.822Z"
     },
@@ -1061,9 +1237,9 @@
       "viewCount": 310,
       "saveCount": 85,
       "createdAt": "2026-09-19T08:13:53.822Z",
-      "updatedAt": "2026-09-29T12:47:27.410Z",
+      "updatedAt": "2026-10-08T14:13:23.657Z",
       "verifiedBy": "usr-admin-001",
-      "verifiedAt": "2026-09-29T12:47:27.410Z",
+      "verifiedAt": "2026-10-08T14:13:23.657Z",
       "verificationNotes": "Verified against official foundation website."
     },
     "sch-ai-101": {
@@ -1916,6 +2092,762 @@
       ],
       "createdAt": "2026-09-29T12:47:27.163Z",
       "updatedAt": "2026-09-29T12:47:27.163Z"
+    },
+    "app-6c14fc29-9524-4ac3-82c5-73e0f800e94a": {
+      "id": "app-6c14fc29-9524-4ac3-82c5-73e0f800e94a",
+      "userId": "usr-9470bffc-70e0-48b2-9c16-84d81c7e25f7",
+      "scholarshipId": "sch-001",
+      "scholarshipTitle": "Gates Cambridge Global Scholars Program",
+      "providerName": "Bill & Melinda Gates Foundation",
+      "deadline": "2026-12-05T23:59:59Z",
+      "amount": 55000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "Priority 1 application",
+      "checklist": [
+        {
+          "id": "chk-2fe03ba1",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-5aa973f6",
+          "label": "Curriculum Vitae (CV)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-fcbdde8d",
+          "label": "Research Proposal",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-5e731323",
+          "label": "Two Academic References",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:12:49.248Z",
+      "updatedAt": "2026-10-08T14:12:49.248Z"
+    },
+    "app-2af69f76-8285-4659-88dd-36809ceae929": {
+      "id": "app-2af69f76-8285-4659-88dd-36809ceae929",
+      "userId": "usr-589d67ff-49c3-4c0a-b141-f3b785e572e1",
+      "scholarshipId": "sch-001",
+      "scholarshipTitle": "Gates Cambridge Global Scholars Program",
+      "providerName": "Bill & Melinda Gates Foundation",
+      "deadline": "2026-12-05T23:59:59Z",
+      "amount": 55000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "First app",
+      "checklist": [
+        {
+          "id": "chk-05f3eff9",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-102ba9fe",
+          "label": "Curriculum Vitae (CV)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-4ab5443c",
+          "label": "Research Proposal",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-a6c3b6ed",
+          "label": "Two Academic References",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:12:50.613Z",
+      "updatedAt": "2026-10-08T14:12:50.613Z"
+    },
+    "app-fc8c4518-1870-4f86-b19a-9525bc9538e5": {
+      "id": "app-fc8c4518-1870-4f86-b19a-9525bc9538e5",
+      "userId": "usr-589d67ff-49c3-4c0a-b141-f3b785e572e1",
+      "scholarshipId": "sch-002",
+      "scholarshipTitle": "Mastercard Foundation Scholars at Oxford",
+      "providerName": "Mastercard Foundation",
+      "deadline": "2026-11-20T23:59:59Z",
+      "amount": 48000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "Second app",
+      "checklist": [
+        {
+          "id": "chk-e469fa83",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-fd6a11e0",
+          "label": "Personal Statement of Leadership",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-d02b2361",
+          "label": "Financial Need Assessment Form",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-eb62a13d",
+          "label": "Three Letters of Recommendation",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:12:50.660Z",
+      "updatedAt": "2026-10-08T14:12:50.660Z"
+    },
+    "app-3cc3cb77-5920-4fb9-b238-7078c10acf33": {
+      "id": "app-3cc3cb77-5920-4fb9-b238-7078c10acf33",
+      "userId": "usr-589d67ff-49c3-4c0a-b141-f3b785e572e1",
+      "scholarshipId": "sch-004",
+      "scholarshipTitle": "Fulbright Foreign Student Exchange Award",
+      "providerName": "Fulbright Foreign Student Program",
+      "deadline": "2026-10-15T23:59:59Z",
+      "amount": 45000,
+      "currency": "USD",
+      "status": "Interested",
+      "notes": "New third app after deleting old one",
+      "checklist": [
+        {
+          "id": "chk-e5e176ca",
+          "label": "Official Academic Records",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-52f8def8",
+          "label": "Statement of Purpose",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-f8f70ac9",
+          "label": "Study/Research Objectives",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-f45bc37c",
+          "label": "TOEFL/IELTS Score Report",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-00e9fc38",
+          "label": "Three Letters of Recommendation",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:12:50.756Z",
+      "updatedAt": "2026-10-08T14:12:50.756Z"
+    },
+    "app-3d2403ab-e5c1-40ce-8068-0508abdeeb30": {
+      "id": "app-3d2403ab-e5c1-40ce-8068-0508abdeeb30",
+      "userId": "usr-a8ccc536-fa56-47d1-9245-1bf9183f888b",
+      "scholarshipId": "sch-001",
+      "scholarshipTitle": "Gates Cambridge Global Scholars Program",
+      "providerName": "Bill & Melinda Gates Foundation",
+      "deadline": "2026-12-05T23:59:59Z",
+      "amount": 55000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "",
+      "checklist": [
+        {
+          "id": "chk-41ce845c",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-b84797ab",
+          "label": "Curriculum Vitae (CV)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-db400b90",
+          "label": "Research Proposal",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-10583efc",
+          "label": "Two Academic References",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:12:50.782Z",
+      "updatedAt": "2026-10-08T14:12:50.782Z"
+    },
+    "app-1d2300fa-bc9f-48e8-9cdc-b1cc282fede6": {
+      "id": "app-1d2300fa-bc9f-48e8-9cdc-b1cc282fede6",
+      "userId": "usr-a8ccc536-fa56-47d1-9245-1bf9183f888b",
+      "scholarshipId": "sch-002",
+      "scholarshipTitle": "Mastercard Foundation Scholars at Oxford",
+      "providerName": "Mastercard Foundation",
+      "deadline": "2026-11-20T23:59:59Z",
+      "amount": 48000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "",
+      "checklist": [
+        {
+          "id": "chk-41db8c6e",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-c9e4baf9",
+          "label": "Personal Statement of Leadership",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-ac1217ca",
+          "label": "Financial Need Assessment Form",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-64655f16",
+          "label": "Three Letters of Recommendation",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:12:50.811Z",
+      "updatedAt": "2026-10-08T14:12:50.811Z"
+    },
+    "app-3f981580-ae32-492b-a34d-b0ef56bb6ef0": {
+      "id": "app-3f981580-ae32-492b-a34d-b0ef56bb6ef0",
+      "userId": "usr-a8ccc536-fa56-47d1-9245-1bf9183f888b",
+      "scholarshipId": "sch-003",
+      "scholarshipTitle": "Rhodes Scholarship for International Leaders",
+      "providerName": "Rhodes Trust",
+      "deadline": "2026-10-01T23:59:59Z",
+      "amount": 60000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "",
+      "checklist": [
+        {
+          "id": "chk-26384a64",
+          "label": "Certified Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-7a85b60d",
+          "label": "Comprehensive CV",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-4b2e32db",
+          "label": "Personal Statement (1000 words)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-bb7dd184",
+          "label": "Five to Eight Letters of Reference",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-b172e62c",
+          "label": "Institutional Endorsement",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:12:50.840Z",
+      "updatedAt": "2026-10-08T14:12:50.840Z"
+    },
+    "app-0bfb187a-dc1b-472a-bd9c-afb33b60967d": {
+      "id": "app-0bfb187a-dc1b-472a-bd9c-afb33b60967d",
+      "userId": "usr-a8ccc536-fa56-47d1-9245-1bf9183f888b",
+      "scholarshipId": "sch-004",
+      "scholarshipTitle": "Fulbright Foreign Student Exchange Award",
+      "providerName": "Fulbright Foreign Student Program",
+      "deadline": "2026-10-15T23:59:59Z",
+      "amount": 45000,
+      "currency": "USD",
+      "status": "Interested",
+      "notes": "",
+      "checklist": [
+        {
+          "id": "chk-3d9a91a8",
+          "label": "Official Academic Records",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-5311b27c",
+          "label": "Statement of Purpose",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-42e4466f",
+          "label": "Study/Research Objectives",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-e2e53aae",
+          "label": "TOEFL/IELTS Score Report",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-2e469902",
+          "label": "Three Letters of Recommendation",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:12:50.870Z",
+      "updatedAt": "2026-10-08T14:12:50.870Z"
+    },
+    "app-23f1446a-90de-4d3b-ba1d-92c2d0c48b84": {
+      "id": "app-23f1446a-90de-4d3b-ba1d-92c2d0c48b84",
+      "userId": "usr-a8ccc536-fa56-47d1-9245-1bf9183f888b",
+      "scholarshipId": "sch-005",
+      "scholarshipTitle": "DAAD Helmut-Schmidt-Programme in Public Policy & Good Governance",
+      "providerName": "DAAD German Academic Exchange Service",
+      "deadline": "2026-07-31T23:59:59Z",
+      "amount": 32000,
+      "currency": "EUR",
+      "status": "Interested",
+      "notes": "",
+      "checklist": [
+        {
+          "id": "chk-d6474c5e",
+          "label": "Undergraduate Degree Certificate",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-22c84acb",
+          "label": "Motivation Letter",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-b8f8e117",
+          "label": "Language Proficiency Certificate (English/German)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-4380109a",
+          "label": "Current CV in Europass Format",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:12:50.897Z",
+      "updatedAt": "2026-10-08T14:12:50.897Z"
+    },
+    "app-11fd0854-96db-43a4-aa78-0841e0ae1acf": {
+      "id": "app-11fd0854-96db-43a4-aa78-0841e0ae1acf",
+      "userId": "usr-53ce6a4e-3b46-451d-a143-92d141309713",
+      "scholarshipId": "sch-001",
+      "scholarshipTitle": "Gates Cambridge Global Scholars Program",
+      "providerName": "Bill & Melinda Gates Foundation",
+      "deadline": "2026-12-05T23:59:59Z",
+      "amount": 55000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "Priority 1 application",
+      "checklist": [
+        {
+          "id": "chk-7f83c5fd",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-941155f3",
+          "label": "Curriculum Vitae (CV)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-4da51f9a",
+          "label": "Research Proposal",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-735b335c",
+          "label": "Two Academic References",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:13:23.376Z",
+      "updatedAt": "2026-10-08T14:13:23.376Z"
+    },
+    "app-988672fb-6668-4fbf-961d-8a33fe9e1fed": {
+      "id": "app-988672fb-6668-4fbf-961d-8a33fe9e1fed",
+      "userId": "usr-0c4e10ca-08d2-420b-ba55-0c866e16b58d",
+      "scholarshipId": "sch-001",
+      "scholarshipTitle": "Gates Cambridge Global Scholars Program",
+      "providerName": "Bill & Melinda Gates Foundation",
+      "deadline": "2026-12-05T23:59:59Z",
+      "amount": 55000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "First app",
+      "checklist": [
+        {
+          "id": "chk-4cf4f2cf",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-6b84c9bf",
+          "label": "Curriculum Vitae (CV)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-13e274f5",
+          "label": "Research Proposal",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-801c3eed",
+          "label": "Two Academic References",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:13:24.393Z",
+      "updatedAt": "2026-10-08T14:13:24.393Z"
+    },
+    "app-7dd865e9-9496-4d45-8fd0-339f552c7745": {
+      "id": "app-7dd865e9-9496-4d45-8fd0-339f552c7745",
+      "userId": "usr-0c4e10ca-08d2-420b-ba55-0c866e16b58d",
+      "scholarshipId": "sch-002",
+      "scholarshipTitle": "Mastercard Foundation Scholars at Oxford",
+      "providerName": "Mastercard Foundation",
+      "deadline": "2026-11-20T23:59:59Z",
+      "amount": 48000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "Second app",
+      "checklist": [
+        {
+          "id": "chk-05bde11a",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-a6d6e828",
+          "label": "Personal Statement of Leadership",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-53003f12",
+          "label": "Financial Need Assessment Form",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-03fa4451",
+          "label": "Three Letters of Recommendation",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:13:24.453Z",
+      "updatedAt": "2026-10-08T14:13:24.453Z"
+    },
+    "app-0d417dd1-53b2-43ec-8d26-b2280571a562": {
+      "id": "app-0d417dd1-53b2-43ec-8d26-b2280571a562",
+      "userId": "usr-0c4e10ca-08d2-420b-ba55-0c866e16b58d",
+      "scholarshipId": "sch-004",
+      "scholarshipTitle": "Fulbright Foreign Student Exchange Award",
+      "providerName": "Fulbright Foreign Student Program",
+      "deadline": "2026-10-15T23:59:59Z",
+      "amount": 45000,
+      "currency": "USD",
+      "status": "Interested",
+      "notes": "New third app after deleting old one",
+      "checklist": [
+        {
+          "id": "chk-17aecf6f",
+          "label": "Official Academic Records",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-f75e9473",
+          "label": "Statement of Purpose",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-07074e86",
+          "label": "Study/Research Objectives",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-59a87a60",
+          "label": "TOEFL/IELTS Score Report",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-b746c52f",
+          "label": "Three Letters of Recommendation",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:13:24.653Z",
+      "updatedAt": "2026-10-08T14:13:24.653Z"
+    },
+    "app-87313f07-9543-4002-a7f2-f13a37499d6d": {
+      "id": "app-87313f07-9543-4002-a7f2-f13a37499d6d",
+      "userId": "usr-771bd776-7bb4-472d-8f15-b450dd065b9e",
+      "scholarshipId": "sch-001",
+      "scholarshipTitle": "Gates Cambridge Global Scholars Program",
+      "providerName": "Bill & Melinda Gates Foundation",
+      "deadline": "2026-12-05T23:59:59Z",
+      "amount": 55000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "",
+      "checklist": [
+        {
+          "id": "chk-87aac2f8",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-32dee880",
+          "label": "Curriculum Vitae (CV)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-93e767c0",
+          "label": "Research Proposal",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-56014ace",
+          "label": "Two Academic References",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:13:24.716Z",
+      "updatedAt": "2026-10-08T14:13:24.716Z"
+    },
+    "app-8203038e-fdb2-4cef-a3da-fbb535b056ec": {
+      "id": "app-8203038e-fdb2-4cef-a3da-fbb535b056ec",
+      "userId": "usr-771bd776-7bb4-472d-8f15-b450dd065b9e",
+      "scholarshipId": "sch-002",
+      "scholarshipTitle": "Mastercard Foundation Scholars at Oxford",
+      "providerName": "Mastercard Foundation",
+      "deadline": "2026-11-20T23:59:59Z",
+      "amount": 48000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "",
+      "checklist": [
+        {
+          "id": "chk-d6c9e712",
+          "label": "Academic Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-4a8000ce",
+          "label": "Personal Statement of Leadership",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-c3f42e76",
+          "label": "Financial Need Assessment Form",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-1c953813",
+          "label": "Three Letters of Recommendation",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:13:24.761Z",
+      "updatedAt": "2026-10-08T14:13:24.761Z"
+    },
+    "app-bef781ee-5f97-4554-a64f-801527308c41": {
+      "id": "app-bef781ee-5f97-4554-a64f-801527308c41",
+      "userId": "usr-771bd776-7bb4-472d-8f15-b450dd065b9e",
+      "scholarshipId": "sch-003",
+      "scholarshipTitle": "Rhodes Scholarship for International Leaders",
+      "providerName": "Rhodes Trust",
+      "deadline": "2026-10-01T23:59:59Z",
+      "amount": 60000,
+      "currency": "GBP",
+      "status": "Interested",
+      "notes": "",
+      "checklist": [
+        {
+          "id": "chk-2aaa3a1a",
+          "label": "Certified Transcripts",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-7796c49c",
+          "label": "Comprehensive CV",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-70d7c379",
+          "label": "Personal Statement (1000 words)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-ca649fa0",
+          "label": "Five to Eight Letters of Reference",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-e5ba7e80",
+          "label": "Institutional Endorsement",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:13:24.820Z",
+      "updatedAt": "2026-10-08T14:13:24.820Z"
+    },
+    "app-13f681a3-8b5a-44bb-bd2f-ab361eaf4ddf": {
+      "id": "app-13f681a3-8b5a-44bb-bd2f-ab361eaf4ddf",
+      "userId": "usr-771bd776-7bb4-472d-8f15-b450dd065b9e",
+      "scholarshipId": "sch-004",
+      "scholarshipTitle": "Fulbright Foreign Student Exchange Award",
+      "providerName": "Fulbright Foreign Student Program",
+      "deadline": "2026-10-15T23:59:59Z",
+      "amount": 45000,
+      "currency": "USD",
+      "status": "Interested",
+      "notes": "",
+      "checklist": [
+        {
+          "id": "chk-254daa91",
+          "label": "Official Academic Records",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-379fe825",
+          "label": "Statement of Purpose",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-f42a2c64",
+          "label": "Study/Research Objectives",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-3d5117e2",
+          "label": "TOEFL/IELTS Score Report",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-163d7f95",
+          "label": "Three Letters of Recommendation",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:13:24.875Z",
+      "updatedAt": "2026-10-08T14:13:24.875Z"
+    },
+    "app-26a53155-e3c1-4000-af04-8e18fcfd728f": {
+      "id": "app-26a53155-e3c1-4000-af04-8e18fcfd728f",
+      "userId": "usr-771bd776-7bb4-472d-8f15-b450dd065b9e",
+      "scholarshipId": "sch-005",
+      "scholarshipTitle": "DAAD Helmut-Schmidt-Programme in Public Policy & Good Governance",
+      "providerName": "DAAD German Academic Exchange Service",
+      "deadline": "2026-07-31T23:59:59Z",
+      "amount": 32000,
+      "currency": "EUR",
+      "status": "Interested",
+      "notes": "",
+      "checklist": [
+        {
+          "id": "chk-d3dff667",
+          "label": "Undergraduate Degree Certificate",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-b5719546",
+          "label": "Motivation Letter",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-91fedd11",
+          "label": "Language Proficiency Certificate (English/German)",
+          "completed": false,
+          "required": true
+        },
+        {
+          "id": "chk-fee4b6d3",
+          "label": "Current CV in Europass Format",
+          "completed": false,
+          "required": true
+        }
+      ],
+      "createdAt": "2026-10-08T14:13:24.999Z",
+      "updatedAt": "2026-10-08T14:13:24.999Z"
     }
   },
   "saved": {
@@ -2026,6 +2958,18 @@
       "userId": "usr-22ec1335-c5b6-4983-9fb6-c788c6be6c78",
       "scholarshipId": "sch-001",
       "savedAt": "2026-09-29T12:47:27.127Z"
+    },
+    "usr-9470bffc-70e0-48b2-9c16-84d81c7e25f7-sch-001": {
+      "id": "usr-9470bffc-70e0-48b2-9c16-84d81c7e25f7-sch-001",
+      "userId": "usr-9470bffc-70e0-48b2-9c16-84d81c7e25f7",
+      "scholarshipId": "sch-001",
+      "savedAt": "2026-10-08T14:12:49.209Z"
+    },
+    "usr-53ce6a4e-3b46-451d-a143-92d141309713-sch-001": {
+      "id": "usr-53ce6a4e-3b46-451d-a143-92d141309713-sch-001",
+      "userId": "usr-53ce6a4e-3b46-451d-a143-92d141309713",
+      "scholarshipId": "sch-001",
+      "savedAt": "2026-10-08T14:13:23.344Z"
     }
   },
   "documents": {
@@ -2401,6 +3345,280 @@
       "relatedScholarshipId": "sch-001",
       "relatedApplicationId": "app-6ae2ebf4-7da7-4e8b-9d37-920e72f720a4",
       "createdAt": "2026-09-29T12:47:27.291Z"
+    },
+    "notif-111e0468-17d5-44a2-96ea-4b41aa9d4ce1": {
+      "id": "notif-111e0468-17d5-44a2-96ea-4b41aa9d4ce1",
+      "userId": "usr-9470bffc-70e0-48b2-9c16-84d81c7e25f7",
+      "title": "Welcome to Scholavon! 🎉",
+      "message": "Your academic profile has been created. Discover vetted scholarships that match your education path.",
+      "type": "announcement",
+      "read": false,
+      "createdAt": "2026-10-08T14:12:47.446Z"
+    },
+    "notif-1fd2724d-fa0c-495b-b662-43626d2955ef": {
+      "id": "notif-1fd2724d-fa0c-495b-b662-43626d2955ef",
+      "userId": "usr-9470bffc-70e0-48b2-9c16-84d81c7e25f7",
+      "title": "Started Application: Gates Cambridge Global Scholars Program",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 06/12/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-001",
+      "relatedApplicationId": "app-6c14fc29-9524-4ac3-82c5-73e0f800e94a",
+      "createdAt": "2026-10-08T14:12:49.482Z"
+    },
+    "notif-111ffdb4-22a3-4449-966d-c1e111139e25": {
+      "id": "notif-111ffdb4-22a3-4449-966d-c1e111139e25",
+      "userId": "usr-589d67ff-49c3-4c0a-b141-f3b785e572e1",
+      "title": "Welcome to Scholavon! 🎉",
+      "message": "Your academic profile has been created. Discover vetted scholarships that match your education path.",
+      "type": "announcement",
+      "read": false,
+      "createdAt": "2026-10-08T14:12:50.157Z"
+    },
+    "notif-dfd36bd2-b607-427e-9be1-5602772803c1": {
+      "id": "notif-dfd36bd2-b607-427e-9be1-5602772803c1",
+      "userId": "usr-a8ccc536-fa56-47d1-9245-1bf9183f888b",
+      "title": "Welcome to Scholavon! 🎉",
+      "message": "Your academic profile has been created. Discover vetted scholarships that match your education path.",
+      "type": "announcement",
+      "read": false,
+      "createdAt": "2026-10-08T14:12:50.581Z"
+    },
+    "notif-3b327a12-5f26-4c18-8e7c-97999113962b": {
+      "id": "notif-3b327a12-5f26-4c18-8e7c-97999113962b",
+      "userId": "usr-589d67ff-49c3-4c0a-b141-f3b785e572e1",
+      "title": "Started Application: Gates Cambridge Global Scholars Program",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 06/12/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-001",
+      "relatedApplicationId": "app-2af69f76-8285-4659-88dd-36809ceae929",
+      "createdAt": "2026-10-08T14:12:50.620Z"
+    },
+    "notif-bee62213-9e5e-4ddb-be76-209260096a84": {
+      "id": "notif-bee62213-9e5e-4ddb-be76-209260096a84",
+      "userId": "usr-589d67ff-49c3-4c0a-b141-f3b785e572e1",
+      "title": "Started Application: Mastercard Foundation Scholars at Oxford",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 21/11/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-002",
+      "relatedApplicationId": "app-fc8c4518-1870-4f86-b19a-9525bc9538e5",
+      "createdAt": "2026-10-08T14:12:50.664Z"
+    },
+    "notif-9466c382-6b01-4096-94eb-eccdac2aa6b5": {
+      "id": "notif-9466c382-6b01-4096-94eb-eccdac2aa6b5",
+      "userId": "usr-589d67ff-49c3-4c0a-b141-f3b785e572e1",
+      "title": "Started Application: Rhodes Scholarship for International Leaders",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 02/10/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-003",
+      "relatedApplicationId": "app-846329c2-5d74-4d07-834b-7c2f4938a285",
+      "createdAt": "2026-10-08T14:12:50.694Z"
+    },
+    "notif-a0c80b22-08b8-43a2-b81c-2b7f8ceb58a5": {
+      "id": "notif-a0c80b22-08b8-43a2-b81c-2b7f8ceb58a5",
+      "userId": "usr-589d67ff-49c3-4c0a-b141-f3b785e572e1",
+      "title": "Started Application: Fulbright Foreign Student Exchange Award",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 16/10/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-004",
+      "relatedApplicationId": "app-3cc3cb77-5920-4fb9-b238-7078c10acf33",
+      "createdAt": "2026-10-08T14:12:50.763Z"
+    },
+    "notif-e27ab8d1-a6f8-4f0d-bd40-c343d96444c3": {
+      "id": "notif-e27ab8d1-a6f8-4f0d-bd40-c343d96444c3",
+      "userId": "usr-a8ccc536-fa56-47d1-9245-1bf9183f888b",
+      "title": "Started Application: Gates Cambridge Global Scholars Program",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 06/12/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-001",
+      "relatedApplicationId": "app-3d2403ab-e5c1-40ce-8068-0508abdeeb30",
+      "createdAt": "2026-10-08T14:12:50.788Z"
+    },
+    "notif-e51e911e-21d5-4366-ad9a-a091d68aed79": {
+      "id": "notif-e51e911e-21d5-4366-ad9a-a091d68aed79",
+      "userId": "usr-a8ccc536-fa56-47d1-9245-1bf9183f888b",
+      "title": "Started Application: Mastercard Foundation Scholars at Oxford",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 21/11/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-002",
+      "relatedApplicationId": "app-1d2300fa-bc9f-48e8-9cdc-b1cc282fede6",
+      "createdAt": "2026-10-08T14:12:50.818Z"
+    },
+    "notif-9a417959-96f4-45f8-9f12-f844e00b73c3": {
+      "id": "notif-9a417959-96f4-45f8-9f12-f844e00b73c3",
+      "userId": "usr-a8ccc536-fa56-47d1-9245-1bf9183f888b",
+      "title": "Started Application: Rhodes Scholarship for International Leaders",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 02/10/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-003",
+      "relatedApplicationId": "app-3f981580-ae32-492b-a34d-b0ef56bb6ef0",
+      "createdAt": "2026-10-08T14:12:50.846Z"
+    },
+    "notif-c0858c91-a267-4b88-b9a4-017619f05110": {
+      "id": "notif-c0858c91-a267-4b88-b9a4-017619f05110",
+      "userId": "usr-a8ccc536-fa56-47d1-9245-1bf9183f888b",
+      "title": "Started Application: Fulbright Foreign Student Exchange Award",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 16/10/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-004",
+      "relatedApplicationId": "app-0bfb187a-dc1b-472a-bd9c-afb33b60967d",
+      "createdAt": "2026-10-08T14:12:50.876Z"
+    },
+    "notif-c7ec0646-cfd5-40b4-ae6c-3a5262679933": {
+      "id": "notif-c7ec0646-cfd5-40b4-ae6c-3a5262679933",
+      "userId": "usr-a8ccc536-fa56-47d1-9245-1bf9183f888b",
+      "title": "Started Application: DAAD Helmut-Schmidt-Programme in Public Policy & Good Governance",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 01/08/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-005",
+      "relatedApplicationId": "app-23f1446a-90de-4d3b-ba1d-92c2d0c48b84",
+      "createdAt": "2026-10-08T14:12:50.903Z"
+    },
+    "notif-1500b018-c601-4350-9ca5-deb5f15eac15": {
+      "id": "notif-1500b018-c601-4350-9ca5-deb5f15eac15",
+      "userId": "usr-53ce6a4e-3b46-451d-a143-92d141309713",
+      "title": "Welcome to Scholavon! 🎉",
+      "message": "Your academic profile has been created. Discover vetted scholarships that match your education path.",
+      "type": "announcement",
+      "read": false,
+      "createdAt": "2026-10-08T14:13:21.603Z"
+    },
+    "notif-2fe77cca-865e-4905-9b0b-c55fbacd231c": {
+      "id": "notif-2fe77cca-865e-4905-9b0b-c55fbacd231c",
+      "userId": "usr-53ce6a4e-3b46-451d-a143-92d141309713",
+      "title": "Started Application: Gates Cambridge Global Scholars Program",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 06/12/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-001",
+      "relatedApplicationId": "app-11fd0854-96db-43a4-aa78-0841e0ae1acf",
+      "createdAt": "2026-10-08T14:13:23.510Z"
+    },
+    "notif-35cf5144-9aeb-42c8-9899-3fbbb0945638": {
+      "id": "notif-35cf5144-9aeb-42c8-9899-3fbbb0945638",
+      "userId": "usr-0c4e10ca-08d2-420b-ba55-0c866e16b58d",
+      "title": "Welcome to Scholavon! 🎉",
+      "message": "Your academic profile has been created. Discover vetted scholarships that match your education path.",
+      "type": "announcement",
+      "read": false,
+      "createdAt": "2026-10-08T14:13:24.003Z"
+    },
+    "notif-deb27c33-23fb-4c68-9fb1-b76acf1b994a": {
+      "id": "notif-deb27c33-23fb-4c68-9fb1-b76acf1b994a",
+      "userId": "usr-771bd776-7bb4-472d-8f15-b450dd065b9e",
+      "title": "Welcome to Scholavon! 🎉",
+      "message": "Your academic profile has been created. Discover vetted scholarships that match your education path.",
+      "type": "announcement",
+      "read": false,
+      "createdAt": "2026-10-08T14:13:24.350Z"
+    },
+    "notif-636763fa-efc7-4c62-b825-e067e3fd325f": {
+      "id": "notif-636763fa-efc7-4c62-b825-e067e3fd325f",
+      "userId": "usr-0c4e10ca-08d2-420b-ba55-0c866e16b58d",
+      "title": "Started Application: Gates Cambridge Global Scholars Program",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 06/12/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-001",
+      "relatedApplicationId": "app-988672fb-6668-4fbf-961d-8a33fe9e1fed",
+      "createdAt": "2026-10-08T14:13:24.402Z"
+    },
+    "notif-f38f217a-f709-40ba-abcb-23585de1acfd": {
+      "id": "notif-f38f217a-f709-40ba-abcb-23585de1acfd",
+      "userId": "usr-0c4e10ca-08d2-420b-ba55-0c866e16b58d",
+      "title": "Started Application: Mastercard Foundation Scholars at Oxford",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 21/11/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-002",
+      "relatedApplicationId": "app-7dd865e9-9496-4d45-8fd0-339f552c7745",
+      "createdAt": "2026-10-08T14:13:24.464Z"
+    },
+    "notif-5f3dbde8-88a8-4365-bf63-c70e6b003975": {
+      "id": "notif-5f3dbde8-88a8-4365-bf63-c70e6b003975",
+      "userId": "usr-0c4e10ca-08d2-420b-ba55-0c866e16b58d",
+      "title": "Started Application: Rhodes Scholarship for International Leaders",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 02/10/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-003",
+      "relatedApplicationId": "app-85a26e83-f0a0-4253-970b-279d780e1377",
+      "createdAt": "2026-10-08T14:13:24.529Z"
+    },
+    "notif-a5011c10-770d-4bb4-a26d-11162248961e": {
+      "id": "notif-a5011c10-770d-4bb4-a26d-11162248961e",
+      "userId": "usr-0c4e10ca-08d2-420b-ba55-0c866e16b58d",
+      "title": "Started Application: Fulbright Foreign Student Exchange Award",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 16/10/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-004",
+      "relatedApplicationId": "app-0d417dd1-53b2-43ec-8d26-b2280571a562",
+      "createdAt": "2026-10-08T14:13:24.662Z"
+    },
+    "notif-ba72c029-4448-4a67-9fdf-63f17965bf8d": {
+      "id": "notif-ba72c029-4448-4a67-9fdf-63f17965bf8d",
+      "userId": "usr-771bd776-7bb4-472d-8f15-b450dd065b9e",
+      "title": "Started Application: Gates Cambridge Global Scholars Program",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 06/12/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-001",
+      "relatedApplicationId": "app-87313f07-9543-4002-a7f2-f13a37499d6d",
+      "createdAt": "2026-10-08T14:13:24.727Z"
+    },
+    "notif-4af47c4e-ba89-4de1-833b-1412b6f9cde6": {
+      "id": "notif-4af47c4e-ba89-4de1-833b-1412b6f9cde6",
+      "userId": "usr-771bd776-7bb4-472d-8f15-b450dd065b9e",
+      "title": "Started Application: Mastercard Foundation Scholars at Oxford",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 21/11/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-002",
+      "relatedApplicationId": "app-8203038e-fdb2-4cef-a3da-fbb535b056ec",
+      "createdAt": "2026-10-08T14:13:24.779Z"
+    },
+    "notif-038c1346-9724-42f5-8fc7-0cdfa887fc8f": {
+      "id": "notif-038c1346-9724-42f5-8fc7-0cdfa887fc8f",
+      "userId": "usr-771bd776-7bb4-472d-8f15-b450dd065b9e",
+      "title": "Started Application: Rhodes Scholarship for International Leaders",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 02/10/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-003",
+      "relatedApplicationId": "app-bef781ee-5f97-4554-a64f-801527308c41",
+      "createdAt": "2026-10-08T14:13:24.837Z"
+    },
+    "notif-f976b81a-029b-4150-a27e-956c1b5123f1": {
+      "id": "notif-f976b81a-029b-4150-a27e-956c1b5123f1",
+      "userId": "usr-771bd776-7bb4-472d-8f15-b450dd065b9e",
+      "title": "Started Application: Fulbright Foreign Student Exchange Award",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 16/10/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-004",
+      "relatedApplicationId": "app-13f681a3-8b5a-44bb-bd2f-ab361eaf4ddf",
+      "createdAt": "2026-10-08T14:13:24.885Z"
+    },
+    "notif-c9237597-e9d7-43f4-9fd6-fb44da45226f": {
+      "id": "notif-c9237597-e9d7-43f4-9fd6-fb44da45226f",
+      "userId": "usr-771bd776-7bb4-472d-8f15-b450dd065b9e",
+      "title": "Started Application: DAAD Helmut-Schmidt-Programme in Public Policy & Good Governance",
+      "message": "You began tracking your application. Complete the required checklist before the deadline on 01/08/2026.",
+      "type": "deadline",
+      "read": false,
+      "relatedScholarshipId": "sch-005",
+      "relatedApplicationId": "app-26a53155-e3c1-4000-af04-8e18fcfd728f",
+      "createdAt": "2026-10-08T14:13:25.010Z"
     }
   },
   "verifications": {
@@ -2601,6 +3819,28 @@
       "newStatus": "verified",
       "notes": "Verified against official foundation website.",
       "timestamp": "2026-09-29T12:47:27.415Z"
+    },
+    "vlog-8e2e3684-9e8e-44e8-b431-eee05494d75f": {
+      "id": "vlog-8e2e3684-9e8e-44e8-b431-eee05494d75f",
+      "scholarshipId": "sch-006",
+      "scholarshipTitle": "NextGen Women in Computer Science & AI Fellowship",
+      "adminId": "usr-admin-001",
+      "adminEmail": "admin@scholavon.org",
+      "previousStatus": "verified",
+      "newStatus": "verified",
+      "notes": "Verified against official foundation website.",
+      "timestamp": "2026-10-08T14:12:49.690Z"
+    },
+    "vlog-807128dd-4692-4a1e-b851-76330d09ef86": {
+      "id": "vlog-807128dd-4692-4a1e-b851-76330d09ef86",
+      "scholarshipId": "sch-006",
+      "scholarshipTitle": "NextGen Women in Computer Science & AI Fellowship",
+      "adminId": "usr-admin-001",
+      "adminEmail": "admin@scholavon.org",
+      "previousStatus": "verified",
+      "newStatus": "verified",
+      "notes": "Verified against official foundation website.",
+      "timestamp": "2026-10-08T14:13:23.663Z"
     }
   },
   "adminUsers": {

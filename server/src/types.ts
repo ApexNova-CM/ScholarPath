@@ -387,6 +387,7 @@ export const UpdateProfileSchema = z.object({
 });
 
 export const CreateScholarshipSchema = z.object({
+  id: z.string().optional(),
   title: z.string().min(3),
   providerId: z.string().optional(),
   providerName: z.string().min(1),
@@ -417,6 +418,11 @@ export const CreateScholarshipSchema = z.object({
   openingDate: z.string().optional(),
   deadline: z.string(),
   expectedResultDate: z.string().optional(),
+  status: z.enum(['draft', 'pending_verification', 'verified', 'rejected', 'expired', 'closed', 'archived', 'active']).optional(),
+  verificationStatus: z.enum(['unverified', 'pending_verification', 'verified', 'rejected', 'changes_requested']).optional(),
+  verifiedBy: z.string().optional(),
+  verifiedAt: z.string().optional(),
+  verificationNotes: z.string().optional(),
 });
 
 export const VerificationDecisionSchema = z.object({

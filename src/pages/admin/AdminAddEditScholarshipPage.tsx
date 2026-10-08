@@ -96,15 +96,15 @@ export const AdminAddEditScholarshipPage: React.FC<AdminAddEditScholarshipPagePr
     applicationUrl: existing?.applicationUrl || 'https://example.org/apply',
     requiredDocuments: existing?.requiredDocuments || ['Official Transcript', 'CV / Resume', 'Recommendation Letter 1'],
     tags: existing?.tags || ['STEM', 'Merit-based', 'Tuition Support'],
-    verificationStatus: existing?.verificationStatus || 'pending_verification',
-    status: existing?.status || 'active'
+    verificationStatus: existing?.verificationStatus || 'verified',
+    status: existing?.status || 'verified'
   });
 
   const [fieldsInput, setFieldsInput] = useState(formData.fieldsOfStudy?.join(', ') || '');
   const [countriesInput, setCountriesInput] = useState(formData.eligibleCountries?.join(', ') || '');
   const [docsInput, setDocsInput] = useState(formData.requiredDocuments?.join(', ') || '');
   const [tagsInput, setTagsInput] = useState(formData.tags?.join(', ') || '');
-  const [isVerified, setIsVerified] = useState(formData.verificationStatus === 'verified');
+  const [isVerified, setIsVerified] = useState(existing ? existing.verificationStatus === 'verified' : true);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [hasManuallyEditedDisplay, setHasManuallyEditedDisplay] = useState(Boolean(existing?.amountDisplay));
 

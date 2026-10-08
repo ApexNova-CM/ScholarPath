@@ -63,7 +63,7 @@ router.get('/verifications/queue', (req: Request, res: Response): void => {
 router.post(
   '/verifications/:id/decision',
   validateBody(VerificationDecisionSchema),
-  (req: Request, res: Response): void => {
+  async (req: Request, res: Response): Promise<void> => {
     const scholarship = db.findScholarshipById(req.params.id);
     if (!scholarship) {
       res.status(404).json({
@@ -85,6 +85,24 @@ router.post(
       verifiedAt: decision === 'verified' ? new Date().toISOString() : undefined,
       verificationNotes: notes,
     });
+
+    if (config.supabaseUrl && config.supabaseServiceRoleKey && updated) {
+      try {
+        const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+        await supabase.from('scholarships').update({
+          verification_status: updated.verificationStatus,
+          status: updated.status,
+          verified_by: updated.verifiedBy,
+          verified_at: updated.verifiedAt,
+          verification_notes: updated.verificationNotes,
+          updated_at: new Date().toISOString(),
+        }).eq('id', scholarship.id);
+      } catch (err) {
+        console.warn('[admin] error syncing verification decision to Supabase:', err);
+      }
+    }
 
     // Record audit log
     const log: VerificationLogRecord = {
@@ -123,12 +141,16 @@ router.get('/scholarships', (req: Request, res: Response): void => {
 router.post(
   '/scholarships',
   validateBody(CreateScholarshipSchema),
-  (req: Request, res: Response): void => {
+  async (req: Request, res: Response): Promise<void> => {
     const adminUser = req.user!;
     const body = req.body;
 
+    const verificationStatus = body.verificationStatus || 'verified';
+    const status = body.status || (verificationStatus === 'pending_verification' ? 'pending_verification' : 'verified');
+    const isVerified = verificationStatus === 'verified';
+
     const newScholarship: ScholarshipRecord = {
-      id: `sch-${crypto.randomUUID().slice(0, 8)}`,
+      id: body.id || `sch-${crypto.randomUUID().slice(0, 8)}`,
       title: body.title,
       providerId: body.providerId || 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa',
       providerName: body.providerName,
@@ -159,8 +181,11 @@ router.post(
       openingDate: body.openingDate,
       deadline: body.deadline,
       expectedResultDate: body.expectedResultDate,
-      status: 'pending_verification',
-      verificationStatus: 'pending_verification',
+      status,
+      verificationStatus,
+      verifiedBy: isVerified ? (body.verifiedBy || adminUser.email || adminUser.id) : undefined,
+      verifiedAt: isVerified ? (body.verifiedAt || new Date().toISOString()) : undefined,
+      verificationNotes: body.verificationNotes,
       viewCount: 0,
       saveCount: 0,
       createdAt: new Date().toISOString(),
@@ -168,6 +193,56 @@ router.post(
     };
 
     db.createScholarship(newScholarship);
+
+    if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+      try {
+        const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+        await supabase.from('scholarships').upsert({
+          id: newScholarship.id,
+          title: newScholarship.title,
+          provider_id: newScholarship.providerId,
+          provider_name: newScholarship.providerName,
+          provider_logo: newScholarship.providerLogo,
+          description: newScholarship.description,
+          short_description: newScholarship.shortDescription,
+          category: newScholarship.category,
+          tags: newScholarship.tags,
+          amount: newScholarship.amount,
+          currency: newScholarship.currency,
+          funding_type: newScholarship.fundingType,
+          amount_period: newScholarship.amountPeriod,
+          amount_display: newScholarship.amountDisplay,
+          eligible_countries: newScholarship.eligibleCountries,
+          eligible_states: newScholarship.eligibleStates,
+          education_levels: newScholarship.educationLevels,
+          fields_of_study: newScholarship.fieldsOfStudy,
+          minimum_age: newScholarship.minimumAge,
+          maximum_age: newScholarship.maximumAge,
+          minimum_gpa: newScholarship.minimumGPA,
+          gpa_scale: newScholarship.gpaScale,
+          gender_requirement: newScholarship.genderRequirement,
+          financial_need_required: newScholarship.financialNeedRequired,
+          other_requirements: newScholarship.otherRequirements,
+          required_documents: newScholarship.requiredDocuments,
+          application_instructions: newScholarship.applicationInstructions,
+          application_url: newScholarship.applicationUrl,
+          opening_date: newScholarship.openingDate,
+          deadline: newScholarship.deadline,
+          expected_result_date: newScholarship.expectedResultDate,
+          status: newScholarship.status,
+          verification_status: newScholarship.verificationStatus,
+          verified_by: newScholarship.verifiedBy,
+          verified_at: newScholarship.verifiedAt,
+          verification_notes: newScholarship.verificationNotes,
+          view_count: newScholarship.viewCount,
+          save_count: newScholarship.saveCount,
+        }, { onConflict: 'id' });
+      } catch (err) {
+        console.warn('[admin] error syncing new scholarship to Supabase:', err);
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -177,7 +252,7 @@ router.post(
 );
 
 // PUT /api/v1/admin/scholarships/:id
-router.put('/scholarships/:id', (req: Request, res: Response): void => {
+router.put('/scholarships/:id', async (req: Request, res: Response): Promise<void> => {
   const existing = db.findScholarshipById(req.params.id);
   if (!existing) {
     res.status(404).json({
@@ -188,6 +263,57 @@ router.put('/scholarships/:id', (req: Request, res: Response): void => {
   }
 
   const updated = db.updateScholarship(existing.id, req.body);
+
+  if (config.supabaseUrl && config.supabaseServiceRoleKey && updated) {
+    try {
+      const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      await supabase.from('scholarships').upsert({
+        id: updated.id,
+        title: updated.title,
+        provider_id: updated.providerId,
+        provider_name: updated.providerName,
+        provider_logo: updated.providerLogo,
+        description: updated.description,
+        short_description: updated.shortDescription,
+        category: updated.category,
+        tags: updated.tags,
+        amount: updated.amount,
+        currency: updated.currency,
+        funding_type: updated.fundingType,
+        amount_period: updated.amountPeriod,
+        amount_display: updated.amountDisplay,
+        eligible_countries: updated.eligibleCountries,
+        eligible_states: updated.eligibleStates,
+        education_levels: updated.educationLevels,
+        fields_of_study: updated.fieldsOfStudy,
+        minimum_age: updated.minimumAge,
+        maximum_age: updated.maximumAge,
+        minimum_gpa: updated.minimumGPA,
+        gpa_scale: updated.gpaScale,
+        gender_requirement: updated.genderRequirement,
+        financial_need_required: updated.financialNeedRequired,
+        other_requirements: updated.otherRequirements,
+        required_documents: updated.requiredDocuments,
+        application_instructions: updated.applicationInstructions,
+        application_url: updated.applicationUrl,
+        opening_date: updated.openingDate,
+        deadline: updated.deadline,
+        expected_result_date: updated.expectedResultDate,
+        status: updated.status,
+        verification_status: updated.verificationStatus,
+        verified_by: updated.verifiedBy,
+        verified_at: updated.verifiedAt,
+        verification_notes: updated.verificationNotes,
+        view_count: updated.viewCount,
+        save_count: updated.saveCount,
+      }, { onConflict: 'id' });
+    } catch (err) {
+      console.warn('[admin] error syncing updated scholarship to Supabase:', err);
+    }
+  }
+
   res.json({
     success: true,
     data: updated,
@@ -195,7 +321,7 @@ router.put('/scholarships/:id', (req: Request, res: Response): void => {
 });
 
 // DELETE /api/v1/admin/scholarships/:id
-router.delete('/scholarships/:id', (req: Request, res: Response): void => {
+router.delete('/scholarships/:id', async (req: Request, res: Response): Promise<void> => {
   const existing = db.findScholarshipById(req.params.id);
   if (!existing) {
     res.status(404).json({
@@ -206,6 +332,18 @@ router.delete('/scholarships/:id', (req: Request, res: Response): void => {
   }
 
   db.deleteScholarship(existing.id);
+
+  if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+    try {
+      const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      await supabase.from('scholarships').delete().eq('id', existing.id);
+    } catch (err) {
+      console.warn('[admin] error deleting scholarship from Supabase:', err);
+    }
+  }
+
   res.json({
     success: true,
     data: { message: 'Scholarship permanently deleted successfully.' },
@@ -213,7 +351,7 @@ router.delete('/scholarships/:id', (req: Request, res: Response): void => {
 });
 
 // POST /api/v1/admin/scholarships/:id/archive
-router.post('/scholarships/:id/archive', (req: Request, res: Response): void => {
+router.post('/scholarships/:id/archive', async (req: Request, res: Response): Promise<void> => {
   const existing = db.findScholarshipById(req.params.id);
   if (!existing) {
     res.status(404).json({
@@ -224,6 +362,18 @@ router.post('/scholarships/:id/archive', (req: Request, res: Response): void => 
   }
 
   const updated = db.updateScholarship(existing.id, { status: 'archived' });
+
+  if (config.supabaseUrl && config.supabaseServiceRoleKey && updated) {
+    try {
+      const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      await supabase.from('scholarships').update({ status: 'archived', updated_at: new Date().toISOString() }).eq('id', existing.id);
+    } catch (err) {
+      console.warn('[admin] error archiving scholarship in Supabase:', err);
+    }
+  }
+
   res.json({
     success: true,
     data: { message: 'Scholarship archived successfully.', scholarship: updated },

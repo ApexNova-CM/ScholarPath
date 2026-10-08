@@ -1,9 +1,84 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import { createClient } from '@supabase/supabase-js';
 import { db } from '../db/store';
 import { optionalAuthenticateToken } from '../middleware/auth';
 import { ScholarshipRecord, StudentProfileRecord } from '../types';
+import { config } from '../config';
 
 const router = Router();
+
+// Helper to retrieve all scholarships merging local DB and Supabase if configured
+async function getAllScholarshipsFromSource(): Promise<ScholarshipRecord[]> {
+  const localList = db.getScholarships();
+  if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+    try {
+      const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data } = await supabase
+        .from('scholarships')
+        .select('*');
+      if (data && Array.isArray(data)) {
+        const map = new Map<string, ScholarshipRecord>();
+        for (const s of localList) {
+          map.set(s.id, s);
+        }
+        for (const row of data) {
+          if (!map.has(row.id)) {
+            map.set(row.id, {
+              id: row.id,
+              title: row.title || 'Untitled Scholarship',
+              providerId: row.provider_id || '',
+              providerName: row.provider_name || '',
+              providerLogo: row.provider_logo,
+              description: row.description || '',
+              shortDescription: row.short_description || '',
+              category: row.category || 'STEM & Tech',
+              tags: row.tags || [],
+              amount: row.amount !== undefined && row.amount !== null ? Number(row.amount) : undefined,
+              currency: row.currency || 'USD',
+              fundingType: row.funding_type || 'Full',
+              amountPeriod: row.amount_period,
+              amountDisplay: row.amount_display,
+              eligibleCountries: row.eligible_countries || ['All'],
+              eligibleStates: row.eligible_states,
+              educationLevels: row.education_levels || ['Undergraduate'],
+              fieldsOfStudy: row.fields_of_study || ['All'],
+              minimumAge: row.minimum_age,
+              maximumAge: row.maximum_age,
+              minimumGPA: row.minimum_gpa,
+              gpaScale: row.gpa_scale || 4.0,
+              genderRequirement: row.gender_requirement || 'Any',
+              financialNeedRequired: row.financial_need_required || false,
+              otherRequirements: row.other_requirements,
+              requiredDocuments: row.required_documents || [],
+              applicationInstructions: row.application_instructions || '',
+              applicationUrl: row.application_url || '',
+              openingDate: row.opening_date,
+              deadline: row.deadline || new Date().toISOString(),
+              expectedResultDate: row.expected_result_date,
+              status: row.status || 'verified',
+              verificationStatus: row.verification_status || 'verified',
+              verifiedBy: row.verified_by,
+              verifiedAt: row.verified_at,
+              verificationNotes: row.verification_notes,
+              viewCount: row.view_count || 0,
+              saveCount: row.save_count || 0,
+              manuallyClosed: row.manually_closed,
+              manuallyClosedAt: row.manually_closed_at,
+              createdAt: row.created_at || new Date().toISOString(),
+              updatedAt: row.updated_at || new Date().toISOString(),
+            });
+          }
+        }
+        return Array.from(map.values());
+      }
+    } catch (err) {
+      console.warn('[scholarships] error fetching scholarships from Supabase:', err);
+    }
+  }
+  return localList;
+}
 
 // Evaluate eligibility helper (server authority)
 function evaluateServerEligibility(scholarship: ScholarshipRecord, profile: StudentProfileRecord | null) {
@@ -90,11 +165,11 @@ function evaluateServerEligibility(scholarship: ScholarshipRecord, profile: Stud
         : `Requires minimum GPA of ${scholarship.minimumGPA.toFixed(2)}, currently ${profile.gpa.toFixed(2)}.`,
     });
 
-    if (!isGpaMet && !hardDisqualified) {
-      hardDisqualified = true;
-      hardDisqualificationReason = `GPA requirement of ${scholarship.minimumGPA.toFixed(2)} not met (currently ${profile.gpa.toFixed(2)}).`;
-    }
+  if (!isGpaMet && !hardDisqualified) {
+    hardDisqualified = true;
+    hardDisqualificationReason = `GPA requirement of ${scholarship.minimumGPA.toFixed(2)} not met (currently ${profile.gpa.toFixed(2)}).`;
   }
+}
 
   // Field of Study
   const isFieldMet =
@@ -151,13 +226,13 @@ function evaluateServerEligibility(scholarship: ScholarshipRecord, profile: Stud
 }
 
 // GET /api/v1/scholarships (Public with optional filters)
-router.get('/', optionalAuthenticateToken, (req: Request, res: Response): void => {
-  let list = db.getScholarships();
+router.get('/', optionalAuthenticateToken, async (req: Request, res: Response): Promise<void> => {
+  let list = await getAllScholarshipsFromSource();
 
-  // If public, default to showing verified & active scholarships unless admin
+  // If public / student, show verified active scholarships (not archived/rejected)
   const isAdmin = req.user?.role === 'admin';
   if (!isAdmin) {
-    list = list.filter((s) => s.verificationStatus === 'verified' && s.status !== 'archived');
+    list = list.filter((s) => (s.verificationStatus === 'verified' || !s.verificationStatus) && s.status !== 'archived' && s.status !== 'rejected');
   }
 
   const {
@@ -204,11 +279,11 @@ router.get('/', optionalAuthenticateToken, (req: Request, res: Response): void =
   }
 
   if (minAmount && !isNaN(Number(minAmount))) {
-    list = list.filter((s) => s.amount >= Number(minAmount));
+    list = list.filter((s) => (s.amount || 0) >= Number(minAmount));
   }
 
   if (maxAmount && !isNaN(Number(maxAmount))) {
-    list = list.filter((s) => s.amount <= Number(maxAmount));
+    list = list.filter((s) => (s.amount || 0) <= Number(maxAmount));
   }
 
   if (search && typeof search === 'string') {
@@ -241,8 +316,12 @@ router.get('/', optionalAuthenticateToken, (req: Request, res: Response): void =
 });
 
 // GET /api/v1/scholarships/:id
-router.get('/:id', optionalAuthenticateToken, (req: Request, res: Response): void => {
-  const scholarship = db.findScholarshipById(req.params.id);
+router.get('/:id', optionalAuthenticateToken, async (req: Request, res: Response): Promise<void> => {
+  let scholarship = db.findScholarshipById(req.params.id);
+  if (!scholarship && config.supabaseUrl && config.supabaseServiceRoleKey) {
+    const all = await getAllScholarshipsFromSource();
+    scholarship = all.find((s) => s.id === req.params.id);
+  }
   if (!scholarship) {
     res.status(404).json({
       success: false,
