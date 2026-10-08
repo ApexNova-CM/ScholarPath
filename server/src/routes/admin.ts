@@ -149,6 +149,16 @@ router.post(
     const status = body.status || (verificationStatus === 'pending_verification' ? 'pending_verification' : 'verified');
     const isVerified = verificationStatus === 'verified';
 
+    // Required Documents derivation compatibility:
+    // 1. If legacy requiredDocuments has items, preserve it.
+    // 2. If legacy requiredDocuments is empty and structuredRequirements has document items, derive from structuredRequirements.
+    let requiredDocs = Array.isArray(body.requiredDocuments) ? body.requiredDocuments : [];
+    if (requiredDocs.length === 0 && Array.isArray(body.structuredRequirements)) {
+      requiredDocs = body.structuredRequirements
+        .filter((r: any) => r.isDocument && r.name)
+        .map((r: any) => r.name.trim());
+    }
+
     const newScholarship: ScholarshipRecord = {
       id: body.id || `sch-${crypto.randomUUID().slice(0, 8)}`,
       title: body.title,
@@ -158,34 +168,91 @@ router.post(
       description: body.description,
       shortDescription: body.shortDescription || body.description.slice(0, 140),
       category: body.category,
+      scholarshipType: body.scholarshipType,
       tags: body.tags || [],
-      amount: body.amount !== undefined ? Number(body.amount) : undefined,
+
+      // Award Details
+      amount: body.amount !== undefined && body.amount !== null && !isNaN(Number(body.amount)) ? Number(body.amount) : undefined,
       currency: body.currency || 'USD',
+      awardCurrency: body.awardCurrency || body.currency || 'USD',
       fundingType: body.fundingType || 'Full',
+      awardType: body.awardType,
+      awardFrequency: body.awardFrequency,
+      awardValueText: body.awardValueText,
+      awardDescription: body.awardDescription,
       amountPeriod: body.amountPeriod,
       amountDisplay: body.amountDisplay,
+      whatTheAwardCovers: body.whatTheAwardCovers,
+      numberOfRecipients: body.numberOfRecipients,
+
+      // Eligibility
       eligibleCountries: body.eligibleCountries || ['All'],
       eligibleStates: body.eligibleStates,
+      eligibleNationalities: body.eligibleNationalities,
+      countryOfStudy: body.countryOfStudy,
       educationLevels: body.educationLevels || ['Undergraduate'],
+      institutionTypes: body.institutionTypes,
+      studyYears: body.studyYears,
       fieldsOfStudy: body.fieldsOfStudy || ['All'],
+      eligibleCourses: body.eligibleCourses,
       minimumAge: body.minimumAge,
       maximumAge: body.maximumAge,
       minimumGPA: body.minimumGPA,
       gpaScale: body.gpaScale || 4.0,
+      academicStanding: body.academicStanding,
       genderRequirement: body.genderRequirement || 'Any',
       financialNeedRequired: body.financialNeedRequired || false,
+      leadershipRequired: body.leadershipRequired,
+      communityServiceRequired: body.communityServiceRequired,
+      disabilityApplicable: body.disabilityApplicable,
+      membershipRequirement: body.membershipRequirement,
+      otherEligibilityConditions: body.otherEligibilityConditions,
       otherRequirements: body.otherRequirements,
-      requiredDocuments: body.requiredDocuments || [],
+      otherRequirementsNotes: body.otherRequirementsNotes,
+
+      // Requirements
+      requiredDocuments: requiredDocs,
+      structuredRequirements: body.structuredRequirements,
+
+      // Application Details
+      applicationMethod: body.applicationMethod,
       applicationInstructions: body.applicationInstructions || '',
       applicationUrl: body.applicationUrl,
+      officialWebsiteUrl: body.officialWebsiteUrl,
+      applicationFee: body.applicationFee,
+      applicationFeeCurrency: body.applicationFeeCurrency,
+      accountRequired: body.accountRequired,
+      applicationSteps: body.applicationSteps,
+
+      // Important Dates
       openingDate: body.openingDate,
       deadline: body.deadline,
+      deadlineTime: body.deadlineTime,
       expectedResultDate: body.expectedResultDate,
+      awardDate: body.awardDate,
+      timezone: body.timezone,
+
+      // Selection Process
+      selectionProcess: body.selectionProcess,
+      selectionCriteria: body.selectionCriteria,
+      testRequired: body.testRequired,
+      interviewRequired: body.interviewRequired,
+      essayRequired: body.essayRequired,
+      shortlistingProcess: body.shortlistingProcess,
+      selectionSteps: body.selectionSteps,
+      otherSelectionInfo: body.otherSelectionInfo,
+
+      // Verification & Publishing
       status,
       verificationStatus,
+      officialSourceUrl: body.officialSourceUrl,
+      sourceType: body.sourceType,
       verifiedBy: isVerified ? (body.verifiedBy || adminUser.email || adminUser.id) : undefined,
       verifiedAt: isVerified ? (body.verifiedAt || new Date().toISOString()) : undefined,
       verificationNotes: body.verificationNotes,
+      lastUpdatedAt: new Date().toISOString(),
+      isFeatured: body.isFeatured || false,
+      autoCloseOnDeadline: body.autoCloseOnDeadline !== undefined ? body.autoCloseOnDeadline : true,
       viewCount: 0,
       saveCount: 0,
       createdAt: new Date().toISOString(),
@@ -208,6 +275,7 @@ router.post(
           description: newScholarship.description,
           short_description: newScholarship.shortDescription,
           category: newScholarship.category,
+          scholarship_type: newScholarship.scholarshipType,
           tags: newScholarship.tags,
           amount: newScholarship.amount,
           currency: newScholarship.currency,
@@ -262,7 +330,14 @@ router.put('/scholarships/:id', async (req: Request, res: Response): Promise<voi
     return;
   }
 
-  const updated = db.updateScholarship(existing.id, req.body);
+  const updates = { ...req.body, updatedAt: new Date().toISOString(), lastUpdatedAt: new Date().toISOString() };
+  if ((!updates.requiredDocuments || updates.requiredDocuments.length === 0) && Array.isArray(updates.structuredRequirements)) {
+    updates.requiredDocuments = updates.structuredRequirements
+      .filter((r: any) => r.isDocument && r.name)
+      .map((r: any) => r.name.trim());
+  }
+
+  const updated = db.updateScholarship(existing.id, updates);
 
   if (config.supabaseUrl && config.supabaseServiceRoleKey && updated) {
     try {
@@ -278,6 +353,7 @@ router.put('/scholarships/:id', async (req: Request, res: Response): Promise<voi
         description: updated.description,
         short_description: updated.shortDescription,
         category: updated.category,
+        scholarship_type: updated.scholarshipType,
         tags: updated.tags,
         amount: updated.amount,
         currency: updated.currency,

@@ -35,6 +35,77 @@ export type AmountPeriod =
   | 'Per Semester'
   | 'Unspecified';
 
+export type AwardType = 
+  | 'Full scholarship'
+  | 'Partial scholarship'
+  | 'Tuition'
+  | 'Cash award'
+  | 'Stipend'
+  | 'Research funding'
+  | 'Laptop/device'
+  | 'Training'
+  | 'Internship'
+  | 'Mentorship'
+  | 'Other';
+
+export type AwardFrequency = 
+  | 'One-time'
+  | 'Monthly'
+  | 'Quarterly'
+  | 'Annual'
+  | 'Other';
+
+export type ApplicationMethod = 
+  | 'External Website'
+  | 'Online Form'
+  | 'Google Form'
+  | 'Zoho Form'
+  | 'Email'
+  | 'Physical Application'
+  | 'Scholavon Application'
+  | 'Other';
+
+export type VerificationSourceType = 
+  | 'Official Website'
+  | 'Official Application Form'
+  | 'Official Social Media'
+  | 'Organization Announcement'
+  | 'Partner Organization'
+  | 'Other';
+
+export type InstitutionType = 
+  | 'Public University'
+  | 'Private University'
+  | 'Polytechnic'
+  | 'College of Education'
+  | 'Secondary School'
+  | 'Vocational Institute'
+  | 'Any Accredited Institution';
+
+export interface ScholarshipRequirementItem {
+  id: string;
+  name: string;
+  description?: string;
+  required: boolean;
+  isDocument: boolean;
+  acceptedFileTypes?: string[];
+  order: number;
+}
+
+export interface ScholarshipApplicationStep {
+  id: string;
+  stepNumber: number;
+  title: string;
+  description?: string;
+}
+
+export interface ScholarshipSelectionStep {
+  id: string;
+  stageNumber: number;
+  name: string;
+  description?: string;
+}
+
 export type ScholarshipStatus = 
   | 'draft'
   | 'pending_verification'
@@ -182,34 +253,93 @@ export interface Scholarship {
   description: string;
   shortDescription: string;
   category: string;
+  scholarshipType?: string;
   tags: string[];
+
+  // Award Details
   amount?: number;
   currency?: string;
+  awardCurrency?: string;
   fundingType: FundingType;
+  awardType?: AwardType | string;
+  awardFrequency?: AwardFrequency | string;
+  awardValueText?: string;
+  awardDescription?: string;
   amountPeriod?: AmountPeriod | string;
   amountDisplay?: string;
+  whatTheAwardCovers?: string[];
+  numberOfRecipients?: number | string;
+
+  // Eligibility
   eligibleCountries: string[]; // empty or ['All'] means all
   eligibleStates?: string[];
+  eligibleNationalities?: string[];
+  countryOfStudy?: string[];
   educationLevels: EducationLevel[];
+  institutionTypes?: InstitutionType[] | string[];
+  studyYears?: string[];
   fieldsOfStudy: string[]; // empty or ['All'] means any field
+  eligibleCourses?: string[];
   minimumAge?: number;
   maximumAge?: number;
   minimumGPA?: number;
   gpaScale: number;
+  academicStanding?: string;
   genderRequirement?: 'Any' | 'Female' | 'Male';
   financialNeedRequired?: boolean;
+  leadershipRequired?: boolean;
+  communityServiceRequired?: boolean;
+  disabilityApplicable?: boolean;
+  membershipRequirement?: string;
+  otherEligibilityConditions?: string[];
   otherRequirements?: string[];
+  otherRequirementsNotes?: string;
+
+  // Requirements
   requiredDocuments: string[];
+  structuredRequirements?: ScholarshipRequirementItem[];
+
+  // Application Details
+  applicationMethod?: ApplicationMethod | string;
   applicationInstructions: string;
   applicationUrl: string;
+  officialWebsiteUrl?: string;
+  applicationFee?: string;
+  applicationFeeCurrency?: string;
+  accountRequired?: boolean;
+  applicationSteps?: ScholarshipApplicationStep[];
+
+  // Important Dates
   openingDate?: string;
   deadline: string;
+  deadlineTime?: string;
   expectedResultDate?: string;
+  awardDate?: string;
+  timezone?: string;
+
+  // Selection Process
+  selectionProcess?: string;
+  selectionCriteria?: string;
+  testRequired?: boolean;
+  interviewRequired?: boolean;
+  essayRequired?: boolean;
+  shortlistingProcess?: string;
+  selectionSteps?: ScholarshipSelectionStep[];
+  otherSelectionInfo?: string;
+
+  // Verification & Trust
   status: ScholarshipStatus;
   verificationStatus: VerificationStatus;
+  officialSourceUrl?: string;
+  sourceType?: VerificationSourceType | string;
   verifiedBy?: string;
   verifiedAt?: string;
   verificationNotes?: string;
+  lastUpdatedAt?: string;
+
+  // Publishing & Stats
+  isFeatured?: boolean;
+  autoCloseOnDeadline?: boolean;
   viewCount?: number;
   saveCount?: number;
   /** Set to true by admin "Close" action — prevents auto-restore even if deadline is in future */

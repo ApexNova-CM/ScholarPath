@@ -406,3 +406,181 @@ describe('Free Plan Application Limit & Slot Management', () => {
     expect(res5.body.success).toBe(true);
   });
 });
+
+describe('Feature #9: Upgraded Admin Add Scholarship & Expanded Audit Model', () => {
+  let createdExtendedScholarshipId = '';
+
+  it('Admin can create a rich, 9-section scholarship opportunity with structured requirements and steps', async () => {
+    const payload = {
+      title: 'Mastercard Foundation Scholars Program at University of Edinburgh',
+      providerName: 'Mastercard Foundation',
+      category: 'STEM & Tech',
+      scholarshipType: 'Full Postgraduate Scholarship',
+      shortDescription: 'Comprehensive funding for African graduate students in STEM.',
+      description: 'The Mastercard Foundation Scholars Program provides transformative education opportunities to young leaders from Africa.',
+      tags: ['STEM', 'Full-Ride', 'Africa', 'Masters'],
+
+      // Award Details
+      amount: 45000,
+      currency: 'GBP',
+      awardCurrency: 'GBP',
+      fundingType: 'Full',
+      awardType: 'Full scholarship',
+      awardFrequency: 'Annual',
+      awardValueText: 'Full tuition plus £1,350 monthly living stipend',
+      awardDescription: 'Covers full tuition fees, travel, accommodation, and living expenses.',
+      amountPeriod: 'Annual',
+      amountDisplay: '£45,000 annually',
+      whatTheAwardCovers: ['Full Tuition Fee', 'Living Allowance / Stipend', 'Accommodation / Housing', 'Round-trip Airfare / Travel'],
+      numberOfRecipients: '30 scholars',
+
+      // Eligibility
+      eligibleCountries: ['Nigeria', 'Ghana', 'Kenya', 'Rwanda', 'Uganda'],
+      eligibleNationalities: ['African Citizens'],
+      countryOfStudy: ['United Kingdom'],
+      educationLevels: ['Postgraduate (Masters)'],
+      institutionTypes: ['Public University'],
+      fieldsOfStudy: ['Computer Science', 'Data Science', 'Engineering', 'Global Health'],
+      eligibleCourses: ['MSc Artificial Intelligence', 'MSc Data Science', 'MSc Sustainable Energy'],
+      minimumGPA: 3.5,
+      gpaScale: 4.0,
+      academicStanding: 'First Class or Second Class Upper',
+      genderRequirement: 'Any',
+      minimumAge: 20,
+      maximumAge: 35,
+      financialNeedRequired: true,
+      leadershipRequired: true,
+      communityServiceRequired: true,
+      disabilityApplicable: true,
+      otherEligibilityConditions: ['Must qualify for admission to the University of Edinburgh', 'Commitment to return to home country upon completion'],
+
+      // Requirements
+      structuredRequirements: [
+        {
+          id: 'req-1',
+          name: 'Official Academic Transcript',
+          description: 'Certified transcript with official university seal',
+          required: true,
+          isDocument: true,
+          acceptedFileTypes: ['PDF'],
+          order: 1
+        },
+        {
+          id: 'req-2',
+          name: 'Personal Statement of Purpose',
+          description: 'Max 1,000 words demonstrating leadership and commitment to Africa',
+          required: true,
+          isDocument: true,
+          acceptedFileTypes: ['PDF', 'DOCX'],
+          order: 2
+        },
+        {
+          id: 'req-3',
+          name: 'Two Academic References',
+          description: 'Letters from former academic supervisors',
+          required: true,
+          isDocument: true,
+          acceptedFileTypes: ['PDF'],
+          order: 3
+        }
+      ],
+
+      // Application Details
+      applicationMethod: 'External Website',
+      applicationUrl: 'https://www.ed.ac.uk/student-funding/postgraduate/international/mastercard-foundation/apply',
+      officialWebsiteUrl: 'https://mastercardfdn.org/scholars',
+      applicationFee: 'Free',
+      accountRequired: true,
+      applicationInstructions: 'Submit application via the University of Edinburgh scholarship portal.',
+      applicationSteps: [
+        { id: 'step-1', stepNumber: 1, title: 'Apply for admission to eligible MSc program', description: 'Obtain an offer of admission before applying for scholarship.' },
+        { id: 'step-2', stepNumber: 2, title: 'Access scholarship portal', description: 'Log in using MyEd portal credentials.' },
+        { id: 'step-3', stepNumber: 3, title: 'Complete scholarship questionnaire', description: 'Provide responses on financial need and leadership.' },
+        { id: 'step-4', stepNumber: 4, title: 'Upload supporting documents and submit', description: 'Submit before the January 27 deadline.' }
+      ],
+
+      // Important Dates
+      openingDate: '2026-10-01',
+      deadline: '2027-01-27',
+      deadlineTime: '17:00',
+      expectedResultDate: '2027-04-30',
+      awardDate: '2027-09-01',
+      timezone: 'GMT',
+
+      // Selection Process
+      selectionProcess: 'Academic Review → Shortlisting → Online Interview → Final Award',
+      selectionCriteria: 'Academic achievement, financial need, and demonstrated leadership commitment.',
+      testRequired: false,
+      interviewRequired: true,
+      essayRequired: true,
+      shortlistingProcess: 'Shortlisted candidates contacted for interviews in March 2027.',
+      selectionSteps: [
+        { id: 'sel-1', stageNumber: 1, name: 'Eligibility Verification', description: 'Assessment of degree classification and nationality.' },
+        { id: 'sel-2', stageNumber: 2, name: 'Panel Interview', description: '30-minute interview with Edinburgh selection panel.' },
+        { id: 'sel-3', stageNumber: 3, name: 'Final Award Letter', description: 'Offer packages sent to successful scholars.' }
+      ],
+
+      // Verification & Publishing
+      status: 'verified',
+      verificationStatus: 'verified',
+      officialSourceUrl: 'https://www.ed.ac.uk/student-funding/postgraduate/international/mastercard-foundation',
+      sourceType: 'Official Website',
+      verifiedBy: 'Senior Audit Officer',
+      verifiedAt: '2026-10-08T12:00:00.000Z',
+      verificationNotes: 'Verified directly against the official University of Edinburgh portal announcement.',
+      isFeatured: true,
+      autoCloseOnDeadline: true
+    };
+
+    const res = await request(app)
+      .post('/api/v1/admin/scholarships')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send(payload);
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.id).toBeDefined();
+    expect(res.body.data.title).toBe(payload.title);
+    expect(res.body.data.whatTheAwardCovers.length).toBe(4);
+    expect(res.body.data.structuredRequirements.length).toBe(3);
+    expect(res.body.data.applicationSteps.length).toBe(4);
+    expect(res.body.data.selectionSteps.length).toBe(3);
+    expect(res.body.data.requiredDocuments.length).toBeGreaterThanOrEqual(3);
+    expect(res.body.data.verificationStatus).toBe('verified');
+
+    createdExtendedScholarshipId = res.body.data.id;
+  });
+
+  it('Student discovery GET /api/v1/scholarships retrieves the newly created extended scholarship', async () => {
+    const res = await request(app).get('/api/v1/scholarships');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    const found = res.body.data.items.find((s: any) => s.id === createdExtendedScholarshipId);
+    expect(found).toBeDefined();
+    expect(found.title).toContain('University of Edinburgh');
+    expect(found.whatTheAwardCovers).toContain('Full Tuition Fee');
+    expect(found.structuredRequirements.length).toBe(3);
+    expect(found.applicationSteps.length).toBe(4);
+    expect(found.selectionSteps.length).toBe(3);
+    expect(found.verificationStatus).toBe('verified');
+  });
+
+  it('Admin can edit the extended scholarship fields via PUT /api/v1/admin/scholarships/:id', async () => {
+    const res = await request(app)
+      .put(`/api/v1/admin/scholarships/${createdExtendedScholarshipId}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        numberOfRecipients: '35 scholars',
+        awardValueText: 'Updated full tuition plus £1,400 monthly stipend',
+        verificationNotes: 'Re-verified on October 8, 2026 by lead administrator.'
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.numberOfRecipients).toBe('35 scholars');
+    expect(res.body.data.awardValueText).toContain('£1,400');
+    expect(res.body.data.lastUpdatedAt).toBeDefined();
+  });
+});
+
