@@ -312,18 +312,8 @@ router.delete(
         }
       }
 
-      // 2. Delete all flat-file data owned by this user
-      const deleted = db.deleteUserAccount(userId);
-      if (!deleted) {
-        res.status(404).json({
-          success: false,
-          error: {
-            code: 'USER_NOT_FOUND',
-            message: 'User account not found or already deleted.',
-          },
-        });
-        return;
-      }
+      // 2. Delete all flat-file data owned by this user (if present)
+      db.deleteUserAccount(userId);
 
       // 3. Clear session cookie
       res.clearCookie('token');

@@ -305,5 +305,102 @@ describe('User Feedback Improvements Suite', () => {
       expect(urlEmpty).toContain('mailto:support@scholavon.com?subject=Scholavon%20Support%20Request');
     });
   });
+
+  describe('Google Authentication, Profile Completion & Account Deletion Improvements', () => {
+    it('calculates profile completion accurately for Google sign-ups with missing fields', async () => {
+      const { calculateProfileCompletion } = await import('../../src/utils/formatters');
+
+      // A fresh Google sign-up only has firstName, lastName, and email
+      const googleInitialProfile = {
+        firstName: 'Alex',
+        lastName: 'Rivera',
+        email: 'alex.rivera@example.com',
+        country: 'International', // default placeholder
+        educationLevel: 'Undergraduate',
+        institution: '',
+        fieldOfStudy: '',
+        gpa: 0,
+      };
+
+      const initialScore = calculateProfileCompletion(googleInitialProfile as any);
+      // Personal: firstName+lastName (8) + email (5) = 13 points. (Country is International so 0).
+      expect(initialScore).toBe(20); // 8 + 5 + 7(educationLevel) = 20
+      expect(initialScore).toBeLessThan(100);
+      expect(initialScore).toBeGreaterThan(0);
+
+      // A fully completed profile reaches 100%
+      const completeProfile = {
+        firstName: 'Alex',
+        lastName: 'Rivera',
+        email: 'alex.rivera@example.com',
+        phone: '+1234567890',
+        dateOfBirth: '2002-05-15',
+        gender: 'Male',
+        country: 'Nigeria',
+        state: 'Lagos',
+        institution: 'University of Lagos',
+        educationLevel: 'Undergraduate',
+        fieldOfStudy: 'Computer Engineering',
+        gpa: 4.5,
+        careerGoals: 'AI Researcher',
+        personalStatement: 'Committed to technological innovation in education.',
+        awards: ['Dean List 2025'],
+        extracurriculars: ['Robotics Club President'],
+      };
+
+      const completeScore = calculateProfileCompletion(completeProfile as any);
+      expect(completeScore).toBe(100);
+    });
+
+    it('DELETE /api/v1/auth/account requires Bearer token and rejects unauthenticated callers with 401', async () => {
+      const res = await request(app).delete('/api/v1/auth/account');
+      expect(res.status).toBe(401);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('UNAUTHORIZED');
+    });
+
+    it('DELETE /api/v1/auth/account successfully deletes an authenticated user account', async () => {
+      // Create a temporary user to delete
+      const deleteUserEmail = `delete_target_${Date.now()}@example.com`;
+      const regRes = await request(app)
+        .post('/api/v1/auth/register')
+        .send({
+          email: deleteUserEmail,
+          password: 'deleteMePass123',
+          firstName: 'Target',
+          lastName: 'User',
+          country: 'Ghana',
+          educationLevel: 'Undergraduate',
+          institution: 'University of Ghana',
+          fieldOfStudy: 'Economics',
+          gpa: 3.5,
+          gpaScale: 4.0,
+        });
+
+      expect(regRes.status).toBe(201);
+      const token = regRes.body.data.token;
+      const targetUserId = regRes.body.data.user.id;
+
+      // Delete the account
+      const delRes = await request(app)
+        .delete('/api/v1/auth/account')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(delRes.status).toBe(200);
+      expect(delRes.body.success).toBe(true);
+      expect(delRes.body.data.message).toContain('Account deleted successfully');
+
+      // Verify the user is deleted and cannot authenticate
+      const loginRes = await request(app)
+        .post('/api/v1/auth/login')
+        .send({
+          email: deleteUserEmail,
+          password: 'deleteMePass123',
+        });
+
+      expect(loginRes.status).toBe(401);
+      expect(db.findUserById(targetUserId)).toBeUndefined();
+    });
+  });
 });
 

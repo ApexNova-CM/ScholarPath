@@ -7,6 +7,7 @@ import {
   SupabaseUser,
   Session,
 } from '../lib/supabase';
+import { calculateProfileCompletion } from '../utils/formatters';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -169,7 +170,7 @@ function mapSupabaseRowToProfile(row: Record<string, unknown>): UserProfile {
   const rawRole = String(row.role || '').trim().toLowerCase();
   const role: UserRole = rawRole === 'admin' || rawRole === 'super admin' ? 'admin' : 'student';
 
-  return {
+  const profile: UserProfile = {
     id: row.id as string,
     email: (row.email as string) ?? '',
     role,
@@ -197,7 +198,7 @@ function mapSupabaseRowToProfile(row: Record<string, unknown>): UserProfile {
     leadership: (row.leadership as string[]) ?? [],
     volunteering: (row.volunteering as string[]) ?? [],
     workExperience: (row.work_experience as string[]) ?? [],
-    profileCompletion: (row.profile_completion as number) ?? 0,
+    profileCompletion: 0,
     notificationPreferences: row.notification_preferences as UserProfile['notificationPreferences'],
     // Subscription status from public.users.subscription_status.
     // Written by server webhook only — never trusted from client.
@@ -206,6 +207,9 @@ function mapSupabaseRowToProfile(row: Record<string, unknown>): UserProfile {
     createdAt: (row.created_at as string) ?? new Date().toISOString(),
     updatedAt: (row.updated_at as string) ?? new Date().toISOString(),
   };
+
+  profile.profileCompletion = calculateProfileCompletion(profile);
+  return profile;
 }
 
 

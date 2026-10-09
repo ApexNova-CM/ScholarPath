@@ -8,51 +8,26 @@ import {
   Target, FileText, ChevronDown, ChevronUp, AlertCircle
 } from 'lucide-react';
 
+import { calculateProfileCompletion } from '../../utils/formatters';
+
 interface ProfilePageProps {
   userProfile: UserProfile;
   onUpdateProfile: (updated: UserProfile) => void;
 }
 
-// Comprehensive profile completion calculator
-function calcCompletion(p: Partial<UserProfile>): number {
-  const checks: [boolean, number][] = [
-    // Personal (30pts)
-    [!!(p.firstName && p.lastName), 6],
-    [!!p.email, 4],
-    [!!p.phone, 3],
-    [!!p.dateOfBirth, 4],
-    [!!(p.gender), 3],
-    [!!p.country, 5],
-    [!!(p.state || p.city), 5],
-    // Academic (35pts)
-    [!!p.institution, 8],
-    [!!p.educationLevel, 6],
-    [!!p.fieldOfStudy, 7],
-    [!!(p.gpa && p.gpa > 0), 7],
-    [!!(p.yearLevel || p.expectedGraduationDate), 4],
-    [!!p.course, 3],
-    // Scholarship Profile (35pts)
-    [!!(p.achievements && p.achievements.length > 0), 5],
-    [!!(p.extracurriculars && p.extracurriculars.length > 0), 5],
-    [!!(p.leadership && p.leadership.length > 0), 5],
-    [!!(p.workExperience && p.workExperience.length > 0), 5],
-    [!!(p.careerGoals && p.careerGoals.trim()), 7],
-    [!!(p.personalStatement && p.personalStatement.trim()), 8],
-  ];
-  return Math.min(100, checks.reduce((s, [met, pts]) => s + (met ? pts : 0), 0));
-}
-
 const COMPLETION_FIELDS = [
-  { label: 'First & Last Name', key: (p: Partial<UserProfile>) => !!(p.firstName && p.lastName) },
-  { label: 'Phone Number', key: (p: Partial<UserProfile>) => !!p.phone },
-  { label: 'Date of Birth', key: (p: Partial<UserProfile>) => !!p.dateOfBirth },
-  { label: 'Country & Region', key: (p: Partial<UserProfile>) => !!p.country },
-  { label: 'Institution', key: (p: Partial<UserProfile>) => !!p.institution },
-  { label: 'Field of Study', key: (p: Partial<UserProfile>) => !!p.fieldOfStudy },
-  { label: 'GPA / CGPA', key: (p: Partial<UserProfile>) => !!(p.gpa && p.gpa > 0) },
-  { label: 'Career Goals', key: (p: Partial<UserProfile>) => !!(p.careerGoals?.trim()) },
-  { label: 'Personal Statement', key: (p: Partial<UserProfile>) => !!(p.personalStatement?.trim()) },
-  { label: 'Achievements / Awards', key: (p: Partial<UserProfile>) => !!(p.achievements?.length) },
+  { label: 'First & Last Name', key: (p: Partial<UserProfile>) => !!(p.firstName?.trim() && p.lastName?.trim()) },
+  { label: 'Email Address', key: (p: Partial<UserProfile>) => !!p.email?.trim() },
+  { label: 'Phone Number', key: (p: Partial<UserProfile>) => !!p.phone?.trim() },
+  { label: 'Date of Birth', key: (p: Partial<UserProfile>) => !!p.dateOfBirth?.trim() },
+  { label: 'Country & Region', key: (p: Partial<UserProfile>) => !!(p.country?.trim() && p.country.trim().toLowerCase() !== 'international') },
+  { label: 'Institution', key: (p: Partial<UserProfile>) => !!(p.institution?.trim() && p.institution.trim() !== 'Scholavon Foundation') },
+  { label: 'Education Level', key: (p: Partial<UserProfile>) => !!p.educationLevel?.trim() },
+  { label: 'Field of Study', key: (p: Partial<UserProfile>) => !!(p.fieldOfStudy?.trim() && p.fieldOfStudy.trim() !== 'Platform Operations' && p.fieldOfStudy.trim() !== 'Platform Administration') },
+  { label: 'GPA / CGPA', key: (p: Partial<UserProfile>) => !!(p.gpa !== undefined && p.gpa !== null && Number(p.gpa) > 0) },
+  { label: 'Career Goals', key: (p: Partial<UserProfile>) => !!p.careerGoals?.trim() },
+  { label: 'Personal Statement', key: (p: Partial<UserProfile>) => !!p.personalStatement?.trim() },
+  { label: 'Achievements / Awards', key: (p: Partial<UserProfile>) => !!(p.achievements?.length || p.awards?.length) },
 ];
 
 const INPUT_CLASS =
@@ -110,7 +85,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile, onUpdateP
     setCustomScale([5.0, 4.0, 7.0, 10.0].includes(userProfile.gpaScale) ? '' : (userProfile.gpaScale?.toString() || ''));
   }, [userProfile]);
 
-  const completion = calcCompletion(formData);
+  const completion = calculateProfileCompletion(formData);
   const missingFields = COMPLETION_FIELDS.filter((f) => !f.key(formData));
 
   const set = useCallback(<K extends keyof UserProfile>(key: K, value: UserProfile[K]) => {
@@ -156,7 +131,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userProfile, onUpdateP
         gpa: parsedGpa,
         gpaScale: effectiveScale,
       };
-      const newCompletion = calcCompletion(mergedForm);
+      const newCompletion = calculateProfileCompletion(mergedForm);
       const updated: UserProfile = {
         ...mergedForm,
         profileCompletion: newCompletion,

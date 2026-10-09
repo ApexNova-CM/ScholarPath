@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../lib/apiClient';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { ContactSupportModal } from '../../components/common/ContactSupportModal';
 
 interface SettingsPageProps {
@@ -44,13 +45,29 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ userProfile, onUpdat
     setIsDeleting(true);
     setDeleteError(null);
     try {
+      // Ensure we have a fresh, valid authentication token for the delete call
+      if (isSupabaseConfigured) {
+        const { data } = await supabase.auth.getSession();
+        const currentToken = data?.session?.access_token;
+        if (currentToken) {
+          api.setToken(currentToken);
+        } else if (!api.getToken()) {
+          throw new Error('Your session has expired. Please sign in again to delete your account.');
+        }
+      }
+
       await api.delete('/auth/account');
       // Sign out locally — clears Supabase session, apiClient token, React state
       await logout();
       // Redirect to public landing page
       onNavigate('/');
     } catch (err: any) {
-      setDeleteError(err?.message || 'Account deletion failed. Please try again or contact support.');
+      const errMsg = err?.message || 'Account deletion failed. Please try again or contact support.';
+      if (errMsg.includes('token') || errMsg.includes('Session has expired') || errMsg.includes('UNAUTHORIZED')) {
+        setDeleteError('Your session has expired. Please sign in again to delete your account.');
+      } else {
+        setDeleteError(errMsg);
+      }
       setIsDeleting(false);
     }
   };

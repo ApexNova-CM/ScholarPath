@@ -72,21 +72,8 @@ export function initializeStorage(): void {
 initializeStorage();
 
 
-// Profile completion calculator
-export function calculateProfileCompletion(profile: Partial<UserProfile>): number {
-  let points = 0;
-  if (profile.firstName && profile.lastName) points += 10;
-  if (profile.email) points += 10;
-  if (profile.country) points += 10;
-  if (profile.dateOfBirth) points += 5;
-  if (profile.educationLevel) points += 15;
-  if (profile.institution) points += 10;
-  if (profile.fieldOfStudy) points += 15;
-  if (profile.gpa && profile.gpa > 0) points += 15;
-  if (profile.awards && profile.awards.length > 0) points += 5;
-  if (profile.certifications && profile.certifications.length > 0) points += 5;
-  return Math.min(100, points);
-}
+import { calculateProfileCompletion } from '../utils/formatters';
+export { calculateProfileCompletion };
 
 export const StorageService = {
   // --- USERS ---

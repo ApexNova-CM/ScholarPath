@@ -199,6 +199,8 @@ export interface StudentProfileRecord {
   leadership?: string[];
   volunteering?: string[];
   workExperience?: string[];
+  careerGoals?: string;
+  personalStatement?: string;
   profileCompletion: number;
   notificationPreferences?: {
     inApp?: boolean;

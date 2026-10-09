@@ -158,9 +158,10 @@
       "email": "maya.lin@example.com",
       "passwordHash": "hashed_pw_1",
       "role": "student",
+      "subscriptionStatus": "premium",
       "emailVerified": false,
-      "createdAt": "2026-10-08T15:58:00.888Z",
-      "updatedAt": "2026-10-08T15:58:00.888Z"
+      "createdAt": "2026-10-09T11:42:56.192Z",
+      "updatedAt": "2026-10-09T11:42:56.192Z"
     },
     "usr-ai-student-002": {
       "id": "usr-ai-student-002",
@@ -168,8 +169,8 @@
       "passwordHash": "hashed_pw_2",
       "role": "student",
       "emailVerified": false,
-      "createdAt": "2026-10-08T15:58:00.917Z",
-      "updatedAt": "2026-10-08T15:58:00.917Z"
+      "createdAt": "2026-10-09T11:42:56.238Z",
+      "updatedAt": "2026-10-09T11:42:56.238Z"
     },
     "usr-d1869038-d9fb-4b0c-862a-1852da096cd7": {
       "id": "usr-d1869038-d9fb-4b0c-862a-1852da096cd7",
@@ -866,9 +867,9 @@
       "fieldOfStudy": "Computer Science",
       "gpa": 3.92,
       "gpaScale": 4,
-      "profileCompletion": 75,
-      "createdAt": "2026-10-08T15:58:00.909Z",
-      "updatedAt": "2026-10-08T15:58:00.909Z"
+      "profileCompletion": 51,
+      "createdAt": "2026-10-09T11:42:56.217Z",
+      "updatedAt": "2026-10-09T11:42:56.217Z"
     },
     "usr-ai-student-002": {
       "userId": "usr-ai-student-002",
@@ -880,9 +881,9 @@
       "fieldOfStudy": "Biomedical Engineering",
       "gpa": 3.75,
       "gpaScale": 4,
-      "profileCompletion": 75,
-      "createdAt": "2026-10-08T15:58:00.945Z",
-      "updatedAt": "2026-10-08T15:58:00.945Z"
+      "profileCompletion": 51,
+      "createdAt": "2026-10-09T11:42:56.261Z",
+      "updatedAt": "2026-10-09T11:42:56.261Z"
     },
     "usr-d1869038-d9fb-4b0c-862a-1852da096cd7": {
       "userId": "usr-d1869038-d9fb-4b0c-862a-1852da096cd7",
@@ -2156,11 +2157,11 @@
       ],
       "applicationUrl": "https://techfuture.example.com/apply",
       "applicationInstructions": "Submit your transcript and personal statement online.",
-      "deadline": "2026-10-18T15:58:00.953Z",
+      "deadline": "2026-10-19T11:42:56.613Z",
       "viewCount": 0,
       "saveCount": 0,
-      "createdAt": "2026-10-08T15:58:00.953Z",
-      "updatedAt": "2026-10-08T15:58:00.953Z"
+      "createdAt": "2026-10-09T11:42:56.613Z",
+      "updatedAt": "2026-10-09T11:42:56.613Z"
     },
     "sch-ai-102": {
       "id": "sch-ai-102",
@@ -2197,11 +2198,11 @@
       ],
       "applicationUrl": "https://healthfirst.example.com/apply",
       "applicationInstructions": "Apply with research proposal.",
-      "deadline": "2026-11-02T15:58:00.963Z",
+      "deadline": "2026-11-03T11:42:56.631Z",
       "viewCount": 0,
       "saveCount": 0,
-      "createdAt": "2026-10-08T15:58:00.963Z",
-      "updatedAt": "2026-10-08T15:58:00.963Z"
+      "createdAt": "2026-10-09T11:42:56.631Z",
+      "updatedAt": "2026-10-09T11:42:56.631Z"
     },
     "sch-719e2ba0": {
       "id": "sch-719e2ba0",
@@ -4845,11 +4846,11 @@
       "scholarshipId": "sch-ai-101",
       "scholarshipTitle": "Silicon Valley Women in Tech Fellowship",
       "providerName": "Tech Future Institute",
-      "deadline": "2026-10-18T15:58:00.953Z",
+      "deadline": "2026-10-19T11:42:56.613Z",
       "amount": 15000,
       "currency": "USD",
       "status": "Shortlisted",
-      "appliedAt": "2026-10-08T15:58:00.980Z",
+      "appliedAt": "2026-10-09T11:42:56.666Z",
       "notes": "Passed initial screening round",
       "checklist": [
         {
@@ -4873,18 +4874,18 @@
         {
           "id": "h-1",
           "status": "Applied",
-          "timestamp": "2026-10-03T15:58:00.980Z",
+          "timestamp": "2026-10-04T11:42:56.666Z",
           "source": "student_updated"
         },
         {
           "id": "h-2",
           "status": "Shortlisted",
-          "timestamp": "2026-10-08T15:58:00.980Z",
+          "timestamp": "2026-10-09T11:42:56.666Z",
           "source": "provider_confirmed"
         }
       ],
-      "createdAt": "2026-10-08T15:58:00.980Z",
-      "updatedAt": "2026-10-08T15:58:00.980Z"
+      "createdAt": "2026-10-09T11:42:56.666Z",
+      "updatedAt": "2026-10-09T11:42:56.666Z"
     },
     "app-c8f1d6bf-be49-4bd0-83b5-bb787083a379": {
       "id": "app-c8f1d6bf-be49-4bd0-83b5-bb787083a379",
@@ -9148,7 +9149,7 @@
       "fileSize": 102400,
       "fileUrl": "vault/doc-ai-1.pdf",
       "verified": false,
-      "uploadedAt": "2026-10-08T15:58:00.971Z"
+      "uploadedAt": "2026-10-09T11:42:56.649Z"
     }
   },
   "notifications": {
@@ -11309,7 +11310,7 @@
       "2026-10": 3
     },
     "usr-ai-student-002": {
-      "2026-10": 1
+      "2026-10": 2
     }
   }
 }

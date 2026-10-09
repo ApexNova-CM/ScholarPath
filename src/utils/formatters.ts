@@ -2,7 +2,7 @@
  * formatters.ts — Reusable currency, deadline, and text formatting utilities for Scholavon.
  */
 
-import { Scholarship } from '../types';
+import { Scholarship, UserProfile } from '../types';
 
 /**
  * Maps standard currency ISO codes to their standard symbols.
@@ -234,3 +234,53 @@ export function buildSupportMailtoUrl(options: SupportEmailOptions = {}): string
 
   return `mailto:${recipient}?${params.join('&')}`;
 }
+
+/**
+ * Canonical profile completion calculator for Scholavon.
+ * Accurately scores actual completed profile fields:
+ * - Personal (25 pts): Name (8), Email (5), Phone (4), DOB (4), Gender (4)
+ * - Location & Background (15 pts): Country (8), State/City (7)
+ * - Academic (35 pts): Institution (10), Education Level (7), Field of Study (8), GPA > 0 (10)
+ * - Scholarship Profile (25 pts): Career Goals (7), Personal Statement (8), Awards/Achievements (5), Activities/Experience (5)
+ * Total = 100 points maximum.
+ */
+export function calculateProfileCompletion(profile?: Partial<UserProfile> | null): number {
+  if (!profile) return 0;
+
+  let points = 0;
+
+  // 1. Personal Identity (25 pts)
+  if (profile.firstName?.trim() && profile.lastName?.trim()) points += 8;
+  if (profile.email?.trim()) points += 5;
+  if (profile.phone?.trim()) points += 4;
+  if (profile.dateOfBirth?.trim()) points += 4;
+  if (profile.gender && profile.gender !== ('unspecified' as any)) points += 4;
+
+  // 2. Location & Origin (15 pts)
+  // 'International' or empty does not count as a specific chosen country
+  const validCountry = profile.country?.trim() && profile.country.trim().toLowerCase() !== 'international';
+  if (validCountry) points += 8;
+  if (profile.state?.trim() || profile.city?.trim()) points += 7;
+
+  // 3. Academic Profile (35 pts)
+  if (profile.institution?.trim() && profile.institution.trim() !== 'Scholavon Foundation') points += 10;
+  if (profile.educationLevel?.trim()) points += 7;
+  if (profile.fieldOfStudy?.trim() && profile.fieldOfStudy.trim() !== 'Platform Operations' && profile.fieldOfStudy.trim() !== 'Platform Administration') points += 8;
+  if (profile.gpa !== undefined && profile.gpa !== null && Number(profile.gpa) > 0) points += 10;
+
+  // 4. Scholarship Profile & Readiness (25 pts)
+  if (profile.careerGoals?.trim()) points += 7;
+  if (profile.personalStatement?.trim()) points += 8;
+  const hasAwards = (profile.achievements && profile.achievements.length > 0) || (profile.awards && profile.awards.length > 0);
+  if (hasAwards) points += 5;
+  const hasActivities =
+    (profile.extracurriculars && profile.extracurriculars.length > 0) ||
+    (profile.leadership && profile.leadership.length > 0) ||
+    (profile.workExperience && profile.workExperience.length > 0) ||
+    (profile.volunteering && profile.volunteering.length > 0) ||
+    (profile.certifications && profile.certifications.length > 0);
+  if (hasActivities) points += 5;
+
+  return Math.min(100, points);
+}
+

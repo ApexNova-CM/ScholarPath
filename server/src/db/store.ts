@@ -158,19 +158,41 @@ class Store {
   }
 
   public calculateProfileCompletion(profile: Partial<StudentProfileRecord>): number {
-    let score = 0;
-    if (profile.firstName && profile.lastName) score += 10;
-    if (profile.country) score += 10;
-    if (profile.dateOfBirth) score += 5;
-    if (profile.educationLevel) score += 15;
-    if (profile.institution) score += 10;
-    if (profile.fieldOfStudy) score += 15;
-    if (profile.gpa && profile.gpa > 0) score += 15;
-    if (profile.awards && profile.awards.length > 0) score += 5;
-    if (profile.certifications && profile.certifications.length > 0) score += 5;
-    if (profile.extracurriculars && profile.extracurriculars.length > 0) score += 5;
-    if (profile.workExperience && profile.workExperience.length > 0) score += 5;
-    return Math.min(100, score);
+    if (!profile) return 0;
+    let points = 0;
+
+    // 1. Personal Identity (25 pts)
+    if (profile.firstName?.trim() && profile.lastName?.trim()) points += 8;
+    if (profile.email?.trim()) points += 5;
+    if (profile.phone?.trim()) points += 4;
+    if (profile.dateOfBirth?.trim()) points += 4;
+    if (profile.gender && profile.gender !== ('unspecified' as any)) points += 4;
+
+    // 2. Location & Origin (15 pts)
+    const validCountry = profile.country?.trim() && profile.country.trim().toLowerCase() !== 'international';
+    if (validCountry) points += 8;
+    if (profile.state?.trim() || profile.city?.trim()) points += 7;
+
+    // 3. Academic Profile (35 pts)
+    if (profile.institution?.trim() && profile.institution.trim() !== 'Scholavon Foundation') points += 10;
+    if (profile.educationLevel?.trim()) points += 7;
+    if (profile.fieldOfStudy?.trim() && profile.fieldOfStudy.trim() !== 'Platform Operations' && profile.fieldOfStudy.trim() !== 'Platform Administration') points += 8;
+    if (profile.gpa !== undefined && profile.gpa !== null && Number(profile.gpa) > 0) points += 10;
+
+    // 4. Scholarship Profile & Readiness (25 pts)
+    if (profile.careerGoals?.trim()) points += 7;
+    if (profile.personalStatement?.trim()) points += 8;
+    const hasAwards = (profile.achievements && profile.achievements.length > 0) || (profile.awards && profile.awards.length > 0);
+    if (hasAwards) points += 5;
+    const hasActivities =
+      (profile.extracurriculars && profile.extracurriculars.length > 0) ||
+      (profile.leadership && profile.leadership.length > 0) ||
+      (profile.workExperience && profile.workExperience.length > 0) ||
+      (profile.volunteering && profile.volunteering.length > 0) ||
+      (profile.certifications && profile.certifications.length > 0);
+    if (hasActivities) points += 5;
+
+    return Math.min(100, points);
   }
 
   // --- CATEGORIES ---

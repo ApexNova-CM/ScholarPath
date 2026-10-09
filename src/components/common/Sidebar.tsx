@@ -411,18 +411,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* ============================================================ */}
         <div className="p-3 border-t border-slate-200/80 bg-white shrink-0 space-y-1">
           <button
-            onClick={() => handleNav('/')}
-            title={isCollapsed ? 'View Public Site' : undefined}
-            aria-label="View Public Site"
-            className={`w-full flex items-center rounded-lg text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 transition-colors cursor-pointer ${
-              isCollapsed ? 'justify-center p-2.5' : 'gap-2.5 px-3 py-2'
-            }`}
-          >
-            <ArrowLeft size={16} className="shrink-0" />
-            {!isCollapsed && <span className="truncate">View Public Site</span>}
-          </button>
-
-          <button
             id="sidebar-btn-help"
             onClick={() => setShowHelpModal(true)}
             title={isCollapsed ? 'Help & Guide' : undefined}
@@ -667,14 +655,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Mobile Drawer Bottom Section (Fixed & Pinned) */}
             <div className="p-3 border-t border-slate-200/80 bg-white shrink-0 space-y-1">
-              <button
-                onClick={() => handleNav('/', true)}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 transition-colors cursor-pointer"
-              >
-                <ArrowLeft size={16} />
-                <span>View Public Site</span>
-              </button>
-
               <button
                 id="mobile-sidebar-btn-help"
                 onClick={() => {
