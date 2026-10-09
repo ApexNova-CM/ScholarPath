@@ -156,8 +156,8 @@ export const PaymentCallbackPage: React.FC<PaymentCallbackPageProps> = ({ onNavi
             </div>
             <p className="text-[10px] text-slate-400">
               If your payment went through but this page shows an error, please contact{' '}
-              <a href="mailto:support@scholavon.org" className="underline text-indigo-600">
-                support@scholavon.org
+              <a href="mailto:support@scholavon.com" className="underline text-indigo-600">
+                support@scholavon.com
               </a>
               {' '}with your payment reference.
             </p>

@@ -166,6 +166,7 @@ export interface UserRecord {
   email: string;
   passwordHash: string;
   role: UserRole;
+  subscriptionStatus?: SubscriptionStatus;
   emailVerified: boolean;
   createdAt: string;
   updatedAt: string;

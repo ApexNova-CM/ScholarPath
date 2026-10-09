@@ -7,7 +7,9 @@ import {
   formatScholarshipDeadline, 
   getCurrencySymbol, 
   isDeadlinePassed,
-  getDaysUntilDeadline
+  getDaysUntilDeadline,
+  SUPPORT_EMAIL,
+  buildSupportMailtoUrl
 } from '../../src/utils/formatters';
 import {
   isScholarshipOpen,
@@ -260,4 +262,48 @@ describe('User Feedback Improvements Suite', () => {
       expect(res.body.data.scholarshipId).toBe(openSchId);
     });
   });
+
+  describe('Task 5: Human Support Email & Safe Mailto URL Generation', () => {
+    it('uses official support@scholavon.com recipient address', () => {
+      expect(SUPPORT_EMAIL).toBe('support@scholavon.com');
+      const url = buildSupportMailtoUrl();
+      expect(url).toContain('mailto:support@scholavon.com');
+    });
+
+    it('safely encodes subject with spaces, ampersands, and special characters', () => {
+      const url = buildSupportMailtoUrl({
+        subject: 'Scholarship #123 & Question / Help? + Feedback'
+      });
+      expect(url).toContain('mailto:support@scholavon.com');
+      expect(url).toContain('subject=Scholarship%20%23123%20%26%20Question%20%2F%20Help%3F%20%2B%20Feedback');
+    });
+
+    it('safely encodes message with line breaks as CRLF (%0D%0A) for email client compatibility', () => {
+      const url = buildSupportMailtoUrl({
+        name: 'Ada Lovelace',
+        email: 'ada@example.com',
+        subject: 'Inquiry',
+        message: 'Line 1: Hello\nLine 2: Question about eligibility\r\nLine 3: Thanks & regards'
+      });
+
+      expect(url).toContain('mailto:support@scholavon.com');
+      expect(url).toContain('subject=Inquiry');
+      // Verify body is encoded and contains CRLF
+      expect(url).toContain('body=');
+      const decodedBody = decodeURIComponent(url.split('body=')[1]);
+      expect(decodedBody).toContain('Ada Lovelace');
+      expect(decodedBody).toContain('ada@example.com');
+      expect(decodedBody).toContain('Line 1: Hello\r\nLine 2: Question about eligibility\r\nLine 3: Thanks & regards');
+      expect(decodedBody).toContain('Sent from Scholavon Platform');
+    });
+
+    it('handles empty or missing parameters with safe defaults without crashing', () => {
+      const urlDefault = buildSupportMailtoUrl();
+      expect(urlDefault).toContain('mailto:support@scholavon.com?subject=Scholavon%20Support%20Request');
+
+      const urlEmpty = buildSupportMailtoUrl({ name: '', email: '', subject: '', message: '' });
+      expect(urlEmpty).toContain('mailto:support@scholavon.com?subject=Scholavon%20Support%20Request');
+    });
+  });
 });
+

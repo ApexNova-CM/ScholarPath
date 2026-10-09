@@ -183,3 +183,54 @@ export function getDaysUntilDeadline(deadlineStr?: string | null, currentDate: D
   const diffMs = targetTime - currentDate.getTime();
   return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 }
+
+/**
+ * Official human support email address for Scholavon.
+ */
+export const SUPPORT_EMAIL = 'support@scholavon.com';
+
+export interface SupportEmailOptions {
+  name?: string;
+  email?: string;
+  subject?: string;
+  message?: string;
+}
+
+/**
+ * Builds a safely encoded RFC 6068 compliant mailto URL for human support.
+ * - Accurately sets recipient to support@scholavon.com.
+ * - Safely encodes spaces, ampersands (&), question marks (?), line breaks (\r\n), and special characters.
+ * - Converts newlines to CRLF (\r\n -> %0D%0A) so multiline messages render correctly across all email clients.
+ */
+export function buildSupportMailtoUrl(options: SupportEmailOptions = {}): string {
+  const recipient = SUPPORT_EMAIL;
+  const params: string[] = [];
+
+  const rawSubject = options.subject?.trim() || 'Scholavon Support Request';
+  params.push(`subject=${encodeURIComponent(rawSubject)}`);
+
+  const namePart = options.name?.trim() ? `Name: ${options.name.trim()}` : '';
+  const emailPart = options.email?.trim() ? `Email: ${options.email.trim()}` : '';
+  const messagePart = options.message?.trim() || '';
+
+  const bodySections: string[] = [];
+  bodySections.push('Hello Scholavon Support Team,');
+
+  const senderDetails = [namePart, emailPart].filter(Boolean).join('\n');
+  if (senderDetails) {
+    bodySections.push(senderDetails);
+  }
+
+  if (messagePart) {
+    bodySections.push(`Message:\n${messagePart}`);
+  }
+
+  bodySections.push('Sent from Scholavon Platform');
+
+  const fullBody = bodySections.join('\n\n');
+  // Normalize all line endings to CRLF before encoding
+  const normalizedBody = fullBody.replace(/\r?\n/g, '\r\n');
+  params.push(`body=${encodeURIComponent(normalizedBody)}`);
+
+  return `mailto:${recipient}?${params.join('&')}`;
+}
