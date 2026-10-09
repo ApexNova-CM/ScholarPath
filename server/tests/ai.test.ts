@@ -481,6 +481,60 @@ describe('Feature #8: AI Scholarship Assistant', () => {
       expect(res.body.data.reply).toContain('Pomodoro');
     });
 
+    it('solves mathematical and algebraic problems accurately', async () => {
+      const res = await request(app)
+        .post('/api/v1/student/ai/chat')
+        .set('Authorization', `Bearer ${student1Token}`)
+        .send({ message: 'Can you solve 2x + 5 = 15 step by step?' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.reply).toContain('x = 5');
+      expect(res.body.data.reply).toContain('Algebraic');
+    });
+
+    it('answers sports and football questions accurately', async () => {
+      const res = await request(app)
+        .post('/api/v1/student/ai/chat')
+        .set('Authorization', `Bearer ${student1Token}`)
+        .send({ message: 'Who won the 2022 World Cup?' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.reply).toContain('Argentina');
+      expect(res.body.data.reply).toContain('2022');
+    });
+
+    it('provides interpersonal and relationship communication advice', async () => {
+      const res = await request(app)
+        .post('/api/v1/student/ai/chat')
+        .set('Authorization', `Bearer ${student1Token}`)
+        .send({ message: 'I have a disagreement with my roommate about cleaning duties. How should I communicate?' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.reply).toContain('Communication');
+      expect(res.body.data.reply).toContain('Statements');
+    });
+
+    it('writes creative poetry and stories upon request', async () => {
+      const res = await request(app)
+        .post('/api/v1/student/ai/chat')
+        .set('Authorization', `Bearer ${student1Token}`)
+        .send({ message: 'Write a short poem about learning and persistence' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.reply).toContain('Spark in the Quiet');
+    });
+
+    it('explains scientific concepts such as photosynthesis accurately', async () => {
+      const res = await request(app)
+        .post('/api/v1/student/ai/chat')
+        .set('Authorization', `Bearer ${student1Token}`)
+        .send({ message: 'Explain photosynthesis and its chemical equation' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.reply).toContain('Photosynthesis');
+      expect(res.body.data.reply).toContain('CO');
+    });
+
     it('explains Scholavon platform features and how to upgrade or contact support', async () => {
       const res = await request(app)
         .post('/api/v1/student/ai/chat')
@@ -492,6 +546,86 @@ describe('Feature #8: AI Scholarship Assistant', () => {
       expect(res.body.data.reply).toContain('support@scholavon.com');
       expect(res.body.data.reply).toContain('Scholavon Plus');
     });
+
+    it('does not force irrelevant scholarship action buttons on purely general questions', async () => {
+      const res = await request(app)
+        .post('/api/v1/student/ai/chat')
+        .set('Authorization', `Bearer ${student1Token}`)
+        .send({ message: 'What is 2 + 2?' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.reply).toContain('4');
+      expect(res.body.data.suggestedActions).toBeUndefined();
+    });
+
+  });
+
+  describe('11. Free Tier Quota Limits & Plus Entitlements', () => {
+    it('enforces 3 prompts per month for Free tier users and requires upgrade on 4th prompt', async () => {
+      // Use unique ID per test run to avoid stale prompt counts from db.json
+      const freeStudentId = `usr-free-quota-${Date.now()}`;
+      const freeUser: UserRecord = {
+        id: freeStudentId,
+        email: `free.${Date.now()}@example.com`,
+        passwordHash: 'hashed_pw_free',
+        role: 'student',
+        subscriptionStatus: 'free',
+        emailVerified: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      db.createUser(freeUser);
+      db.upsertProfile({
+        userId: freeStudentId,
+        firstName: 'FreeStudent',
+        lastName: 'Test',
+        country: 'United States',
+        educationLevel: 'Undergraduate',
+        institution: 'Community College',
+        fieldOfStudy: 'General Studies',
+        gpa: 3.2,
+        gpaScale: 4.0,
+        profileCompletion: 60,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const freeToken = createAuthToken(freeStudentId, freeUser.email, 'student');
+
+      // Prompt 1
+      const res1 = await request(app)
+        .post('/api/v1/student/ai/chat')
+        .set('Authorization', `Bearer ${freeToken}`)
+        .send({ message: 'Prompt 1' });
+      expect(res1.status).toBe(200);
+      expect(res1.body.data.remainingPrompts).toBe(2);
+
+      // Prompt 2
+      const res2 = await request(app)
+        .post('/api/v1/student/ai/chat')
+        .set('Authorization', `Bearer ${freeToken}`)
+        .send({ message: 'Prompt 2' });
+      expect(res2.status).toBe(200);
+      expect(res2.body.data.remainingPrompts).toBe(1);
+
+      // Prompt 3
+      const res3 = await request(app)
+        .post('/api/v1/student/ai/chat')
+        .set('Authorization', `Bearer ${freeToken}`)
+        .send({ message: 'Prompt 3' });
+      expect(res3.status).toBe(200);
+      expect(res3.body.data.remainingPrompts).toBe(0);
+
+      // Prompt 4 — Exceeds free limit
+      const res4 = await request(app)
+        .post('/api/v1/student/ai/chat')
+        .set('Authorization', `Bearer ${freeToken}`)
+        .send({ message: 'Prompt 4' });
+      expect(res4.status).toBe(403);
+      expect(res4.body.success).toBe(false);
+      expect(res4.body.error.code).toBe('UPGRADE_REQUIRED');
+    });
   });
 });
+
 

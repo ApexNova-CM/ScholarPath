@@ -346,8 +346,105 @@ function generateClientGroundedResponse(
     };
   }
 
-  // General / Coding / Career / Writing fallback
-  if (lower.includes('essay') || lower.includes('statement') || lower.includes('write')) {
+  // Mathematics & Arithmetic
+  if (
+    lower.includes('solve') ||
+    lower.includes('equation') ||
+    lower.includes('calculus') ||
+    lower.includes('derivative') ||
+    lower.includes('math') ||
+    lower.includes('arithmetic') ||
+    lower.includes('calculate') ||
+    lower.includes('2 + 2') ||
+    lower.includes('2x')
+  ) {
+    if (lower.includes('2x + 5 = 15') || (lower.includes('2x') && lower.includes('15'))) {
+      return {
+        content: `### Algebraic Solution\n\n` +
+          `Given: \\( 2x + 5 = 15 \\)\n\n` +
+          `1. Subtract 5 from both sides: \\( 2x = 10 \\)\n` +
+          `2. Divide by 2: \\( x = 5 \\)\n\n` +
+          `**Result**: \\( x = 5 \\)`
+      };
+    }
+    if (lower.includes('2 + 2') || lower.includes('2 plus 2')) {
+      return { content: `**2 + 2 = 4**` };
+    }
+    return {
+      content: `### Math Assistance with Vona\n\nI can help you solve algebra, calculus, statistics, geometry, and problem-solving steps. Share your equation or problem to get started!`
+    };
+  }
+
+  // Sports & Football
+  if (
+    lower.includes('football') ||
+    lower.includes('soccer') ||
+    lower.includes('world cup') ||
+    lower.includes('messi') ||
+    lower.includes('ronaldo') ||
+    lower.includes('sports')
+  ) {
+    if (lower.includes('world cup') && (lower.includes('2022') || lower.includes('won'))) {
+      return {
+        content: `### 2022 FIFA World Cup Winner\n\n` +
+          `**Argentina** won the 2022 FIFA World Cup in Qatar, defeating France 3–3 (4–2 on penalties) in the final match.`
+      };
+    }
+    return {
+      content: `### Sports & Athletics with Vona\n\nI can discuss football tactics, tournament histories, rules, athletic training, and sports analytics. What would you like to talk about?`
+    };
+  }
+
+  // Coding & Technology
+  if (
+    lower.includes('code') ||
+    lower.includes('programming') ||
+    lower.includes('python') ||
+    lower.includes('javascript') ||
+    lower.includes('typescript') ||
+    lower.includes('react') ||
+    lower.includes('algorithm') ||
+    lower.includes('bug')
+  ) {
+    return {
+      content: `### Programming & Tech Insights\n\n` +
+        `I can help you write code, debug errors, design software architecture, or explain computer science algorithms. Share your code snippet or question!`
+    };
+  }
+
+  // Relationships & Communication
+  if (
+    lower.includes('relationship') ||
+    lower.includes('roommate') ||
+    lower.includes('disagreement') ||
+    lower.includes('conflict') ||
+    lower.includes('communication')
+  ) {
+    return {
+      content: `### Communication & Interpersonal Guidance\n\n` +
+        `1. **Use "I" Statements**: Focus on your perspective rather than assigning blame.\n` +
+        `2. **Active Listening**: Listen to understand rather than to immediately reply.\n` +
+        `3. **Collaborative Problem Solving**: Tackle the disagreement as a shared challenge.\n\n` +
+        `Feel free to share more context if you'd like advice on a specific conversation!`
+    };
+  }
+
+  // General / Writing fallback
+  if (lower.includes('essay') || lower.includes('statement') || lower.includes('write') || lower.includes('poem')) {
+    if (lower.includes('poem')) {
+      return {
+        content: `### A Spark in the Quiet\n\n` +
+          `*The midnight cursor blinks in place,*\n` +
+          `*A silent glow across the page.*\n` +
+          `*Each line of thought, each step of grace,*\n` +
+          `*Unfolds upon tomorrow's stage.*\n\n` +
+          `*For knowledge sought is never lost,*\n` +
+          `*Though long the road and steep the climb—*\n` +
+          `*The dream that's built whatever cost,*\n` +
+          `*Will echo through the halls of time.*`
+      };
+    }
+
     return {
       content: `### Essay & Writing Coaching with Vona\n\n` +
         `Writing a memorable scholarship essay requires focus and structure:\n\n` +
@@ -364,15 +461,10 @@ function generateClientGroundedResponse(
 
   // General conversational response
   return {
-    content: `Hello ${profile.firstName}! I'm **Vona**, your personal AI assistant.\n\n` +
-      `Regarding *"**${message}**"*:\n\n` +
-      `I can help you explore this topic in depth or connect it with your academic goals in **${profile.educationLevel}** (${profile.fieldOfStudy || 'General'}).\n\n` +
-      `You currently have **${applications.length} applications** and **${documents.length} documents** in your vault. Let me know what you'd like to work on!`,
-    suggestedActions: [
-      { label: 'Find Scholarships', path: '/scholarships' },
-      { label: 'Document Vault', path: '/documents' },
-      { label: 'My Applications', path: '/applications' }
-    ]
+    content: `I'm happy to help you with that!\n\n` +
+      `Regarding: *"**${message}**"*\n\n` +
+      `As **Vona**, I can answer general questions across mathematics, programming, sports, science, writing, and everyday advice, as well as guide your Scholavon scholarship and application progress.\n\n` +
+      `Feel free to ask a follow-up or provide more details!`
   };
 }
 

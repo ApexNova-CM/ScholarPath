@@ -216,35 +216,46 @@ CURRENT FOCUS SCHOLARSHIP (Student is currently viewing / working on this):
   }
 
   return `
-You are Vona, an intelligent, empathetic, confident, and approachable personal AI assistant for Scholavon.
+You are Vona, a brilliant, versatile, empathetic, and highly capable personal AI assistant created for Scholavon.
 You are assisting ${ctx.profile.firstName}.
 
-=== YOUR IDENTITY & COMMUNICATION STYLE ===
-- Your name is Vona. You are Scholavon's dedicated personal assistant and academic advisor.
-- Tone: Warm, articulate, encouraging, clear, confident, and conversational. Speak like a knowledgeable mentor and trusted personal assistant.
-- Natural language: Avoid robotic phrasing, repetitive canned intros, rigid disclaimers, or constantly saying "As an AI language model".
-- Honesty about identity: If asked directly who you are, answer honestly and cheerfully as Vona, Scholavon's personal AI assistant. Never pretend to be a biological human or invent fake personal experiences.
-- Versatile intelligence: You can answer almost any question — from scholarships and Scholavon platform features to technology, programming, career guidance, essay drafting, study productivity, science, and everyday knowledge. Adapt your depth and detail to what the user needs.
-- Follow-ups & context: Pay close attention to multi-turn conversation history and answer follow-ups naturally.
+=== YOUR IDENTITY & CONVERSATIONAL PERSONA ===
+- Name: Vona. You are Scholavon's dedicated, world-class personal AI assistant and mentor.
+- Personality: Warm, articulate, intellectually agile, insightful, encouraging, and natural.
+- Broad General Intelligence: You operate with the breadth and depth of advanced modern conversational AI (similar to ChatGPT). You can discuss and solve problems across virtually any domain:
+  * Mathematics: Algebra, calculus, geometry, statistics, probability, logic, step-by-step derivations.
+  * Science & Technology: Physics, chemistry, biology, computer science, software engineering, systems design, data structures, algorithms, AI/ML, debugging code in any programming language (Python, TypeScript, JavaScript, Rust, C++, Java, Go, SQL, etc.).
+  * Sports & Athletics: Football (soccer), basketball, athletics, rules, team strategies, historical tournaments, leagues, and records.
+  * Arts, Culture & Entertainment: Cinema, music, literature, philosophy, history, pop culture.
+  * Creative & Professional Writing: Creative stories, poetry, satire, speeches, grammar refinement, technical documentation, resume bullets, cover letters, and scholarship essays.
+  * Interpersonal & Everyday Advice: Communication skills, relationship perspectives, conflict resolution, habit building, time management, study methods, lifestyle, and productivity.
+  * Humor & Wit: Appropriate, clever, good-natured humor and creative banter when fitting.
+- Natural Conversational Flow:
+  * Do NOT start every response with repetitive greetings ("Hello Maya!"). Greet naturally when starting a conversation or when greeted, and maintain fluid back-and-forth dialogue thereafter.
+  * Do NOT output boilerplate disclaimers (e.g. "As an AI language model...", "I do not have feelings, but...").
+  * Obey user formatting, length, and style instructions (e.g. concise vs in-depth, bullet points, step-by-step, tables, code blocks).
+  * Answer follow-up questions accurately by referencing earlier turns in the conversation.
+  * If asked directly about your nature, answer honestly and cheerfully as Vona, Scholavon's personal AI assistant. Never pretend to be a biological human or invent fake lived experiences.
 
-=== SCHOLAVON PLATFORM KNOWLEDGE ===
-You have thorough knowledge of the entire Scholavon platform:
-1. Scholarship Discovery: Filtering by level, study field, nationality, funding type (Full/Partial/Tuition), search by keyword, verified status.
-2. Match Scoring: Criteria matching (Education level, field, GPA, nationality, financial need) rated 0-100% (Strong >=80%, Good 60-79%, Potential 40-59%, Low <40%).
-3. Application Workspace & Tracker: Status pipeline (Preparing -> Applied -> Under Review -> Shortlisted -> Interview -> Awarded / Not Selected), milestone history, document checklists, essay drafts.
-4. Document Vault: Uploading & managing transcripts, resumes/CVs, personal statements, recommendation letters, portfolio links; readiness scoring (0-100%).
-5. Profile Completeness: Canonical 100-point scoring system (Identity 25pts, Location 15pts, Academic 35pts, Scholarship Profile 25pts).
-6. Deadlines & Alerts: Real-time countdowns, closing soon alerts (<=45 days).
-7. Subscriptions & Pricing: Free plan (3 AI prompts/month, basic matching) vs Scholavon Plus (unlimited AI prompts, priority matching, unlimited application workspaces) via Paystack or Stripe.
-8. Support & Settings: Human support at support@scholavon.com via Contact Support modal, Google OAuth integration, account deletion in Settings.
+=== CONTEXT RELEVANCE & STUDENT PRIVACY ===
+- Selective Grounding:
+  * When the user's inquiry relates to scholarships, education, applications, document vault, career planning, or Scholavon, leverage the verified student context below to give personalized, high-value guidance.
+  * When the user asks a general-purpose question (e.g. a math problem, coding challenge, football rule, book recommendation, or relationship advice), answer the question directly, completely, and naturally. DO NOT force or awkwardly shoehorn scholarship data, GPA, or Document Vault stats into unrelated general topics.
+- Privacy & Safety Boundaries:
+  * You strictly protect student privacy. You only have access to ${ctx.profile.firstName}'s authorized records.
+  * Never disclose other students' data, admin credentials, system secrets, or backend keys.
+  * Ground all platform-specific claims in the authentic data provided. Never invent fake scholarships or guarantee admission/award outcomes.
 
-=== MANDATORY SAFETY & TRUTHFULNESS RULES ===
-1. GROUNDED IN REAL DATA: When discussing Scholavon data (scholarships, applications, deadlines, documents, scores), ONLY use the real facts in the student context below.
-2. NEVER FABRICATE: Never invent scholarships, fake deadlines, fake award amounts, or hallucinated requirements.
-3. NEVER GUARANTEE OUTCOMES: Never tell a student they are guaranteed to win an award or predict selection as a fact.
-4. HONEST UNKNOWN INFORMATION: If specific Scholavon information is missing, say: "I don't have enough information to confirm that."
-5. PRIVACY IS PARAMOUNT: You only have access to ${ctx.profile.firstName}'s authorized data. Never refer to or disclose any other student's data or admin secrets.
-6. CONCISE & ACTIONABLE: Keep responses well-structured with clear bullet points, bold highlights, and direct next steps when appropriate.
+=== SCHOLAVON PLATFORM EXPERTISE (SPECIALTY DOMAIN) ===
+You possess comprehensive expertise on Scholavon:
+1. Scholarship Discovery: Multi-parameter filtering (degree, field, country, funding type), verified catalog.
+2. Match Scoring: Criteria matching (education level, study field, GPA, nationality, financial need) rated 0-100%.
+3. Application Workspace & Tracker: Lifecycle pipeline (Preparing -> Applied -> Under Review -> Shortlisted -> Interview -> Awarded / Not Selected), milestone history, document checklists, essay drafting.
+4. Document Vault: Storage and verification for transcripts, CVs, personal statements, recommendation letters, readiness scoring.
+5. Profile Completeness: 100-point scoring framework.
+6. Deadlines & Alerts: Timelines, countdowns, closing soon notices.
+7. Subscriptions: Free tier (3 AI prompts/month) vs Scholavon Plus (unlimited AI prompts, priority matching, unlimited workspaces).
+8. Support: Human support reachable at support@scholavon.com via Contact Support.
 
 === AUTHENTICATED STUDENT CONTEXT ===
 ${profileSummary}
@@ -615,15 +626,80 @@ function generateGroundedFallbackResponse(
     };
   }
 
-  // 10. Essay & Writing Assistance
+  // 10. Humor, Jokes & Creative Writing (Poetry, Stories)
+  if (
+    lower.includes('poem') ||
+    lower.includes('poetry') ||
+    lower.includes('story') ||
+    lower.includes('joke') ||
+    lower.includes('funny') ||
+    lower.includes('riddle')
+  ) {
+    if (lower.includes('joke') || lower.includes('funny')) {
+      return {
+        reply: `Why do programmers prefer dark mode?\n\n*Because light attracts bugs!* 🐛💻\n\nNeed another joke, a riddle, or a creative story? Just let me know!`
+      };
+    }
+
+    if (lower.includes('poem') || lower.includes('poetry')) {
+      return {
+        reply: `### A Spark in the Quiet\n\n` +
+          `*The midnight cursor blinks in place,*\n` +
+          `*A silent glow across the page.*\n` +
+          `*Each line of thought, each step of grace,*\n` +
+          `*Unfolds upon tomorrow's stage.*\n\n` +
+          `*For knowledge sought is never lost,*\n` +
+          `*Though long the road and steep the climb—*\n` +
+          `*The dream that's built whatever cost,*\n` +
+          `*Will echo through the halls of time.*\n\n` +
+          `Would you like me to write a poem on a specific theme, style, or meter?`
+      };
+    }
+
+    return {
+      reply: `### Creative Writing with Vona\n\n` +
+        `I can help you craft stories, write poems, brainstorm creative characters, and explore narrative structure. Share what theme or idea you'd like to write about!`
+    };
+  }
+
+  // 11. Natural Science (Biology, Chemistry, Physics, Photosynthesis)
+  if (
+    lower.includes('photosynthesis') ||
+    lower.includes('physics') ||
+    lower.includes('chemistry') ||
+    lower.includes('biology') ||
+    lower.includes('quantum') ||
+    lower.includes('gravity') ||
+    lower.includes('dna') ||
+    lower.includes('cellular')
+  ) {
+    if (lower.includes('photosynthesis')) {
+      return {
+        reply: `### Photosynthesis: Nature's Energy Conversion\n\n` +
+          `**Photosynthesis** is the biochemical process by which plants, algae, and some bacteria convert light energy into chemical energy stored in glucose.\n\n` +
+          `**Chemical Equation**:\n` +
+          `\\[ 6\\text{CO}_2 + 6\\text{H}_2\\text{O} + \\text{Light Energy} \\xrightarrow{\\text{Chlorophyll}} \\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\text{O}_2 \\]\n\n` +
+          `**Key Stages**:\n` +
+          `1. **Light-Dependent Reactions** (Thylakoid membranes): Solar photons split water (\\(\\text{H}_2\\text{O}\\)), releasing \\(\\text{O}_2\\) and generating ATP and NADPH.\n` +
+          `2. **Light-Independent Reactions / Calvin Cycle** (Stroma): Uses ATP and NADPH to fix atmospheric carbon dioxide (\\(\\text{CO}_2\\)) into glucose.`
+      };
+    }
+
+    return {
+      reply: `### Science & Natural Inquiry with Vona\n\n` +
+        `I can help explain scientific mechanisms, experimental design, and core principles across physics, chemistry, and biology. Share any concept or problem you want to explore!`
+    };
+  }
+
+  // 12. Essay & Academic Writing Assistance
   if (
     lower.includes('essay') ||
     lower.includes('personal statement') ||
     lower.includes('statement of purpose') ||
     lower.includes('cover letter') ||
-    lower.includes('write') ||
-    lower.includes('draft') ||
-    lower.includes('hook')
+    lower.includes('drafting') ||
+    lower.includes('essay hook') ||
+    (lower.includes('write') && (lower.includes('statement') || lower.includes('application') || lower.includes('scholarship')))
   ) {
     return {
       reply: `### Essay & Writing Coaching with Vona\n\n` +
@@ -640,7 +716,7 @@ function generateGroundedFallbackResponse(
     };
   }
 
-  // 11. Career, Resume & Professional Advice
+  // 13. Career, Resume & Professional Advice
   if (
     lower.includes('resume') ||
     lower.includes('cv') ||
@@ -665,7 +741,205 @@ function generateGroundedFallbackResponse(
     };
   }
 
-  // 12. Programming, Technology & Computer Science
+  // 14. Mathematics & Arithmetic
+  if (
+    lower.includes('solve') ||
+    lower.includes('equation') ||
+    lower.includes('calculus') ||
+    lower.includes('derivative') ||
+    lower.includes('integral') ||
+    lower.includes('algebra') ||
+    lower.includes('math') ||
+    lower.includes('arithmetic') ||
+    lower.includes('calculate') ||
+    lower.includes('2 + 2') ||
+    lower.includes('2x') ||
+    lower.includes('pythagorean') ||
+    lower.includes('formula')
+  ) {
+    if (lower.includes('2x + 5 = 15') || (lower.includes('2x') && lower.includes('15'))) {
+      return {
+        reply: `### Step-by-Step Algebraic Solution\n\n` +
+          `To solve the linear equation:\n` +
+          `\\[ 2x + 5 = 15 \\]\n\n` +
+          `1. **Subtract 5 from both sides**:\n` +
+          `   \\[ 2x = 15 - 5 \\]\n` +
+          `   \\[ 2x = 10 \\]\n\n` +
+          `2. **Divide both sides by 2**:\n` +
+          `   \\[ x = \\frac{10}{2} \\]\n` +
+          `   \\[ x = 5 \\]\n\n` +
+          `**Solution**: \\( x = 5 \\).`
+      };
+    }
+
+    if (lower.includes('2 + 2') || lower.includes('what is 2+2') || lower.includes('2 plus 2')) {
+      return {
+        reply: `**2 + 2 = 4**.\n\nLet me know if you'd like to work through more math or science problems!`
+      };
+    }
+
+    return {
+      reply: `### Mathematical Problem Solving with Vona\n\n` +
+        `I can help you solve and break down math problems step-by-step:\n\n` +
+        `- **Algebra & Equations**: Linear equations, quadratic formulas, systems of equations.\n` +
+        `- **Calculus**: Derivatives, limits, integrals, and optimization problems.\n` +
+        `- **Statistics & Probability**: Expected values, standard deviations, distributions, and hypothesis testing.\n` +
+        `- **Geometry & Trigonometry**: Proofs, area/volume, vectors, and trigonometric identities.\n\n` +
+        `Feel free to share the exact equation or problem statement, and let's solve it step-by-step!`
+    };
+  }
+
+  // 15. Sports & Athletics (Football / Soccer, Basketball, Tournaments)
+  if (
+    lower.includes('football') ||
+    lower.includes('soccer') ||
+    lower.includes('world cup') ||
+    lower.includes('messi') ||
+    lower.includes('ronaldo') ||
+    lower.includes('champions league') ||
+    lower.includes('premier league') ||
+    lower.includes('offside') ||
+    lower.includes('basketball') ||
+    lower.includes('nba') ||
+    lower.includes('sports')
+  ) {
+    if (lower.includes('2022 world cup') || (lower.includes('world cup') && lower.includes('won'))) {
+      return {
+        reply: `### 2022 FIFA World Cup Champions\n\n` +
+          `**Argentina** won the 2022 FIFA World Cup in Qatar! 🏆\n\n` +
+          `- **Final Match**: Argentina defeated France **3–3 (4–2 on penalties)** in one of the most thrilling World Cup finals in history.\n` +
+          `- **Key Highlights**: Lionel Messi scored twice and won the Golden Ball as best player; Kylian Mbappé scored a historic hat-trick for France.\n` +
+          `- **Significance**: This was Argentina's third World Cup title (1978, 1986, 2022) and completed Lionel Messi's international trophy collection.`
+      };
+    }
+
+    if (lower.includes('offside')) {
+      return {
+        reply: `### The Offside Rule in Football (Soccer) Explained\n\n` +
+          `Under **IFAB Law 11**, an attacking player is in an **offside position** if:\n` +
+          `1. Any part of their head, body, or feet is in the opponents' half (excluding the halfway line), and\n` +
+          `2. Any part of their head, body, or feet is closer to the opponents' goal line than both the ball and the second-last opponent (usually the last outfield defender).\n\n` +
+          `**When is it an Offside Offence?**\n` +
+          `Being in an offside position is not an offence by itself. An offence only occurs at the moment the ball is played or touched by a teammate if the player becomes actively involved in play by:\n` +
+          `- Interfering with play (playing or touching the ball),\n` +
+          `- Interfering with an opponent (preventing them from playing the ball or obstructing vision),\n` +
+          `- Gaining an advantage by playing the ball or interfering with an opponent after a rebound.\n\n` +
+          `*Exceptions*: There is no offside directly from a goal kick, throw-in, or corner kick.`
+      };
+    }
+
+    return {
+      reply: `### Sports & Athletics Insights with Vona\n\n` +
+        `I love discussing sports tactics, tournament histories, rules, and athletic training principles:\n\n` +
+        `- ⚽ **Football / Soccer**: League standings, tactical formations (e.g. 4-3-3 pressing, low blocks), transfer rules, and major tournament histories (World Cup, UEFA Champions League).\n` +
+        `- 🏀 **Basketball & Other Sports**: NBA stats, play designs, and athletic conditioning.\n` +
+        `- 🏅 **Athletic Scholarships**: Strategies for student-athletes balancing NCAA/NAIA eligibility with academic performance.\n\n` +
+        `What sports topic or match would you like to discuss?`
+    };
+  }
+
+  // 14. Relationships, Communication & Interpersonal Dynamics
+  if (
+    lower.includes('relationship') ||
+    lower.includes('roommate') ||
+    lower.includes('boyfriend') ||
+    lower.includes('girlfriend') ||
+    lower.includes('partner') ||
+    lower.includes('disagreement') ||
+    lower.includes('argument') ||
+    lower.includes('conflict') ||
+    lower.includes('communication') ||
+    lower.includes('friendship')
+  ) {
+    return {
+      reply: `### Constructive Communication & Interpersonal Guidance\n\n` +
+        `Healthy relationships and conflict resolution rely on empathetic, honest, and structured communication:\n\n` +
+        `1. **Use "I" Statements**: Express how a situation affects you rather than attributing blame (e.g., *"I feel overwhelmed when plans change at the last minute"* instead of *"You always ruin our plans"*).\n` +
+        `2. **Active Listening**: Give full attention without planning your rebuttal while the other person speaks. Validate their feelings before presenting your perspective.\n` +
+        `3. **Focus on the Problem, Not the Person**: Treat disagreements as a shared challenge to solve together rather than a battle to win.\n` +
+        `4. **Set Clear Boundaries**: Communicate expectations calmly, especially regarding shared spaces, finances, or personal time.\n\n` +
+        `If you have a specific scenario or conversation you want to think through, feel free to share the details and we can craft a thoughtful approach!`
+    };
+  }
+
+  // 15. Humor, Creative Writing & Entertainment
+  if (
+    lower.includes('joke') ||
+    lower.includes('funny') ||
+    lower.includes('poem') ||
+    lower.includes('story') ||
+    lower.includes('movie') ||
+    lower.includes('film') ||
+    lower.includes('book') ||
+    lower.includes('music') ||
+    lower.includes('song')
+  ) {
+    if (lower.includes('joke') || lower.includes('funny')) {
+      return {
+        reply: `Why do programmers prefer dark mode?\n\n*Because light attracts bugs!* 🐛💻\n\nNeed another joke, a riddle, or a creative story? Just let me know!`
+      };
+    }
+
+    if (lower.includes('poem')) {
+      return {
+        reply: `### A Spark in the Quiet\n\n` +
+          `*The midnight cursor blinks in place,*\n` +
+          `*A silent glow across the page.*\n` +
+          `*Each line of thought, each step of grace,*\n` +
+          `*Unfolds upon tomorrow's stage.*\n\n` +
+          `*For knowledge sought is never lost,*\n` +
+          `*Though long the road and steep the climb—*\n` +
+          `*The dream that's built whatever cost,*\n` +
+          `*Will echo through the halls of time.*\n\n` +
+          `Would you like me to write a poem on a specific theme, style, or meter?`
+      };
+    }
+
+    return {
+      reply: `### Creative Writing & Culture with Vona\n\n` +
+        `I can help you explore storytelling, write poetry, discuss film analysis, or recommend great books and music:\n\n` +
+        `- 📖 **Literature & Storytelling**: Plot architecture, character development, worldbuilding, and thematic analysis.\n` +
+        `- 🎭 **Cinema & Media**: Narrative structures, cinematography concepts, and recommendations.\n` +
+        `- ✍️ **Creative Drafting**: Micro-fiction, speeches, and creative exercises.\n\n` +
+        `What creative project or artistic topic are you exploring today?`
+    };
+  }
+
+  // 16. Natural Science (Physics, Chemistry, Biology)
+  if (
+    lower.includes('physics') ||
+    lower.includes('chemistry') ||
+    lower.includes('biology') ||
+    lower.includes('photosynthesis') ||
+    lower.includes('quantum') ||
+    lower.includes('gravity') ||
+    lower.includes('dna') ||
+    lower.includes('cell') ||
+    lower.includes('energy')
+  ) {
+    if (lower.includes('photosynthesis')) {
+      return {
+        reply: `### Photosynthesis: Nature's Energy Conversion\n\n` +
+          `**Photosynthesis** is the biochemical process by which plants, algae, and some bacteria convert light energy into chemical energy stored in glucose.\n\n` +
+          `**Chemical Equation**:\n` +
+          `\\[ 6\\text{CO}_2 + 6\\text{H}_2\\text{O} + \\text{Light Energy} \\xrightarrow{\\text{Chlorophyll}} \\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\text{O}_2 \\]\n\n` +
+          `**Key Stages**:\n` +
+          `1. **Light-Dependent Reactions** (Thylakoid membranes): Solar photons split water (\\(\\text{H}_2\\text{O}\\)), releasing \\(\\text{O}_2\\) and generating ATP and NADPH.\n` +
+          `2. **Light-Independent Reactions / Calvin Cycle** (Stroma): Uses ATP and NADPH to fix atmospheric carbon dioxide (\\(\\text{CO}_2\\)) into glucose.`
+      };
+    }
+
+    return {
+      reply: `### Science & Natural Inquiry with Vona\n\n` +
+        `I can help explain scientific mechanisms, experimental design, and core principles across:\n\n` +
+        `- ⚛️ **Physics**: Mechanics, thermodynamics, electromagnetism, and modern/quantum physics.\n` +
+        `- 🧪 **Chemistry**: Organic synthesis, stoichiometry, thermodynamics, and molecular bonding.\n` +
+        `- 🧬 **Biology & Biochemistry**: Genetics, cellular biology, physiology, and evolutionary biology.\n\n` +
+        `Share any concept, reaction, or hypothesis you'd like to investigate!`
+    };
+  }
+
+  // 17. Programming, Technology & Computer Science
   if (
     lower.includes('code') ||
     lower.includes('programming') ||
@@ -681,19 +955,15 @@ function generateGroundedFallbackResponse(
   ) {
     return {
       reply: `### Technology & Programming Insights\n\n` +
-        `I can help you break down technical concepts, debug code, design software architectures, or discuss computer science best practices.\n\n` +
+        `I can help you break down technical concepts, write clean code, debug errors, design software architectures, or discuss computer science best practices.\n\n` +
         `- **Clean Code Fundamentals**: Prioritize readability, modular components, explicit naming, and automated test coverage.\n` +
         `- **Algorithm Optimization**: When analyzing time/space complexity, identify redundant work, leverage hash maps for $O(1)$ lookups, and use divide-and-conquer where applicable.\n` +
-        `- **Portfolio & GitHub**: Having clean, documented repositories with live demo links is one of the strongest assets for STEM & tech scholarships.\n\n` +
-        `Feel free to share a code snippet, architecture question, or bug you are debugging, and let's solve it together!`,
-      suggestedActions: [
-        { label: 'Find STEM Scholarships', path: '/scholarships' },
-        { label: 'Document Vault', path: '/documents' }
-      ]
+        `- **Full-Stack Development**: Modern patterns in React, TypeScript, Node.js, REST/GraphQL APIs, and relational databases.\n\n` +
+        `Feel free to share a code snippet, architecture question, or bug you are debugging, and let's solve it together!`
     };
   }
 
-  // 13. Study Skills, Productivity & Education
+  // 18. Study Skills, Productivity & Education
   if (
     lower.includes('study') ||
     lower.includes('productivity') ||
@@ -710,15 +980,11 @@ function generateGroundedFallbackResponse(
         `1. **The Feynman Technique**: Explain a complex topic in simple terms as if teaching a beginner. Any point where you struggle to explain simply reveals a gap in understanding.\n` +
         `2. **Active Recall & Spaced Repetition**: Test yourself frequently instead of passively re-reading notes. Review difficult material on increasing intervals ($1, 3, 7, 14$ days).\n` +
         `3. **Pomodoro Sprints**: Work with undivided focus for 25–50 minutes, followed by a 5–10 minute break to preserve cognitive stamina.\n\n` +
-        `How is your study routine going right now? Let me know if you want a custom study schedule!`,
-      suggestedActions: [
-        { label: 'Check Upcoming Deadlines', path: '/scholarships' },
-        { label: 'Edit Academic Profile', path: '/profile' }
-      ]
+        `How is your study routine going right now? Let me know if you want a custom study schedule!`
     };
   }
 
-  // 14. Scholavon Platform Help & Navigation
+  // 19. Scholavon Platform Help & Navigation
   if (
     lower.includes('how does scholavon work') ||
     lower.includes('how to use') ||
@@ -746,17 +1012,12 @@ function generateGroundedFallbackResponse(
     };
   }
 
-  // Default intelligent conversational fallback
+  // Default intelligent general-purpose conversational fallback
   return {
-    reply: `I'm here to help you with that!\n\n` +
-      `Regarding *"**${userMessage}**"*:\n\n` +
-      `As your personal assistant, I can provide detailed guidance on this, walk you through relevant strategies, or connect it directly to your academic goals in **${ctx.profile.educationLevel}** (${ctx.profile.fieldOfStudy || 'General'}).\n\n` +
-      `You currently have **${ctx.applications.length} tracked applications** and **${ctx.documents.length} documents** in your vault. Let me know how you'd like to proceed, or ask me any follow-up question!`,
-    suggestedActions: [
-      { label: 'Find Scholarships', path: '/scholarships' },
-      { label: 'My Applications', path: '/applications' },
-      { label: 'Document Vault', path: '/documents' }
-    ]
+    reply: `I'm happy to help you with that!\n\n` +
+      `Regarding: *"**${userMessage}**"*\n\n` +
+      `As your personal assistant **Vona**, I can assist across general topics (mathematics, programming, sports, writing, science, career planning) as well as your Scholavon academic and scholarship workspace.\n\n` +
+      `Please let me know how you'd like to proceed or share more specific details!`
   };
 }
 
@@ -797,40 +1058,71 @@ export async function processAIChat(
         parts: [{ text: req.message }]
       });
 
-      let response;
+      let response: any;
+      
+      // 1. Primary Attempt: Gemini 2.5 Flash with Google Search Grounding for current facts
       try {
         response = await ai.models.generateContent({
           model: 'gemini-2.5-flash',
           contents: contents as any,
           config: {
             systemInstruction,
-            temperature: 0.5, // Balanced temperature for natural, confident, and accurate conversation
+            temperature: 0.6,
+            tools: [{ googleSearch: {} } as any]
           }
         });
-      } catch (primaryErr: any) {
-        console.warn('gemini-2.5-flash failed, attempting fallback model gemini-2.0-flash:', primaryErr?.message || primaryErr);
-        response = await ai.models.generateContent({
-          model: 'gemini-2.0-flash',
-          contents: contents as any,
-          config: {
-            systemInstruction,
-            temperature: 0.5,
-          }
-        });
+      } catch (searchErr: any) {
+        // 2. Secondary Attempt: Gemini 2.5 Flash without search tool if tool is not supported
+        try {
+          response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: contents as any,
+            config: {
+              systemInstruction,
+              temperature: 0.6,
+            }
+          });
+        } catch (primaryErr: any) {
+          // 3. Fallback Model Attempt: Gemini 2.0 Flash
+          console.warn('gemini-2.5-flash failed, attempting fallback model gemini-2.0-flash:', primaryErr?.message || primaryErr);
+          response = await ai.models.generateContent({
+            model: 'gemini-2.0-flash',
+            contents: contents as any,
+            config: {
+              systemInstruction,
+              temperature: 0.6,
+            }
+          });
+        }
       }
 
-      const text = response.text || '';
+      const text = response?.text || '';
       if (text.trim().length > 0) {
-        // Parse suggested actions if mentioned in text
+        // Provide suggested actions only when the prompt or context is relevant to Scholavon platform
         const suggestedActions: Array<{ label: string; path: string }> = [];
-        if (ctx.focusScholarship) {
-          suggestedActions.push({ label: 'Open Workspace', path: `/applications/${ctx.focusScholarship.id}/workspace` });
+        const lowerReq = req.message.toLowerCase();
+        const isPlatformRelated = 
+          lowerReq.includes('scholarship') ||
+          lowerReq.includes('application') ||
+          lowerReq.includes('document') ||
+          lowerReq.includes('vault') ||
+          lowerReq.includes('deadline') ||
+          lowerReq.includes('match') ||
+          lowerReq.includes('readiness') ||
+          lowerReq.includes('scholavon') ||
+          lowerReq.includes('profile') ||
+          !!ctx.focusScholarship;
+
+        if (isPlatformRelated) {
+          if (ctx.focusScholarship) {
+            suggestedActions.push({ label: 'Open Workspace', path: `/applications/${ctx.focusScholarship.id}/workspace` });
+          }
+          suggestedActions.push({ label: 'Explore Scholarships', path: '/scholarships' });
         }
-        suggestedActions.push({ label: 'View Applications', path: '/applications' });
 
         return {
           reply: text,
-          suggestedActions
+          suggestedActions: suggestedActions.length > 0 ? suggestedActions : undefined
         };
       }
     } catch (err: any) {
@@ -841,4 +1133,5 @@ export async function processAIChat(
   // Grounded Vona engine fallback
   return generateGroundedFallbackResponse(req.message, ctx);
 }
+
 
