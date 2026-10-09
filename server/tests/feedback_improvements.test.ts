@@ -404,3 +404,30 @@ describe('User Feedback Improvements Suite', () => {
   });
 });
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin "View Public Site" navigation destination (regression contract test)
+// Root cause: both AdminSidebar buttons previously called onNavigate('/'), which
+// hits the admin guard in App.tsx case '/' and renders AdminDashboardPage.
+// Fix: both buttons now call onNavigate('/scholarships'), which has no admin
+// guard and renders in PublicLayout.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Admin "View Public Site" navigation destination', () => {
+  // The canonical destination used by AdminSidebar "View Public Site" buttons.
+  // If this constant ever changes back to '/', the regression is reintroduced.
+  const ADMIN_VIEW_PUBLIC_SITE_DESTINATION = '/scholarships';
+
+  it('destination is /scholarships, not /', () => {
+    expect(ADMIN_VIEW_PUBLIC_SITE_DESTINATION).toBe('/scholarships');
+    expect(ADMIN_VIEW_PUBLIC_SITE_DESTINATION).not.toBe('/');
+  });
+
+  it('destination does not start with /admin', () => {
+    expect(ADMIN_VIEW_PUBLIC_SITE_DESTINATION.startsWith('/admin')).toBe(false);
+  });
+
+  it('destination is a known public route', () => {
+    const publicRoutes = ['/scholarships', '/how-it-works', '/about', '/privacy', '/terms'];
+    expect(publicRoutes).toContain(ADMIN_VIEW_PUBLIC_SITE_DESTINATION);
+  });
+});

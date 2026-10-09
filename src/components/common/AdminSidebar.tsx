@@ -251,7 +251,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         {/* Footer */}
         <div className="p-3 border-t border-slate-200/80 space-y-1 shrink-0">
           <button
-            onClick={() => onNavigate('/')}
+            id="admin-btn-view-public-site"
+            onClick={() => onNavigate('/scholarships')}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 transition-colors cursor-pointer"
           >
             <ArrowLeft size={15} />
@@ -338,7 +339,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
             {/* Drawer Footer */}
             <div className="p-3 border-t border-slate-200/80 space-y-1 shrink-0 bg-slate-50/50">
               <button
-                onClick={() => handleNav('/', true)}
+                id="admin-drawer-btn-view-public-site"
+                onClick={() => handleNav('/scholarships', true)}
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer"
               >
                 <ArrowLeft size={15} />
