@@ -70,6 +70,7 @@ describe('Feature #8: AI Scholarship Assistant', () => {
       email: 'maya.lin@example.com',
       passwordHash: 'hashed_pw_1',
       role: 'student',
+      subscriptionStatus: 'premium',
       emailVerified: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

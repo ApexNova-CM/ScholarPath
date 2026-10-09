@@ -4,11 +4,12 @@ import { ScholarshipCard } from '../../components/common/ScholarshipCard';
 import { evaluateEligibility } from '../../services/eligibility';
 import { StorageService } from '../../services/storage';
 import { 
-  isScholarshipExpired, isScholarshipUpcoming, isScholarshipActive 
+  isScholarshipExpired, isScholarshipUpcoming, isScholarshipActive,
+  isScholarshipOpen, isScholarshipClosingSoon, isScholarshipClosed
 } from '../../services/scholarshipFilters';
 import { 
   Search, Filter, SlidersHorizontal, CheckCircle2, RotateCcw, 
-  X, ArrowUpDown, ArrowLeft, Bookmark, Sparkles, FolderTree, Clock 
+  X, ArrowUpDown, ArrowLeft, Bookmark, Sparkles, FolderTree, Clock, CheckCircle 
 } from 'lucide-react';
 
 interface ScholarshipsPageProps {
@@ -70,24 +71,30 @@ export const ScholarshipsPage: React.FC<ScholarshipsPageProps> = ({
     return 'all';
   };
 
-  const getInitialStatus = (): 'all' | 'active' | 'upcoming' | 'expired' => {
+  const getInitialStatus = (): 'open' | 'closing_soon' | 'closed' | 'all' => {
     if (typeof window !== 'undefined' && window.location.search) {
       const params = new URLSearchParams(window.location.search);
       const s = params.get('status') || params.get('filter');
-      if (s === 'expired' || s === 'upcoming' || s === 'active' || s === 'all') return s;
+      if (s === 'closed' || s === 'expired') return 'closed';
+      if (s === 'closing_soon') return 'closing_soon';
+      if (s === 'open' || s === 'active') return 'open';
+      if (s === 'all') return 'all';
     }
     if (currentPath && currentPath.includes('?')) {
       const params = new URLSearchParams(currentPath.split('?')[1]);
       const s = params.get('status') || params.get('filter');
-      if (s === 'expired' || s === 'upcoming' || s === 'active' || s === 'all') return s;
+      if (s === 'closed' || s === 'expired') return 'closed';
+      if (s === 'closing_soon') return 'closing_soon';
+      if (s === 'open' || s === 'active') return 'open';
+      if (s === 'all') return 'all';
     }
-    return 'all';
+    return 'open'; // Show Open scholarships by default
   };
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>(getInitialCategory());
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState<'all' | 'active' | 'upcoming' | 'expired'>(getInitialStatus());
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState<'open' | 'closing_soon' | 'closed' | 'all'>(getInitialStatus());
   const [selectedEducationLevel, setSelectedEducationLevel] = useState<string>('all');
   const [selectedFundingType, setSelectedFundingType] = useState<string>('all');
   const [selectedCountry, setSelectedCountry] = useState<string>('all');
@@ -146,12 +153,22 @@ export const ScholarshipsPage: React.FC<ScholarshipsPageProps> = ({
     'Other'
   ];
 
+  // Compute status counts for the tabs
+  const statusCounts = useMemo(() => {
+    const visible = scholarships.filter(s => s.status !== 'rejected' && s.status !== 'archived' && s.status !== 'draft');
+    return {
+      all: visible.length,
+      open: visible.filter(s => isScholarshipOpen(s)).length,
+      closing_soon: visible.filter(s => isScholarshipClosingSoon(s)).length,
+      closed: visible.filter(s => isScholarshipClosed(s)).length,
+    };
+  }, [scholarships]);
+
   // Filtering & Sorting logic
   const filteredScholarships = useMemo(() => {
     return scholarships.filter(sch => {
-      // In student-facing discovery, only show verified or pending active scholarships (not archived/rejected/closed)
-      if (sch.status === 'rejected' || sch.status === 'archived') return false;
-      if (sch.status === 'closed' || sch.manuallyClosed === true) return false;
+      // In student-facing discovery, only show verified/active scholarships (not archived/rejected/draft)
+      if (sch.status === 'rejected' || sch.status === 'archived' || sch.status === 'draft') return false;
 
       // 1. Search query
       if (searchQuery.trim()) {
@@ -239,13 +256,13 @@ export const ScholarshipsPage: React.FC<ScholarshipsPageProps> = ({
         if (selectedDeadlineWindow === '60' && (daysLeft < 0 || daysLeft > 60)) return false;
       }
 
-      // 10. Lifecycle Status filter
-      if (selectedStatusFilter === 'expired') {
-        if (!isScholarshipExpired(sch)) return false;
-      } else if (selectedStatusFilter === 'active') {
-        if (!isScholarshipActive(sch)) return false;
-      } else if (selectedStatusFilter === 'upcoming') {
-        if (!isScholarshipUpcoming(sch)) return false;
+      // 10. Lifecycle Status filter tab
+      if (selectedStatusFilter === 'open') {
+        if (!isScholarshipOpen(sch)) return false;
+      } else if (selectedStatusFilter === 'closing_soon') {
+        if (!isScholarshipClosingSoon(sch)) return false;
+      } else if (selectedStatusFilter === 'closed') {
+        if (!isScholarshipClosed(sch)) return false;
       }
 
       return true;
@@ -429,55 +446,75 @@ export const ScholarshipsPage: React.FC<ScholarshipsPageProps> = ({
           </div>
         </div>
 
-        {/* Lifecycle Status Filter Bar */}
+        {/* Lifecycle Status Filter Bar: Open, Closing Soon, Closed, All */}
         <div className="mt-4 pt-1 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <span className="text-xs font-bold text-slate-500 shrink-0 mr-1 flex items-center gap-1">
             <Clock size={13} className="text-indigo-600" />
             Status:
           </span>
           <button
+            id="pill-status-open"
+            onClick={() => setSelectedStatusFilter('open')}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none min-h-[34px] flex items-center gap-1.5 ${
+              selectedStatusFilter === 'open'
+                ? 'bg-emerald-600 text-white shadow-2xs font-bold'
+                : 'bg-white border border-slate-200/90 text-slate-600 hover:text-slate-900 hover:border-slate-300'
+            }`}
+          >
+            <span>Open</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+              selectedStatusFilter === 'open' ? 'bg-emerald-700 text-white' : 'bg-slate-100 text-slate-600'
+            }`}>
+              {statusCounts.open}
+            </span>
+          </button>
+          <button
+            id="pill-status-closing-soon"
+            onClick={() => setSelectedStatusFilter('closing_soon')}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none min-h-[34px] flex items-center gap-1.5 ${
+              selectedStatusFilter === 'closing_soon'
+                ? 'bg-amber-600 text-white shadow-2xs font-bold'
+                : 'bg-white border border-slate-200/90 text-slate-600 hover:text-slate-900 hover:border-slate-300'
+            }`}
+          >
+            <span>Closing Soon</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+              selectedStatusFilter === 'closing_soon' ? 'bg-amber-700 text-white' : 'bg-amber-50 text-amber-800'
+            }`}>
+              {statusCounts.closing_soon}
+            </span>
+          </button>
+          <button
+            id="pill-status-closed"
+            onClick={() => setSelectedStatusFilter('closed')}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none min-h-[34px] flex items-center gap-1.5 ${
+              selectedStatusFilter === 'closed'
+                ? 'bg-rose-600 text-white shadow-2xs font-bold'
+                : 'bg-white border border-slate-200/90 text-slate-600 hover:text-slate-900 hover:border-slate-300'
+            }`}
+          >
+            <span>Closed</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+              selectedStatusFilter === 'closed' ? 'bg-rose-700 text-white' : 'bg-rose-50 text-rose-700'
+            }`}>
+              {statusCounts.closed}
+            </span>
+          </button>
+          <button
             id="pill-status-all"
             onClick={() => setSelectedStatusFilter('all')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none min-h-[34px] flex items-center ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none min-h-[34px] flex items-center gap-1.5 ${
               selectedStatusFilter === 'all'
                 ? 'bg-slate-900 text-white shadow-2xs font-bold'
                 : 'bg-white border border-slate-200/90 text-slate-600 hover:text-slate-900 hover:border-slate-300'
             }`}
           >
-            All Opportunities
-          </button>
-          <button
-            id="pill-status-active"
-            onClick={() => setSelectedStatusFilter('active')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none min-h-[34px] flex items-center ${
-              selectedStatusFilter === 'active'
-                ? 'bg-emerald-600 text-white shadow-2xs font-bold'
-                : 'bg-white border border-slate-200/90 text-slate-600 hover:text-slate-900 hover:border-slate-300'
-            }`}
-          >
-            Active
-          </button>
-          <button
-            id="pill-status-upcoming"
-            onClick={() => setSelectedStatusFilter('upcoming')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none min-h-[34px] flex items-center ${
-              selectedStatusFilter === 'upcoming'
-                ? 'bg-indigo-600 text-white shadow-2xs font-bold'
-                : 'bg-white border border-slate-200/90 text-slate-600 hover:text-slate-900 hover:border-slate-300'
-            }`}
-          >
-            Upcoming
-          </button>
-          <button
-            id="pill-status-expired"
-            onClick={() => setSelectedStatusFilter('expired')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 cursor-pointer select-none min-h-[34px] flex items-center ${
-              selectedStatusFilter === 'expired'
-                ? 'bg-rose-600 text-white shadow-2xs font-bold'
-                : 'bg-white border border-slate-200/90 text-slate-600 hover:text-slate-900 hover:border-slate-300'
-            }`}
-          >
-            Expired
+            <span>All Opportunities</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+              selectedStatusFilter === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600'
+            }`}>
+              {statusCounts.all}
+            </span>
           </button>
         </div>
 

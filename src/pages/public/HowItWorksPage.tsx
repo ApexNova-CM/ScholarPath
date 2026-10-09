@@ -12,7 +12,7 @@ export const HowItWorksPage: React.FC<HowItWorksPageProps> = ({ onNavigate }) =>
         <span className="text-xs font-bold uppercase tracking-wider text-indigo-600">Platform Guide</span>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900">How Scholavon Works</h1>
         <p className="text-sm text-slate-600 max-w-xl mx-auto">
-          Learn how our deterministic matching engine, verified opportunity audit, and application checklist system simplify your scholarship discovery.
+          Learn how our profile matching engine, verified opportunity audit, and application checklist system simplify your scholarship discovery.
         </p>
       </div>
 
@@ -30,9 +30,9 @@ export const HowItWorksPage: React.FC<HowItWorksPageProps> = ({ onNavigate }) =>
         <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 flex gap-6 items-start">
           <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center shrink-0">2</div>
           <div className="space-y-2">
-            <h3 className="text-lg font-bold text-slate-900">Deterministic Eligibility Matching</h3>
+            <h3 className="text-lg font-bold text-slate-900">Profile-Based Eligibility Matching</h3>
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              Unlike generic keyword matching, Scholavon uses rule-based constraints. If an award requires a 3.5 GPA and you have a 3.2, you are explicitly notified why you do not meet the criteria, preventing wasted application time.
+              Unlike generic keyword search, Scholavon matches directly against your academic profile. If an award requires a 3.5 GPA and you have a 3.2, you are clearly shown how your profile aligns, preventing wasted application time.
             </p>
           </div>
         </div>

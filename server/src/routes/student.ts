@@ -273,13 +273,45 @@ router.post('/applications', async (req: Request, res: Response): Promise<void> 
     return;
   }
 
-  // Check if already tracking
+  // Check if already tracking (idempotent return of historical record)
   const existingApps = await getApplicationsForUser(userId);
   const alreadyTracking = existingApps.find((a) => a.scholarshipId === scholarshipId);
   if (alreadyTracking) {
     res.json({
       success: true,
       data: alreadyTracking,
+    });
+    return;
+  }
+
+  // Reject new applications to closed/expired/archived scholarships
+  let isPastDeadline = false;
+  if (scholarship.deadline) {
+    const d = new Date(scholarship.deadline);
+    if (!isNaN(d.getTime())) {
+      if (scholarship.deadline.trim().length <= 10) {
+        const endOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+        isPastDeadline = endOfDay.getTime() < Date.now();
+      } else {
+        isPastDeadline = d.getTime() < Date.now();
+      }
+    }
+  }
+
+  const isClosed =
+    scholarship.status === 'closed' ||
+    scholarship.status === 'expired' ||
+    scholarship.status === 'archived' ||
+    (scholarship as any).manuallyClosed === true ||
+    isPastDeadline;
+
+  if (isClosed) {
+    res.status(400).json({
+      success: false,
+      error: {
+        code: 'SCHOLARSHIP_CLOSED',
+        message: 'This scholarship is closed and is no longer accepting new applications.',
+      },
     });
     return;
   }

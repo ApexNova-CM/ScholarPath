@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Scholarship, UserProfile, StoredDocument, Application, DocumentReadinessItem } from '../../types';
 import { evaluateEligibility } from '../../services/eligibility';
 import { StorageService } from '../../services/storage';
+import { isScholarshipClosed } from '../../services/scholarshipFilters';
 import { api } from '../../lib/apiClient';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import {
@@ -196,7 +197,13 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
   };
 
   const handleSubmitApplication = async () => {
-    if (!userProfile) return;
+    if (!userProfile || !scholarship) return;
+
+    if (isScholarshipClosed(scholarship) && !isAlreadyTracked) {
+      setSubmitError('This scholarship is no longer accepting new applications.');
+      setStep('review');
+      return;
+    }
 
     if (userProfile.subscriptionStatus !== 'premium' && !isAlreadyTracked && existingApps.length >= 3) {
       setShowUpgradeGate(true);
@@ -223,6 +230,12 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
         });
         if (res?.id) { newApp = res; appId = res.id; }
       } catch (err: any) {
+        if (err?.code === 'SCHOLARSHIP_CLOSED') {
+          setSubmitError(err.message || 'This scholarship is closed and is no longer accepting applications.');
+          setIsSubmitting(false);
+          setStep('review');
+          return;
+        }
         if (err?.code === 'UPGRADE_REQUIRED' || err?.status === 403) {
           setShowUpgradeGate(true);
           setIsSubmitting(false);

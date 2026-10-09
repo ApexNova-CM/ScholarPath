@@ -473,7 +473,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, onNavigate }) => {
                 </button>
               ) : (
                 <p className="text-[11px] text-slate-500 text-center font-medium">
-                  Verified Scholarships • Deterministic Matching
+                  Verified Scholarships • Matched to Your Profile
                 </p>
               )}
             </div>

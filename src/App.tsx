@@ -4,6 +4,7 @@ import { StorageService } from './services/storage';
 import { api } from './lib/apiClient';
 import { bootstrapPublicData, bootstrapUserData } from './services/dataService';
 import { Scholarship, Application, StoredDocument, InAppNotification, Provider, Category, UserProfile } from './types';
+import { isScholarshipClosed } from './services/scholarshipFilters';
 
 
 // Layouts
@@ -182,6 +183,10 @@ function MainApp() {
   const handleStartApplication = (scholarship: Scholarship) => {
     if (!user) {
       navigate('/login');
+      return;
+    }
+    if (isScholarshipClosed(scholarship)) {
+      alert('This scholarship is no longer accepting new applications.');
       return;
     }
     setModalScholarship(scholarship);

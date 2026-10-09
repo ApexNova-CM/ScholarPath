@@ -175,7 +175,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold mb-4">
               2
             </div>
-            <h3 className="text-base font-bold text-slate-900 mb-1.5">Deterministic Match</h3>
+            <h3 className="text-base font-bold text-slate-900 mb-1.5">Matched to Your Profile</h3>
             <p className="text-xs text-slate-600 leading-relaxed">
               Our matching engine strictly verifies hard requirements (GPA, location, degree) without deceptive inflated scores.
             </p>

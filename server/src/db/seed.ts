@@ -234,7 +234,7 @@ export const SEED_SCHOLARSHIPS: ScholarshipRecord[] = [
     applicationInstructions: 'Applications must be submitted through your respective national constituency portal or the Global Rhodes portal.',
     applicationUrl: 'https://www.rhodeshouse.ox.ac.uk/scholarships/applications/',
     openingDate: '2026-06-01T00:00:00Z',
-    deadline: '2026-10-01T23:59:59Z',
+    deadline: '2026-12-01T23:59:59Z',
     status: 'verified',
     verificationStatus: 'verified',
     viewCount: 2310,

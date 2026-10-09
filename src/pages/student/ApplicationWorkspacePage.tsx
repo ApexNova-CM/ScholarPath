@@ -10,8 +10,9 @@ import {
   getReadinessCategory, 
   getReadinessCategoryColors 
 } from '../../services/documentService';
-import { computeLifecycleStatus } from '../../services/scholarshipFilters';
+import { computeLifecycleStatus, isScholarshipClosed } from '../../services/scholarshipFilters';
 import { calculateDaysUntilDeadline } from '../../services/reminderService';
+import { formatScholarshipAmount, formatScholarshipDeadline } from '../../utils/formatters';
 import { VerifiedBadge } from '../../components/common/VerifiedBadge';
 import { LifecycleBadge } from '../../components/common/LifecycleBadge';
 import { DeadlineBadge } from '../../components/common/DeadlineBadge';
@@ -23,7 +24,7 @@ import {
   ArrowLeft, Bookmark, ExternalLink, CheckCircle2, AlertCircle, 
   XCircle, Clock, FileText, Sparkles, Plus, Trash2, Save, 
   Flag, Share2, Shield, Calendar, Edit3, HelpCircle, Check, 
-  ChevronRight, Bell, ArrowUpRight, Lock, AlertTriangle, Trophy, History, Crown
+  ChevronRight, Bell, ArrowUpRight, Lock, AlertTriangle, Trophy, History, Crown, Coins
 } from 'lucide-react';
 
 interface ApplicationWorkspacePageProps {
@@ -53,11 +54,13 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
   // Check if scholarship is already tracked or if limit is reached
   const existingApps = userProfile ? StorageService.getApplications(userProfile.id) : [];
   const existingApp = existingApps.find((a) => a.scholarshipId === scholarshipId);
+  const isClosed = scholarship ? isScholarshipClosed(scholarship) : false;
+  const isClosedAndUntracked = Boolean(isClosed && !existingApp);
   const isLimitReached = !isPremium && !existingApp && existingApps.length >= 3;
 
-  // Load or create application tracker record
+  // Load or create application tracker record (only create if open or already tracked)
   const [application, setApplication] = useState<Application | null>(() => {
-    if (!userProfile || !scholarship || isLimitReached) return null;
+    if (!userProfile || !scholarship || isLimitReached || isClosedAndUntracked) return null;
     return StorageService.getOrCreateApplication(userProfile.id, scholarship);
   });
 
@@ -78,7 +81,7 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
 
   // Sync application state if props/user changes
   useEffect(() => {
-    if (userProfile && scholarship && !isLimitReached) {
+    if (userProfile && scholarship && !isLimitReached && !isClosedAndUntracked) {
       const app = StorageService.getOrCreateApplication(userProfile.id, scholarship);
       setApplication(app);
       setNotes(app.notes || '');
@@ -86,7 +89,7 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
       setEssayStatus(app.essayStatus || 'not_started');
       setEssayNotes(app.essayNotes || '');
     }
-  }, [userProfile?.id, scholarship?.id, isLimitReached]);
+  }, [userProfile?.id, scholarship?.id, isLimitReached, isClosedAndUntracked]);
 
   // If scholarship not found
   if (!scholarship) {
@@ -110,12 +113,46 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
     );
   }
 
+  // If closed and not already tracked by student, prevent new application initiation
+  if (isClosedAndUntracked) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12 space-y-6">
+        <button
+          onClick={() => onNavigate('/scholarships')}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-600 transition-colors cursor-pointer"
+        >
+          <ArrowLeft size={14} />
+          <span>Back to Scholarships</span>
+        </button>
+        <div className="bg-white rounded-2xl border border-rose-200 p-8 shadow-sm text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 mx-auto flex items-center justify-center">
+            <XCircle size={28} />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold text-slate-900">Application Closed</h2>
+            <p className="text-xs text-slate-600 max-w-md mx-auto leading-relaxed">
+              Applications for <strong>{scholarship.title}</strong> are no longer being accepted because the deadline has passed or the opportunity was closed.
+            </p>
+          </div>
+          <div className="pt-2 flex justify-center">
+            <button
+              onClick={() => onNavigate('/scholarships?status=open')}
+              className="inline-flex items-center gap-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition-colors cursor-pointer shadow-sm"
+            >
+              <span>Browse Open Scholarships</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (isLimitReached) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12 space-y-6">
         <button
           onClick={() => onNavigate('/scholarships')}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-600 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-600 transition-colors cursor-pointer"
         >
           <ArrowLeft size={14} />
           <span>Back to Scholarships</span>
@@ -136,9 +173,9 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
 
   const isSaved = savedScholarshipIds.includes(scholarship.id);
   const lifecycleStatus = computeLifecycleStatus(scholarship);
-  const isClosed = lifecycleStatus === 'closed';
+  const isClosedStatus = lifecycleStatus === 'closed';
   const isArchived = lifecycleStatus === 'archived';
-  const isInactive = isClosed || isArchived;
+  const isInactive = isClosedStatus || isArchived;
 
   // Real-time calculations from existing engines
   const eligibility = evaluateEligibility(scholarship, userProfile);
@@ -447,13 +484,13 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
           <div>
             <span className="text-slate-400 block font-medium">Award Amount</span>
             <span className="text-base font-bold text-slate-900 mt-0.5 block">
-              {scholarship.amountDisplay || (scholarship.amount ? `$${scholarship.amount.toLocaleString()}` : 'Varies')}
+              {formatScholarshipAmount(scholarship)}
             </span>
           </div>
           <div>
             <span className="text-slate-400 block font-medium">Official Deadline</span>
             <span className="text-sm font-bold text-slate-900 mt-0.5 block">
-              {new Date(scholarship.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              {formatScholarshipDeadline(scholarship.deadline)}
             </span>
           </div>
           <div>

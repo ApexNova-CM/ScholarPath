@@ -1,38 +1,33 @@
 import { Scholarship, LifecycleStatus } from '../types';
+import { isDeadlinePassed, parseScholarshipDate } from '../utils/formatters';
 
-export type ScholarshipFilterStatus = 'all' | 'active' | 'upcoming' | 'expired' | 'closing_soon' | 'closed' | 'archived';
+export type ScholarshipFilterStatus = 'all' | 'active' | 'upcoming' | 'expired' | 'closing_soon' | 'closed' | 'archived' | 'open';
+
+export { parseScholarshipDate };
 
 /** Number of days before the deadline that a scholarship is considered "Closing Soon" */
 export const CLOSING_SOON_DAYS = 7;
 
 /**
- * Safely parses any date string (ISO, UTC, or short format).
- * Returns null if the date is invalid or undefined.
- */
-export function parseScholarshipDate(dateStr?: string | null): Date | null {
-  if (!dateStr || typeof dateStr !== 'string') return null;
-  const parsed = new Date(dateStr);
-  return isNaN(parsed.getTime()) ? null : parsed;
-}
-
-/**
- * Determines whether a scholarship deadline has passed relative to the current date/time.
- * Also returns true when a scholarship has been manually closed by an admin.
+ * Determines whether a scholarship is closed or expired.
+ * True when:
+ * 1. Administrator marked status as 'closed', 'expired', 'archived', or manuallyClosed === true.
+ * 2. Application deadline has passed (respecting end of day boundary for date-only formats).
  */
 export function isScholarshipExpired(scholarship: Scholarship, currentDate: Date = new Date()): boolean {
-  if (scholarship.status === 'expired') return true;
-  if (scholarship.status === 'closed' || scholarship.manuallyClosed === true) return true;
-  const deadline = parseScholarshipDate(scholarship.deadline);
-  if (!deadline) return false;
-  return deadline.getTime() < currentDate.getTime();
+  if (!scholarship) return false;
+  if (scholarship.status === 'expired' || scholarship.status === 'closed' || scholarship.status === 'archived') return true;
+  if (scholarship.manuallyClosed === true) return true;
+  return isDeadlinePassed(scholarship.deadline, currentDate);
 }
 
+export const isScholarshipClosed = isScholarshipExpired;
+
 /**
- * Determines whether a scholarship is upcoming (applications not yet open or scheduled for an upcoming cycle).
+ * Determines whether a scholarship is upcoming (applications not yet open).
  */
 export function isScholarshipUpcoming(scholarship: Scholarship, currentDate: Date = new Date()): boolean {
   if (isScholarshipExpired(scholarship, currentDate)) return false;
-  
   const opening = parseScholarshipDate(scholarship.openingDate);
   if (opening && opening.getTime() > currentDate.getTime()) {
     return true;
@@ -41,41 +36,64 @@ export function isScholarshipUpcoming(scholarship: Scholarship, currentDate: Dat
 }
 
 /**
- * Determines whether a scholarship is currently active (open for application, not expired, not upcoming, not closed/archived).
+ * Determines whether a scholarship is currently active / open for applications.
  */
 export function isScholarshipActive(scholarship: Scholarship, currentDate: Date = new Date()): boolean {
+  if (!scholarship) return false;
   if (isScholarshipExpired(scholarship, currentDate)) return false;
   if (isScholarshipUpcoming(scholarship, currentDate)) return false;
-  if (scholarship.status === 'archived' || scholarship.status === 'rejected') return false;
-  if (scholarship.status === 'closed' || scholarship.manuallyClosed === true) return false;
+  if (
+    scholarship.status === 'archived' ||
+    scholarship.status === 'rejected' ||
+    scholarship.status === 'draft' ||
+    scholarship.status === 'pending_verification' ||
+    (scholarship.status as string) === 'pending' ||
+    scholarship.verificationStatus === 'pending_verification' ||
+    scholarship.verificationStatus === 'rejected' ||
+    (scholarship.verificationStatus as string) === 'pending'
+  ) {
+    return false;
+  }
   return true;
+}
+
+export const isScholarshipOpen = isScholarshipActive;
+
+/**
+ * Determines whether an open scholarship is closing within CLOSING_SOON_DAYS (7 days).
+ */
+export function isScholarshipClosingSoon(scholarship: Scholarship, currentDate: Date = new Date()): boolean {
+  if (!isScholarshipActive(scholarship, currentDate)) return false;
+  const deadline = parseScholarshipDate(scholarship.deadline);
+  if (!deadline) return false;
+
+  let targetTime = deadline.getTime();
+  if (scholarship.deadline && scholarship.deadline.trim().length <= 10) {
+    targetTime = new Date(deadline.getFullYear(), deadline.getMonth(), deadline.getDate(), 23, 59, 59, 999).getTime();
+  }
+
+  const msLeft = targetTime - currentDate.getTime();
+  if (msLeft < 0) return false;
+  const daysLeft = msLeft / (1000 * 60 * 60 * 24);
+  return daysLeft <= CLOSING_SOON_DAYS;
 }
 
 /**
  * Computes the display lifecycle status of a scholarship.
  * Precedence (highest first):
  *   1. archived  → 'archived'
- *   2. manuallyClosed or status=closed → 'closed'
- *   3. Deadline passed → 'closed'
- *   4. Deadline within CLOSING_SOON_DAYS → 'closing_soon'
- *   5. Otherwise → 'active'
+ *   2. manuallyClosed or status in ('closed', 'expired') or deadline passed → 'closed'
+ *   3. Deadline within CLOSING_SOON_DAYS → 'closing_soon'
+ *   4. Otherwise → 'active' (Open)
  */
 export function computeLifecycleStatus(
   scholarship: Scholarship,
   currentDate: Date = new Date()
 ): LifecycleStatus {
+  if (!scholarship) return 'active';
   if (scholarship.status === 'archived') return 'archived';
-  if (scholarship.status === 'closed' || scholarship.manuallyClosed === true) return 'closed';
-
-  const deadline = parseScholarshipDate(scholarship.deadline);
-  if (!deadline) return 'active';
-
-  const msLeft = deadline.getTime() - currentDate.getTime();
-  if (msLeft < 0) return 'closed';
-
-  const daysLeft = msLeft / (1000 * 60 * 60 * 24);
-  if (daysLeft <= CLOSING_SOON_DAYS) return 'closing_soon';
-
+  if (isScholarshipExpired(scholarship, currentDate)) return 'closed';
+  if (isScholarshipClosingSoon(scholarship, currentDate)) return 'closing_soon';
   return 'active';
 }
 
@@ -87,7 +105,7 @@ export function getLifecycleBadgeStyle(status: LifecycleStatus): {
 } {
   switch (status) {
     case 'active':
-      return { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', label: 'Active' };
+      return { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', label: 'Open' };
     case 'closing_soon':
       return { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-300', label: 'Closing Soon', animate: 'animate-pulse' };
     case 'closed':

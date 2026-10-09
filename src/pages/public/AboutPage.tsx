@@ -32,7 +32,7 @@ export const AboutPage: React.FC = () => {
             <p className="text-xs text-slate-500 mt-1">No paid placement or unverified promotional listings.</p>
           </div>
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-            <h4 className="font-bold text-slate-900 text-sm">Deterministic Matching</h4>
+            <h4 className="font-bold text-slate-900 text-sm">Matched to Your Profile</h4>
             <p className="text-xs text-slate-500 mt-1">Realistic match scores with explicit reasons for every check.</p>
           </div>
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">

@@ -260,6 +260,7 @@ export interface Scholarship {
   amount?: number;
   currency?: string;
   awardCurrency?: string;
+  award_currency?: string;
   fundingType: FundingType;
   awardType?: AwardType | string;
   awardFrequency?: AwardFrequency | string;

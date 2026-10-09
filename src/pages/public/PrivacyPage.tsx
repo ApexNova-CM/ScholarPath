@@ -22,7 +22,7 @@ export const PrivacyPage: React.FC = () => {
 
         <h3 className="font-bold text-slate-900 text-base pt-2">2. Data We Collect</h3>
         <p>
-          We collect basic academic criteria (institution, degree level, major, and cumulative GPA) solely for the purpose of deterministic eligibility calculations. We do not sell your personal contact information or academic records to marketers.
+          We collect basic academic criteria (institution, degree level, major, and cumulative GPA) solely for the purpose of calculating profile match eligibility. We do not sell your personal contact information or academic records to marketers.
         </p>
 
         <h3 className="font-bold text-slate-900 text-base pt-2">3. External Links</h3>

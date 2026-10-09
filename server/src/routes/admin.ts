@@ -145,8 +145,10 @@ router.post(
     const adminUser = req.user!;
     const body = req.body;
 
-    const verificationStatus = body.verificationStatus || 'verified';
-    const status = body.status || (verificationStatus === 'pending_verification' ? 'pending_verification' : 'verified');
+    // Default to pending_verification so new scholarships go through moderation unless
+    // the admin explicitly sets verificationStatus='verified' in the request body.
+    const verificationStatus = body.verificationStatus || 'pending_verification';
+    const status = body.status || (verificationStatus === 'verified' ? 'verified' : 'pending_verification');
     const isVerified = verificationStatus === 'verified';
 
     // Required Documents derivation compatibility:

@@ -715,13 +715,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="py-4 space-y-3 text-xs text-slate-600 leading-relaxed">
               <p>
-                <strong>Eligibility Matching:</strong> Matches are computed deterministically against your academic profile criteria (GPA, major, education level, country). Keep your profile 100% updated for optimal accuracy.
+                <strong>Eligibility Matching:</strong> Matches are computed accurately against your academic profile criteria (GPA, major, education level, country). Keep your profile 100% updated for optimal accuracy.
               </p>
               <p>
                 <strong>Applying:</strong> Scholavon prepares your document checklists and provides direct links to verified official provider portals. After applying externally, click "I've Applied" to track milestones.
               </p>
               <p>
                 <strong>Verification:</strong> The <em>✓ Verified</em> badge denotes opportunities audited for legitimacy by the Scholavon verification review board.
+              </p>
+              <p>
+                <strong>Human Support:</strong> Need direct assistance or found incorrect scholarship information? Contact our support team at <a href="mailto:support@scholavon.com" className="text-indigo-600 font-semibold hover:underline">support@scholavon.com</a>.
               </p>
             </div>
             <button

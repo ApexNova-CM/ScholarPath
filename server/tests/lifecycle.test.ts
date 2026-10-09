@@ -35,10 +35,19 @@ import {
   computeLifecycleStatus, 
   isScholarshipExpired, 
   isScholarshipActive, 
+  isScholarshipOpen,
+  isScholarshipClosingSoon,
+  isScholarshipClosed,
   getLifecycleBadgeStyle, 
   filterScholarshipsByStatus,
   CLOSING_SOON_DAYS
 } from '../../src/services/scholarshipFilters';
+import { 
+  formatScholarshipAmount, 
+  formatScholarshipDeadline, 
+  getCurrencySymbol, 
+  isDeadlinePassed 
+} from '../../src/utils/formatters';
 import { StorageService } from '../../src/services/storage';
 import { Scholarship } from '../../src/types';
 
@@ -175,7 +184,7 @@ describe('Feature #4: Scholarship Status & Lifecycle Management', () => {
       const closedStyle = getLifecycleBadgeStyle('closed');
       const archivedStyle = getLifecycleBadgeStyle('archived');
 
-      expect(activeStyle.label).toBe('Active');
+      expect(activeStyle.label).toBe('Open');
       expect(activeStyle.text).toContain('text-emerald');
 
       expect(closingSoonStyle.label).toBe('Closing Soon');
@@ -299,6 +308,104 @@ describe('Feature #4: Scholarship Status & Lifecycle Management', () => {
         deadline: '2026-05-03T12:00:00Z', // in 2 days (would be closing_soon if not closed)
       });
       expect(computeLifecycleStatus(manuallyClosed, now)).toBe('closed');
+    });
+  });
+
+  describe('3. Currency & Amount Formatter (Task 3)', () => {
+    it('Test 19: formatScholarshipAmount formats numeric amounts with accurate currency symbol', () => {
+      expect(formatScholarshipAmount({ amount: 500000, award_currency: 'NGN' })).toBe('₦500,000');
+      expect(formatScholarshipAmount({ amount: 15000, currency: 'GBP' })).toBe('£15,000');
+      expect(formatScholarshipAmount({ amount: 20000, currency: 'EUR' })).toBe('€20,000');
+      expect(formatScholarshipAmount({ amount: 10000, currency: 'USD' })).toBe('$10,000');
+      expect(formatScholarshipAmount({ amount: 5000, currency: 'CAD' })).toBe('CA$5,000');
+    });
+
+    it('Test 20: formatScholarshipAmount preserves descriptive award text', () => {
+      expect(formatScholarshipAmount({ amount: 0, awardValueText: 'Full tuition + stipend' })).toBe('Full tuition + stipend');
+      expect(formatScholarshipAmount({ amount: 500000, awardValueText: 'Up to ₦500,000' })).toBe('Up to ₦500,000');
+      expect(formatScholarshipAmount({ awardDescription: 'Variable based on need' })).toBe('Variable based on need');
+      expect(formatScholarshipAmount({ awardValueText: 'Not publicly disclosed' })).toBe('Not publicly disclosed');
+    });
+
+    it('Test 21: formatScholarshipAmount handles zero/missing amounts without assuming USD', () => {
+      expect(formatScholarshipAmount({ amount: 0 })).toBe('Not specified');
+      expect(formatScholarshipAmount({})).toBe('Not specified');
+      expect(formatScholarshipAmount(null as any)).toBe('Not specified');
+    });
+
+    it('Test 22: getCurrencySymbol returns empty string for unknown/missing currency without defaulting to USD', () => {
+      expect(getCurrencySymbol(undefined)).toBe('');
+      expect(getCurrencySymbol(null)).toBe('');
+      expect(getCurrencySymbol('')).toBe('');
+      expect(getCurrencySymbol('XYZ')).toBe('');
+      expect(getCurrencySymbol('NGN')).toBe('₦');
+      expect(getCurrencySymbol('USD')).toBe('$');
+    });
+  });
+
+  describe('4. Deadline Formatting & Timezone Safety (Task 2)', () => {
+    it('Test 23: formatScholarshipDeadline renders human-readable dates', () => {
+      const formatted = formatScholarshipDeadline('2026-11-25');
+      expect(formatted).toContain('2026');
+      expect(formatted).toContain('Nov');
+      expect(formatScholarshipDeadline('')).toBe('Deadline not specified');
+      expect(formatScholarshipDeadline('invalid-date')).toBe('Deadline not specified');
+    });
+
+    it('Test 24: isDeadlinePassed treats date-only strings as valid through 23:59:59.999 local', () => {
+      // Use tomorrow's local date so the test is never timezone-sensitive
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const futureStr = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`;
+      // "now" is noon today — tomorrow's deadline is definitively not yet passed
+      const noon = new Date();
+      noon.setHours(12, 0, 0, 0);
+      expect(isDeadlinePassed(futureStr, noon)).toBe(false);
+    });
+  });
+
+  describe('5. Open/Closing Soon/Closed Status Helpers (Task 1)', () => {
+    it('Test 25: isScholarshipOpen, isScholarshipClosingSoon, and isScholarshipClosed work properly', () => {
+      const openSch = createMockScholarship({
+        status: 'verified',
+        verificationStatus: 'verified',
+        deadline: '2026-06-01T12:00:00Z',
+      });
+      expect(isScholarshipOpen(openSch, now)).toBe(true);
+      expect(isScholarshipClosed(openSch, now)).toBe(false);
+
+      const closingSoonSch = createMockScholarship({
+        status: 'verified',
+        verificationStatus: 'verified',
+        deadline: '2026-05-04T12:00:00Z', // 3 days away from now
+      });
+      expect(isScholarshipOpen(closingSoonSch, now)).toBe(true);
+      expect(isScholarshipClosingSoon(closingSoonSch, now)).toBe(true);
+
+      const closedSch = createMockScholarship({
+        status: 'verified',
+        verificationStatus: 'verified',
+        deadline: '2026-04-20T12:00:00Z', // past
+      });
+      expect(isScholarshipClosed(closedSch, now)).toBe(true);
+      expect(isScholarshipOpen(closedSch, now)).toBe(false);
+    });
+
+    it('Test 26: pending and rejected scholarships are not open to students', () => {
+      const pendingSch = createMockScholarship({
+        status: 'pending' as any,
+        verificationStatus: 'pending' as any,
+        deadline: '2026-06-01T12:00:00Z',
+      });
+      expect(isScholarshipOpen(pendingSch, now)).toBe(false);
+
+      const rejectedSch = createMockScholarship({
+        status: 'rejected' as any,
+        verificationStatus: 'rejected' as any,
+        deadline: '2026-06-01T12:00:00Z',
+      });
+      expect(isScholarshipOpen(rejectedSch, now)).toBe(false);
     });
   });
 });

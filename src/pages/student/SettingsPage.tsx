@@ -3,10 +3,11 @@ import { UserProfile } from '../../types';
 import { 
   Settings, Bell, Mail, Smartphone, MessageSquare, 
   CheckCircle2, Save, Shield, Clock, Lock, Crown, Sparkles, ArrowRight,
-  Trash2, AlertTriangle, Loader2
+  Trash2, AlertTriangle, Loader2, HelpCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../lib/apiClient';
+import { ContactSupportModal } from '../../components/common/ContactSupportModal';
 
 interface SettingsPageProps {
   userProfile: UserProfile;
@@ -16,6 +17,7 @@ interface SettingsPageProps {
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ userProfile, onUpdateProfile, onNavigate }) => {
   const { logout } = useAuth();
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
 
   const [preferences, setPreferences] = useState({
     inApp: userProfile.notificationPreferences?.inApp ?? true,
@@ -398,6 +400,33 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ userProfile, onUpdat
         </div>
       </div>
 
+      {/* ── Help & Support ───────────────────────────────────── */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+          <HelpCircle size={15} className="text-indigo-600" />
+          <h2 className="text-sm font-bold text-slate-900">Help &amp; Human Support</h2>
+        </div>
+        <div className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-slate-900">Need assistance or found incorrect scholarship details?</p>
+            <p className="text-xs text-slate-500 leading-relaxed max-w-md">
+              Reach our support team anytime at{' '}
+              <a href="mailto:support@scholavon.com" className="font-semibold text-indigo-600 hover:underline">
+                support@scholavon.com
+              </a>. You can also send a message directly using our support launcher.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsSupportModalOpen(true)}
+            className="shrink-0 inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+          >
+            <Mail size={13} />
+            Contact Support
+          </button>
+        </div>
+      </div>
+
       {/* ── Danger Zone ───────────────────────────────────────── */}
       <div className="bg-white border border-rose-200 rounded-2xl shadow-xs overflow-hidden">
         <div className="px-6 py-4 border-b border-rose-100 flex items-center gap-2">
@@ -528,6 +557,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ userProfile, onUpdat
         </div>
       )}
 
+      {/* ── Contact Support Modal ──────────────────────────── */}
+      <ContactSupportModal
+        isOpen={isSupportModalOpen}
+        onClose={() => setIsSupportModalOpen(false)}
+        defaultEmail={userProfile.email}
+      />
     </div>
   );
 };

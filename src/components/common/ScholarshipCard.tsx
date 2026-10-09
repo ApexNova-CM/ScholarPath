@@ -1,9 +1,10 @@
 import React from 'react';
 import { Scholarship, UserProfile } from '../../types';
-import { Bookmark, MapPin, GraduationCap, ArrowUpRight, DollarSign, Target } from 'lucide-react';
+import { Bookmark, MapPin, GraduationCap, ArrowUpRight, Coins, Target, Calendar } from 'lucide-react';
 import { getMatchCategory, getMatchCategoryColors } from '../../services/eligibility';
 import { LifecycleBadge } from './LifecycleBadge';
 import { computeLifecycleStatus } from '../../services/scholarshipFilters';
+import { formatScholarshipAmount, formatScholarshipDeadline } from '../../utils/formatters';
 
 interface ScholarshipCardProps {
   scholarship: Scholarship;
@@ -28,15 +29,8 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
   showMatchScore = false,
   matchScore
 }) => {
-  const formattedAmount = scholarship.amountDisplay || (
-    scholarship.amount !== undefined && scholarship.amount !== null && scholarship.amount > 0
-      ? new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: scholarship.currency || 'USD',
-          maximumFractionDigits: 0
-        }).format(scholarship.amount)
-      : scholarship.fundingType || 'Award varies'
-  );
+  const formattedAmount = formatScholarshipAmount(scholarship);
+  const formattedDeadline = formatScholarshipDeadline(scholarship.deadline, { short: true });
 
   const locationText = 
     !scholarship.eligibleCountries || scholarship.eligibleCountries.length === 0 || scholarship.eligibleCountries.includes('All')
@@ -57,7 +51,7 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
       id={`scholarship-card-${scholarship.id}`}
       className={`group relative flex flex-col justify-between bg-white border rounded-xl p-5 transition-all duration-200 ${
         isInactive
-          ? 'border-slate-200 opacity-70 hover:opacity-90'
+          ? 'border-slate-200 opacity-75 hover:opacity-95'
           : 'border-slate-200/90 hover:border-indigo-400/80 hover:shadow-md'
       }`}
     >
@@ -95,25 +89,20 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
           )}
         </div>
 
-        {/* Match Score Badge — only shown when showMatchScore=true and score ≥ 50 */}
-        {shouldShowBadge && matchColors && matchLabel && (
-          <div className="mb-3">
-            <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold ${matchColors.bg} ${matchColors.text} ${matchColors.border}`}
-            >
-              <Target size={12} className="shrink-0" />
-              <span>{matchScore}% Match</span>
-              <span className="font-normal opacity-70">· {matchLabel}</span>
-            </span>
-          </div>
-        )}
+        {/* Badges Bar: Match Score & Visible Lifecycle Status Badge */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <LifecycleBadge scholarship={scholarship} size="sm" />
 
-        {/* Lifecycle Status Badge — only for Closing Soon, Closed, Archived */}
-        {lifecycleStatus !== 'active' && (
-          <div className="mb-3">
-            <LifecycleBadge scholarship={scholarship} size="sm" hideActive />
-          </div>
-        )}
+          {shouldShowBadge && matchColors && matchLabel && (
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md border text-[10px] font-bold ${matchColors.bg} ${matchColors.text} ${matchColors.border}`}
+            >
+              <Target size={11} className="shrink-0" />
+              <span>{matchScore}% Match</span>
+              <span className="font-normal opacity-75">· {matchLabel}</span>
+            </span>
+          )}
+        </div>
 
         {/* Short description */}
         <p className="text-xs text-slate-600 line-clamp-2 mb-4 leading-relaxed">
@@ -123,9 +112,11 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
         {/* Key Metadata Grid */}
         <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-4 bg-slate-50/80 rounded-lg p-2.5 border border-slate-100">
           <div className="flex items-center gap-1.5 font-semibold text-slate-900">
-            <DollarSign size={14} className="text-emerald-600 shrink-0" />
-            <span>{formattedAmount}</span>
-            <span className="text-[10px] font-normal text-slate-500">({scholarship.fundingType})</span>
+            <Coins size={14} className="text-emerald-600 shrink-0" />
+            <span className="truncate">{formattedAmount}</span>
+            {scholarship.fundingType && (
+              <span className="text-[10px] font-normal text-slate-500">({scholarship.fundingType})</span>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5 text-slate-600">
@@ -133,8 +124,15 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
             <span className="truncate">{scholarship.educationLevels[0] || 'Undergraduate'}</span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-slate-600 col-span-2">
-            <MapPin size={14} className="text-slate-400 shrink-0" />
+          <div className="flex items-center gap-1.5 text-slate-600">
+            <Calendar size={13} className={lifecycleStatus === 'closing_soon' ? 'text-amber-600 shrink-0' : 'text-slate-400 shrink-0'} />
+            <span className={`truncate ${lifecycleStatus === 'closing_soon' ? 'font-semibold text-amber-800' : ''}`}>
+              Deadline: {formattedDeadline}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-slate-600">
+            <MapPin size={13} className="text-slate-400 shrink-0" />
             <span className="truncate">{locationText}</span>
           </div>
         </div>
@@ -147,18 +145,24 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
           onClick={() => onViewDetails?.(scholarship.id)}
           className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors"
         >
-          <span>View Scholarship</span>
+          <span>View Details</span>
           <ArrowUpRight size={13} />
         </button>
 
-        {onStartApplication && (
-          <button
-            id={`btn-apply-prep-${scholarship.id}`}
-            onClick={() => onStartApplication(scholarship)}
-            className="text-xs font-medium bg-slate-900 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition-colors shadow-2xs"
-          >
-            Start Application
-          </button>
+        {isInactive ? (
+          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 border border-slate-200 select-none">
+            Application Closed
+          </span>
+        ) : (
+          onStartApplication && (
+            <button
+              id={`btn-apply-prep-${scholarship.id}`}
+              onClick={() => onStartApplication(scholarship)}
+              className="text-xs font-medium bg-slate-900 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg transition-colors shadow-2xs cursor-pointer"
+            >
+              Start Application
+            </button>
+          )
         )}
       </div>
     </div>

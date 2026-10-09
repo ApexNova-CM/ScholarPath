@@ -5,9 +5,11 @@ import { DeadlineBadge } from '../../components/common/DeadlineBadge';
 import { evaluateEligibility } from '../../services/eligibility';
 import { computeLifecycleStatus } from '../../services/scholarshipFilters';
 import { processDueScholarshipReminders } from '../../services/reminderService';
+import { formatScholarshipAmount } from '../../utils/formatters';
+import { ContactSupportModal } from '../../components/common/ContactSupportModal';
 import { 
   Sparkles, GraduationCap, Search, ArrowRight, Briefcase, 
-  CheckCircle2, Bookmark, FileText, Bell, Clock, Target, AlertCircle, UserCheck
+  CheckCircle2, Bookmark, FileText, Bell, Clock, Target, AlertCircle, UserCheck, HelpCircle
 } from 'lucide-react';
 
 interface StudentDashboardPageProps {
@@ -33,6 +35,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
   onNavigate,
   onStartApplication
 }) => {
+  const [isSupportModalOpen, setIsSupportModalOpen] = React.useState(false);
   // Automatically process any due deadline reminders for the current student on dashboard load
   useEffect(() => {
     if (userProfile?.id) {
@@ -329,7 +332,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-slate-500">
                       <span>{sch.providerName}</span>
-                      <span className="font-semibold text-slate-700">${sch.amount.toLocaleString()}</span>
+                      <span className="font-semibold text-slate-700">{formatScholarshipAmount(sch)}</span>
                     </div>
                   </div>
                 ))}
@@ -418,8 +421,36 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Help & Support Card */}
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
+              <HelpCircle size={15} className="text-indigo-600" />
+              <span>Need Help or Support?</span>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Have questions or feedback? Contact our support desk at{' '}
+              <a href="mailto:support@scholavon.com" className="font-semibold text-indigo-600 hover:underline">
+                support@scholavon.com
+              </a>.
+            </p>
+            <div className="pt-1">
+              <button
+                onClick={() => setIsSupportModalOpen(true)}
+                className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/60 rounded-xl text-xs font-semibold transition-colors cursor-pointer text-center"
+              >
+                Contact Human Support
+              </button>
+            </div>
+          </div>
         </div>
       </div>
+
+      <ContactSupportModal
+        isOpen={isSupportModalOpen}
+        onClose={() => setIsSupportModalOpen(false)}
+        defaultEmail={userProfile.email}
+      />
     </div>
   );
 };

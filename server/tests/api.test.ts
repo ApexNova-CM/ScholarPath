@@ -401,9 +401,52 @@ describe('Free Plan Application Limit & Slot Management', () => {
     const res5 = await request(app)
       .post('/api/v1/student/applications')
       .set('Authorization', `Bearer ${plusToken}`)
-      .send({ scholarshipId: 'sch-005' });
+      .send({ scholarshipId: 'sch-006' });
     expect(res5.status).toBe(201);
     expect(res5.body.success).toBe(true);
+  });
+
+  it('Rejects new application for closed/expired scholarship with 400 SCHOLARSHIP_CLOSED', async () => {
+    // Seed closed scholarship
+    const closedId = `closed-test-${Date.now()}`;
+    await db.createScholarship({
+      id: closedId,
+      title: 'Closed Test Scholarship',
+      providerId: 'p-1',
+      providerName: 'Closed Org',
+      description: 'Closed',
+      shortDescription: 'Closed',
+      category: 'General',
+      tags: [],
+      amount: 1000,
+      currency: 'USD',
+      fundingType: 'Partial',
+      eligibleCountries: ['All'],
+      educationLevels: ['Undergraduate'],
+      fieldsOfStudy: ['All'],
+      gpaScale: 4.0,
+      requiredDocuments: [],
+      applicationInstructions: '',
+      applicationUrl: 'https://example.com',
+      deadline: '2020-01-01T00:00:00Z',
+      status: 'closed',
+      manuallyClosed: true,
+      verificationStatus: 'verified',
+      viewCount: 0,
+      saveCount: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    const res = await request(app)
+      .post('/api/v1/student/applications')
+      .set('Authorization', `Bearer ${plusToken}`)
+      .send({ scholarshipId: closedId });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('SCHOLARSHIP_CLOSED');
+    expect(res.body.error.message).toContain('closed');
   });
 });
 

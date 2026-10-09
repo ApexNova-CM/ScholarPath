@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { ReportScholarshipModal } from '../../components/common/ReportScholarshipModal';
 
+import { formatScholarshipAmount, formatScholarshipDeadline } from '../../utils/formatters';
+
 interface ScholarshipDetailPageProps {
   scholarshipId: string;
   scholarships: Scholarship[];
@@ -66,15 +68,8 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
   const isArchived = lifecycleStatus === 'archived';
   const isInactive = isClosed || isArchived;
 
-  const formattedAmount = scholarship.amountDisplay || scholarship.awardValueText || (
-    scholarship.amount !== undefined && scholarship.amount !== null && scholarship.amount > 0
-      ? new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: scholarship.currency || scholarship.awardCurrency || 'USD',
-          maximumFractionDigits: 0
-        }).format(scholarship.amount)
-      : (scholarship.fundingType || 'Award varies')
-  );
+  const formattedAmount = formatScholarshipAmount(scholarship);
+  const formattedDeadline = formatScholarshipDeadline(scholarship.deadline);
 
   const handleShare = () => {
     navigator.clipboard?.writeText(window.location.href);
@@ -170,7 +165,7 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
             />
           )}
           <DeadlineBadge deadline={scholarship.deadline} size="md" />
-          <LifecycleBadge scholarship={scholarship} size="md" hideActive />
+          <LifecycleBadge scholarship={scholarship} size="md" />
           <span className="text-xs px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-medium">
             {scholarship.category}
           </span>
@@ -232,7 +227,7 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
           <div>
             <span className="text-slate-400 block font-medium">Application Deadline</span>
             <span className="text-sm font-bold text-slate-900 mt-1 block">
-              {new Date(scholarship.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              {formattedDeadline}
             </span>
             <span className="text-[11px] text-slate-500">{scholarship.deadlineTime || '23:59'} {scholarship.timezone || 'UTC'}</span>
           </div>
