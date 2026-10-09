@@ -45,13 +45,6 @@ export const STARTER_PROMPTS: SuggestedPrompt[] = [
     category: 'discovery'
   },
   {
-    id: 'p-deadline',
-    icon: '⏰',
-    title: 'Upcoming Deadlines',
-    prompt: "What scholarships are closing soon?",
-    category: 'deadlines'
-  },
-  {
     id: 'p-readiness',
     icon: '📋',
     title: 'Readiness Check',
@@ -59,24 +52,31 @@ export const STARTER_PROMPTS: SuggestedPrompt[] = [
     category: 'readiness'
   },
   {
-    id: 'p-apps',
-    icon: '📊',
-    title: 'Application Attention',
-    prompt: "Which of my applications need attention?",
-    category: 'applications'
+    id: 'p-essay',
+    icon: '✍️',
+    title: 'Essay & Personal Statement',
+    prompt: "How do I structure a compelling scholarship essay?",
+    category: 'workspace'
   },
   {
-    id: 'p-outcomes',
-    icon: '🏆',
-    title: 'Results & Shortlists',
-    prompt: "What are my current application results?",
-    category: 'outcomes'
+    id: 'p-deadline',
+    icon: '⏰',
+    title: 'Upcoming Deadlines',
+    prompt: "What scholarships are closing soon?",
+    category: 'deadlines'
   },
   {
-    id: 'p-next',
+    id: 'p-career',
+    icon: '💼',
+    title: 'Career & Resume Advice',
+    prompt: "What are high-impact resume tips for students?",
+    category: 'discovery'
+  },
+  {
+    id: 'p-guide',
     icon: '💡',
-    title: 'Next Actions',
-    prompt: "What should I do next?",
+    title: 'Scholavon Platform Guide',
+    prompt: "How do I use the Document Vault and Application Workspace?",
     category: 'workspace'
   }
 ];
@@ -95,6 +95,13 @@ export const WORKSPACE_STARTER_PROMPTS: SuggestedPrompt[] = [
     title: 'Match Explanation',
     prompt: "Why did I get this Match Score?",
     category: 'discovery'
+  },
+  {
+    id: 'p-ws-essay',
+    icon: '✍️',
+    title: 'Draft Essay Hook',
+    prompt: "Help me outline an essay for this scholarship",
+    category: 'workspace'
   },
   {
     id: 'p-ws-explain',
@@ -155,7 +162,7 @@ export async function sendStudentAIChat(
       err?.message?.includes('limit reached');
 
     if (isUpgradeRequired) {
-      const customErr: any = new Error(err?.response?.data?.error || err?.message || 'Monthly AI prompt limit reached. Upgrade to Scholavon Plus for unlimited AI assistance.');
+      const customErr: any = new Error(err?.response?.data?.error || err?.message || 'Monthly AI prompt limit reached. Upgrade to Scholavon Plus for unlimited AI assistance with Vona.');
       customErr.code = 'UPGRADE_REQUIRED';
       throw customErr;
     }
@@ -168,7 +175,7 @@ export async function sendStudentAIChat(
 }
 
 /**
- * Client-side fallback grounded response generator
+ * Client-side fallback grounded response generator featuring Vona
  */
 function generateClientGroundedResponse(
   message: string,
@@ -195,7 +202,7 @@ function generateClientGroundedResponse(
   if (profile.subscriptionStatus !== 'premium') {
     const currentUsage = StorageService.getMonthlyAiPromptUsage(profile.id);
     if (currentUsage.used >= 3) {
-      const quotaErr: any = new Error('Monthly AI assistant prompt limit reached (3 prompts/month on Free tier). Upgrade to Scholavon Plus for unlimited AI assistance.');
+      const quotaErr: any = new Error('Monthly AI assistant prompt limit reached (3 prompts/month on Free tier). Upgrade to Scholavon Plus for unlimited AI assistance with Vona.');
       quotaErr.code = 'UPGRADE_REQUIRED';
       throw quotaErr;
     }
@@ -218,7 +225,57 @@ function generateClientGroundedResponse(
     }
   }
 
-  const lower = message.toLowerCase();
+  const lower = message.toLowerCase().trim();
+
+  // Security & Boundaries
+  if (
+    lower.includes('another student') ||
+    lower.includes('other student') ||
+    lower.includes('other user') ||
+    lower.includes('admin') ||
+    lower.includes('secret') ||
+    lower.includes('password') ||
+    lower.includes('delete') ||
+    lower.includes('submit for me') ||
+    lower.includes('bypass')
+  ) {
+    return {
+      content: `I cannot perform that action or access unauthorized information.\n\nVona strictly respects user privacy and data boundaries. I cannot view other students' private records or perform automatic submissions without your direct action.`,
+      suggestedActions: [{ label: 'Return to Dashboard', path: '/dashboard' }]
+    };
+  }
+
+  // Identity / Greeting
+  if (
+    lower.includes('who are you') ||
+    lower.includes('what are you') ||
+    lower.includes('what is your name') ||
+    lower.includes('what can you do') ||
+    lower.includes('what can you help') ||
+    lower.startsWith('hello') ||
+    lower.startsWith('hi ') ||
+    lower === 'hi' ||
+    lower === 'hello' ||
+    lower === 'hey' ||
+    lower.startsWith('hey ')
+  ) {
+    return {
+      content: `Hello ${profile.firstName}! I'm **Vona**, your personal AI assistant at Scholavon.\n\n` +
+        `I'm here to support your entire academic, scholarship, and career journey:\n\n` +
+        `- 🎯 **Match Recommendations**: Find tailored scholarships for your **${profile.educationLevel}** studies in **${profile.fieldOfStudy || 'your study'}**.\n` +
+        `- 📋 **Application Readiness**: Check what documents or profile requirements you need before applying.\n` +
+        `- ✍️ **Essay & Writing Coaching**: Draft and polish compelling personal statements and essays.\n` +
+        `- ⏰ **Upcoming Deadlines**: Track closing opportunities and prioritize next steps.\n` +
+        `- 📊 **Application Tracker**: Monitor your application pipeline and outcome milestones.\n` +
+        `- 💡 **Everyday & Technical Questions**: Ask me about coding, career planning, productivity, or study habits!\n\n` +
+        `How can I help you succeed today?`,
+      suggestedActions: [
+        { label: 'Find Scholarships', path: '/scholarships' },
+        { label: 'Document Vault', path: '/documents' },
+        { label: 'My Applications', path: '/applications' }
+      ]
+    };
+  }
 
   // Match / Eligibility
   if (lower.includes('match') || lower.includes('eligible')) {
@@ -289,12 +346,28 @@ function generateClientGroundedResponse(
     };
   }
 
-  // General fallback
-  const topMatch = scholarships[0];
+  // General / Coding / Career / Writing fallback
+  if (lower.includes('essay') || lower.includes('statement') || lower.includes('write')) {
+    return {
+      content: `### Essay & Writing Coaching with Vona\n\n` +
+        `Writing a memorable scholarship essay requires focus and structure:\n\n` +
+        `1. **Hook the Reader**: Start with a defining moment that sparked your interest in **${profile.fieldOfStudy || 'your study'}**.\n` +
+        `2. **Demonstrate Growth**: Share concrete challenges you overcame and what you learned.\n` +
+        `3. **Align with the Provider**: Mention how this scholarship empowers your specific future goals.\n\n` +
+        `Paste your outline or draft anytime and I'll help you refine it!`,
+      suggestedActions: [
+        { label: 'Document Vault', path: '/documents' },
+        { label: 'Find Scholarships', path: '/scholarships' }
+      ]
+    };
+  }
+
+  // General conversational response
   return {
-    content: `Hello ${profile.firstName}! I'm **Scholavon AI**.\n\n` +
-      `You currently have **${applications.length} applications** and **${documents.length} documents** in your vault.\n\n` +
-      `Ask me any questions about finding scholarships, checking requirements, or tracking your deadlines!`,
+    content: `Hello ${profile.firstName}! I'm **Vona**, your personal AI assistant.\n\n` +
+      `Regarding *"**${message}**"*:\n\n` +
+      `I can help you explore this topic in depth or connect it with your academic goals in **${profile.educationLevel}** (${profile.fieldOfStudy || 'General'}).\n\n` +
+      `You currently have **${applications.length} applications** and **${documents.length} documents** in your vault. Let me know what you'd like to work on!`,
     suggestedActions: [
       { label: 'Find Scholarships', path: '/scholarships' },
       { label: 'Document Vault', path: '/documents' },
@@ -302,3 +375,4 @@ function generateClientGroundedResponse(
     ]
   };
 }
+

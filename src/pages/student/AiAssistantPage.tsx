@@ -12,7 +12,7 @@ import {
   sendStudentAIChat 
 } from '../../services/aiService';
 import { StorageService } from '../../services/storage';
-import { PremiumGate, isPremiumUser } from '../../components/common/PremiumGate';
+import { isPremiumUser } from '../../components/common/PremiumGate';
 
 interface AiAssistantPageProps {
   userProfile: UserProfile;
@@ -34,6 +34,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null);
   const [promptUsage, setPromptUsage] = useState<number>(() => {
     return userProfile?.id ? StorageService.getMonthlyAiPromptUsage(userProfile.id).used : 0;
   });
@@ -47,11 +48,11 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
     ? scholarships.find(s => s.id === activeScholarshipId) 
     : undefined;
 
-  // Initialize welcoming message
+  // Initialize welcoming message from Vona
   useEffect(() => {
     const welcomeText = activeScholarship
-      ? `Hello **${userProfile.firstName}**! I'm **Scholavon AI**.\n\nI'm currently focused on **${activeScholarship.title}**.\n\nYou can ask me about:\n- 🎯 **Why you got your Match Score**\n- 📋 **What documents and requirements you are missing**\n- ✍️ **How to draft your personal statement**\n- ⏰ **Key deadlines and next steps**`
-      : `Hello **${userProfile.firstName}**! I'm **Scholavon AI**, your personal scholarship advisor.\n\nI have access to your verified academic profile in **${userProfile.fieldOfStudy || 'your degree'}** and your **${applications.length} tracked applications**.\n\nHow can I help you succeed today?`;
+      ? `Hello **${userProfile.firstName}**! I'm **Vona**, your personal assistant at Scholavon.\n\nI'm currently focused on **${activeScholarship.title}**.\n\nYou can ask me about:\n- 🎯 **Why you got your Match Score**\n- 📋 **What documents and checklist items you are missing**\n- ✍️ **How to draft or outline your scholarship essay**\n- ⏰ **Key deadlines, preparation timelines, and next steps**`
+      : `Hello **${userProfile.firstName}**! I'm **Vona**, your personal AI assistant at Scholavon.\n\nI have access to your verified profile in **${userProfile.fieldOfStudy || 'your degree'}** and your **${applications.length} tracked applications**.\n\nI can help you find top scholarship matches, review application readiness, polish essays, provide coding and career guidance, or answer questions about anything you're working on. How can I assist you today?`;
 
     const initialMsg: ChatMessage = {
       id: 'msg-welcome',
@@ -82,13 +83,15 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
     const query = (textToSend || inputMessage).trim();
     if (!query || isLoading) return;
 
+    setLastFailedMessage(null);
+
     if (isLimitReached) {
       setMessages(prev => [
         ...prev,
         {
           id: `msg-limit-${Date.now()}`,
           role: 'assistant',
-          content: `You have reached your limit of **3 free monthly prompts**. Upgrade to **Scholavon Plus** for unlimited AI scholarship intelligence, essay drafting, and requirement reviews.`,
+          content: `You have reached your limit of **3 free monthly prompts**. Upgrade to **Scholavon Plus** for unlimited AI assistance with Vona, essay drafting, and requirement reviews.`,
           timestamp: new Date().toISOString(),
           suggestedActions: [
             { label: 'Upgrade to Plus', path: '/pricing', type: 'primary' }
@@ -137,7 +140,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
           {
             id: `msg-limit-${Date.now()}`,
             role: 'assistant',
-            content: `You have reached your limit of **3 free monthly prompts**. Upgrade to **Scholavon Plus** for unlimited AI assistance, document drafting, and customized eligibility breakdowns.`,
+            content: `You have reached your limit of **3 free monthly prompts**. Upgrade to **Scholavon Plus** for unlimited AI assistance with Vona, document drafting, and customized eligibility breakdowns.`,
             timestamp: new Date().toISOString(),
             suggestedActions: [
               { label: 'Upgrade to Scholavon Plus', path: '/pricing', type: 'primary' }
@@ -148,12 +151,13 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
           setPromptUsage(3);
         }
       } else {
+        setLastFailedMessage(query);
         setMessages(prev => [
           ...prev,
           {
             id: `msg-err-${Date.now()}`,
             role: 'assistant',
-            content: 'Scholavon AI is temporarily unavailable. Please try again in a few moments.',
+            content: 'Vona is temporarily taking longer to respond. Please check your connection or try again.',
             timestamp: new Date().toISOString(),
             isError: true
           }
@@ -169,10 +173,11 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
     const welcomeMsg: ChatMessage = {
       id: `msg-welcome-${Date.now()}`,
       role: 'assistant',
-      content: `Conversation reset. How else can I assist you with your scholarship journey, **${userProfile.firstName}**?`,
+      content: `Conversation reset. How else can I assist you today, **${userProfile.firstName}**?`,
       timestamp: new Date().toISOString()
     };
     setMessages([welcomeMsg]);
+    setLastFailedMessage(null);
   };
 
   // Helper to render basic markdown bold and bullet lines cleanly
@@ -222,16 +227,16 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
       <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-2xs mb-3 shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 text-white flex items-center justify-center shadow-xs shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 text-white flex items-center justify-center shadow-xs shrink-0 ring-4 ring-indigo-50">
               <Sparkles size={20} className="animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
-                  Scholavon AI
+                  Vona
                 </h1>
                 <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
-                  Assistant
+                  Personal AI Assistant
                 </span>
                 {isPremium ? (
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-50 text-amber-800 border border-amber-300">
@@ -249,7 +254,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
                 )}
               </div>
               <p className="text-xs text-slate-500">
-                Personalized scholarship intelligence, readiness checks & application advisor
+                Personalized scholarship intelligence, essay review & all-around academic advisor
               </p>
             </div>
           </div>
@@ -281,7 +286,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
             <div className="flex items-center gap-2 min-w-0">
               <Target size={14} className="text-indigo-600 shrink-0" />
               <span className="text-slate-600 truncate">
-                Context: <strong className="text-slate-900 font-semibold">{activeScholarship.title}</strong>
+                Focus Opportunity: <strong className="text-slate-900 font-semibold">{activeScholarship.title}</strong>
               </span>
             </div>
             <button
@@ -307,13 +312,13 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
               className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold ${
                 msg.role === 'user'
                   ? 'bg-indigo-600 text-white shadow-2xs'
-                  : 'bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-700 border border-indigo-200/80 shadow-2xs'
+                  : 'bg-gradient-to-br from-indigo-50 via-purple-50 to-indigo-100 text-indigo-700 border border-indigo-200/80 shadow-2xs'
               }`}
             >
               {msg.role === 'user' ? (
                 <span>{userProfile.firstName[0]}</span>
               ) : (
-                <Sparkles size={14} />
+                <Sparkles size={14} className="text-indigo-600" />
               )}
             </div>
 
@@ -377,6 +382,19 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
                 </div>
               )}
 
+              {/* Retry on Error */}
+              {msg.isError && lastFailedMessage && (
+                <div className="mt-2.5 pt-2 border-t border-rose-200/70 flex items-center gap-2">
+                  <button
+                    onClick={() => handleSendMessage(lastFailedMessage)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-100 hover:bg-rose-200 text-rose-800 transition-colors cursor-pointer"
+                  >
+                    <RefreshCw size={12} />
+                    <span>Retry Question</span>
+                  </button>
+                </div>
+              )}
+
               <span className={`text-[10px] block mt-2 text-right ${msg.role === 'user' ? 'text-indigo-200' : 'text-slate-400'}`}>
                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
@@ -387,8 +405,8 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
         {/* Loading Bubble */}
         {isLoading && (
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200 flex items-center justify-center shrink-0">
-              <Sparkles size={14} className="animate-spin" />
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-600 border border-indigo-200 flex items-center justify-center shrink-0">
+              <Sparkles size={14} className="animate-spin text-indigo-600" />
             </div>
             <div className="bg-slate-50 border border-slate-200 rounded-2xl rounded-tl-xs p-3.5 shadow-2xs flex items-center gap-2.5">
               <div className="flex items-center gap-1">
@@ -396,7 +414,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
                 <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '150ms' }} />
                 <span className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
-              <span className="text-xs text-slate-500 font-medium">Scholavon AI is thinking...</span>
+              <span className="text-xs text-slate-500 font-medium">Vona is thinking...</span>
             </div>
           </div>
         )}
@@ -433,7 +451,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
                 Monthly AI Prompt Limit Reached (3 / 3 Used)
               </h4>
               <p className="text-[11px] text-slate-600">
-                Upgrade to <strong>Scholavon Plus</strong> for unlimited AI questions, essay drafting, and requirement reviews.
+                Upgrade to <strong>Scholavon Plus</strong> for unlimited questions, essay coaching, and personalized guidance with Vona.
               </p>
             </div>
           </div>
@@ -460,7 +478,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
               type="text"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="Ask me anything about scholarships, readiness, or deadlines..."
+              placeholder="Ask Vona anything about scholarships, essays, coding, career, or study tips..."
               disabled={isLoading}
               className="flex-1 px-4 py-2.5 text-xs sm:text-sm bg-transparent border-none focus:outline-hidden text-slate-900 placeholder:text-slate-400"
             />
@@ -478,3 +496,4 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
     </div>
   );
 };
+

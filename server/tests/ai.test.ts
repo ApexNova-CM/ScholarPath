@@ -99,6 +99,7 @@ describe('Feature #8: AI Scholarship Assistant', () => {
       email: 'david.kim@example.com',
       passwordHash: 'hashed_pw_2',
       role: 'student',
+      subscriptionStatus: 'premium',
       emailVerified: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -433,4 +434,64 @@ describe('Feature #8: AI Scholarship Assistant', () => {
       expect(res.body.data.reply).toBeDefined();
     });
   });
+
+  describe('10. Vona Persona, Identity & Broad Domain Intelligence', () => {
+    it('identifies as Vona and introduces versatile capabilities when greeted', async () => {
+      const res = await request(app)
+        .post('/api/v1/student/ai/chat')
+        .set('Authorization', `Bearer ${student1Token}`)
+        .send({ message: 'Who are you and what can you help me with?' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.reply).toContain('Vona');
+      expect(res.body.data.reply).toContain('personal AI assistant');
+    });
+
+    it('provides intelligent essay and personal statement guidance', async () => {
+      const res = await request(app)
+        .post('/api/v1/student/ai/chat')
+        .set('Authorization', `Bearer ${student1Token}`)
+        .send({ message: 'How should I structure my personal statement essay?' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.reply).toContain('Essay');
+      expect(res.body.data.reply).toContain('Hook');
+    });
+
+    it('provides technology, programming, and computer science insights', async () => {
+      const res = await request(app)
+        .post('/api/v1/student/ai/chat')
+        .set('Authorization', `Bearer ${student1Token}`)
+        .send({ message: 'Can you give me programming and algorithm optimization tips?' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.reply).toContain('Programming');
+      expect(res.body.data.reply).toContain('Algorithm');
+    });
+
+    it('provides study methods and productivity advice', async () => {
+      const res = await request(app)
+        .post('/api/v1/student/ai/chat')
+        .set('Authorization', `Bearer ${student1Token}`)
+        .send({ message: 'What are effective study habits and productivity techniques?' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.reply).toContain('Feynman');
+      expect(res.body.data.reply).toContain('Pomodoro');
+    });
+
+    it('explains Scholavon platform features and how to upgrade or contact support', async () => {
+      const res = await request(app)
+        .post('/api/v1/student/ai/chat')
+        .set('Authorization', `Bearer ${student1Token}`)
+        .send({ message: 'How does Scholavon work and how do I upgrade to Plus?' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.reply).toContain('Scholavon Platform Guide');
+      expect(res.body.data.reply).toContain('support@scholavon.com');
+      expect(res.body.data.reply).toContain('Scholavon Plus');
+    });
+  });
 });
+

@@ -287,7 +287,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                   <Sparkles size={14} className="animate-pulse text-indigo-200" />
                 </div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-100">
-                  Scholavon AI
+                  Vona AI Assistant
                 </h3>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-200 border border-indigo-400/30">
@@ -295,7 +295,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               </span>
             </div>
             <p className="text-xs text-indigo-200/90 leading-relaxed">
-              Ask about personalized matches, readiness gaps, deadline alerts, or next actions.
+              Ask Vona about personalized matches, readiness gaps, essay drafts, career tips, or platform guidance.
             </p>
             <div className="pt-1">
               <button
@@ -303,7 +303,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                 onClick={() => onNavigate('/ai-assistant')}
                 className="w-full py-2 px-3 bg-white hover:bg-indigo-50 text-indigo-950 text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>Chat with AI Assistant</span>
+                <span>Chat with Vona</span>
                 <ArrowRight size={13} />
               </button>
             </div>

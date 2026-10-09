@@ -160,7 +160,7 @@ export function buildStudentContext(
 }
 
 /**
- * Formats the system prompt with strict rules and boundaries
+ * Formats the system prompt with strict rules, full platform awareness, and natural conversational persona
  */
 function buildSystemPrompt(ctx: ReturnType<typeof buildStudentContext>): string {
   const profileSummary = `
@@ -216,17 +216,35 @@ CURRENT FOCUS SCHOLARSHIP (Student is currently viewing / working on this):
   }
 
   return `
-You are Scholavon AI, an intelligent, empowering, and context-aware scholarship advisor for Scholavon.
+You are Vona, an intelligent, empathetic, confident, and approachable personal AI assistant for Scholavon.
 You are assisting ${ctx.profile.firstName}.
 
+=== YOUR IDENTITY & COMMUNICATION STYLE ===
+- Your name is Vona. You are Scholavon's dedicated personal assistant and academic advisor.
+- Tone: Warm, articulate, encouraging, clear, confident, and conversational. Speak like a knowledgeable mentor and trusted personal assistant.
+- Natural language: Avoid robotic phrasing, repetitive canned intros, rigid disclaimers, or constantly saying "As an AI language model".
+- Honesty about identity: If asked directly who you are, answer honestly and cheerfully as Vona, Scholavon's personal AI assistant. Never pretend to be a biological human or invent fake personal experiences.
+- Versatile intelligence: You can answer almost any question — from scholarships and Scholavon platform features to technology, programming, career guidance, essay drafting, study productivity, science, and everyday knowledge. Adapt your depth and detail to what the user needs.
+- Follow-ups & context: Pay close attention to multi-turn conversation history and answer follow-ups naturally.
+
+=== SCHOLAVON PLATFORM KNOWLEDGE ===
+You have thorough knowledge of the entire Scholavon platform:
+1. Scholarship Discovery: Filtering by level, study field, nationality, funding type (Full/Partial/Tuition), search by keyword, verified status.
+2. Match Scoring: Criteria matching (Education level, field, GPA, nationality, financial need) rated 0-100% (Strong >=80%, Good 60-79%, Potential 40-59%, Low <40%).
+3. Application Workspace & Tracker: Status pipeline (Preparing -> Applied -> Under Review -> Shortlisted -> Interview -> Awarded / Not Selected), milestone history, document checklists, essay drafts.
+4. Document Vault: Uploading & managing transcripts, resumes/CVs, personal statements, recommendation letters, portfolio links; readiness scoring (0-100%).
+5. Profile Completeness: Canonical 100-point scoring system (Identity 25pts, Location 15pts, Academic 35pts, Scholarship Profile 25pts).
+6. Deadlines & Alerts: Real-time countdowns, closing soon alerts (<=45 days).
+7. Subscriptions & Pricing: Free plan (3 AI prompts/month, basic matching) vs Scholavon Plus (unlimited AI prompts, priority matching, unlimited application workspaces) via Paystack or Stripe.
+8. Support & Settings: Human support at support@scholavon.com via Contact Support modal, Google OAuth integration, account deletion in Settings.
+
 === MANDATORY SAFETY & TRUTHFULNESS RULES ===
-1. GROUNDED IN REAL DATA: ONLY refer to scholarships, applications, deadlines, documents, and match scores that exist in the provided student context below.
+1. GROUNDED IN REAL DATA: When discussing Scholavon data (scholarships, applications, deadlines, documents, scores), ONLY use the real facts in the student context below.
 2. NEVER FABRICATE: Never invent scholarships, fake deadlines, fake award amounts, or hallucinated requirements.
 3. NEVER GUARANTEE OUTCOMES: Never tell a student they are guaranteed to win an award or predict selection as a fact.
-4. HONEST UNKNOWN INFORMATION: If information is missing or not in Scholavon, say: "I don't have enough information to confirm that."
-5. PRIVACY IS PARAMOUNT: You only have access to ${ctx.profile.firstName}'s authorized data. Never refer to or disclose any other student's data.
-6. CONCISE & ACTIONABLE: Keep responses structured with clear bullet points, bold highlights, and direct next steps. Avoid wall-of-text paragraphs.
-7. RESPECT CANONICAL SCORES: Never calculate independent conflicting match or readiness scores. Use the exact percentages and categories provided in context.
+4. HONEST UNKNOWN INFORMATION: If specific Scholavon information is missing, say: "I don't have enough information to confirm that."
+5. PRIVACY IS PARAMOUNT: You only have access to ${ctx.profile.firstName}'s authorized data. Never refer to or disclose any other student's data or admin secrets.
+6. CONCISE & ACTIONABLE: Keep responses well-structured with clear bullet points, bold highlights, and direct next steps when appropriate.
 
 === AUTHENTICATED STUDENT CONTEXT ===
 ${profileSummary}
@@ -244,13 +262,13 @@ ${topMatchesSummary}
 
 /**
  * Contextual grounding fallback generator when API key is not present or in test environment.
- * Generates exact, factual, grounded answers using canonical Scholavon engines.
+ * Generates exact, factual, grounded answers using canonical Scholavon engines and rich domain expertise.
  */
 function generateGroundedFallbackResponse(
   userMessage: string,
   ctx: ReturnType<typeof buildStudentContext>
 ): AIChatResponse {
-  const lower = userMessage.toLowerCase();
+  const lower = userMessage.toLowerCase().trim();
   const firstName = ctx.profile.firstName;
 
   // 1. Security & Boundary Safeguards (Top Priority)
@@ -266,22 +284,36 @@ function generateGroundedFallbackResponse(
     lower.includes('bypass')
   ) {
     return {
-      reply: `I cannot perform that action or access unauthorized information.\n\nScholavon AI strictly respects data isolation and safety. I cannot view other students' accounts, admin records, or perform automatic submissions without your direct action.`,
+      reply: `I cannot perform that action or access unauthorized information.\n\nVona strictly respects data isolation and user privacy. I cannot view other students' accounts, admin records, or perform automatic submissions without your direct action.`,
       suggestedActions: [{ label: 'Return to Dashboard', path: '/dashboard' }]
     };
   }
 
-  // 2. General Greeting / Help
+  // 2. Identity, Persona & Greeting ("Who are you?", "Hi Vona", "What can you do?")
   if (
-    lower.includes('what can you help') ||
     lower.includes('who are you') ||
+    lower.includes('what are you') ||
+    lower.includes('what is your name') ||
+    lower.includes('what can you do') ||
+    lower.includes('what can you help') ||
+    lower.includes('tell me about yourself') ||
     lower.startsWith('hello') ||
     lower.startsWith('hi ') ||
     lower === 'hi' ||
-    lower === 'hello'
+    lower === 'hello' ||
+    lower === 'hey' ||
+    lower.startsWith('hey ')
   ) {
     return {
-      reply: `Hello ${firstName}! I'm **Scholavon AI**, your personal scholarship and application advisor.\n\nHere is how I can help you:\n- 🎯 **Match Score & Discovery**: Find scholarships tailored to your field (${ctx.profile.fieldOfStudy || 'your study'}) and degree level.\n- 📋 **Application Readiness**: Check what documents and profile requirements you are missing before applying.\n- ⏰ **Deadlines & Timelines**: Track upcoming closing dates and priority opportunities.\n- 📊 **Application Tracker & Outcomes**: Review your current applications, shortlist statuses, and award updates.\n- 💡 **Actionable Next Steps**: Guide you on exactly what to prepare next.`,
+      reply: `Hello ${firstName}! I'm **Vona**, your personal AI assistant at Scholavon.\n\n` +
+        `I'm here to help you navigate every aspect of your academic, scholarship, and career journey. Here are some of the things we can do together:\n\n` +
+        `- 🎯 **Match Score & Discovery**: Find tailored scholarships matching your **${ctx.profile.educationLevel}** studies in **${ctx.profile.fieldOfStudy || 'your field'}**.\n` +
+        `- 📋 **Application Readiness & Vault**: Check what documents or profile requirements you need before applying.\n` +
+        `- ✍️ **Essay & Writing Coaching**: Draft and polish compelling personal statements, scholarship essays, and cover letters.\n` +
+        `- ⏰ **Deadlines & Timelines**: Track upcoming closing dates and set prioritized action steps.\n` +
+        `- 📊 **Application Tracker & Outcomes**: Review your current pipeline, shortlist milestones, and award results.\n` +
+        `- 💡 **General Knowledge, Tech & Careers**: Ask me anything about programming, career preparation, study techniques, or everyday topics!\n\n` +
+        `What would you like to explore today?`,
       suggestedActions: [
         { label: 'Find Top Matches', path: '/scholarships' },
         { label: 'Check Readiness', path: '/documents' },
@@ -456,7 +488,7 @@ function generateGroundedFallbackResponse(
     }
   }
 
-  // 7. Application Tracker & Outcomes (Feature #7)
+  // 7. Application Tracker & Outcomes
   if (
     lower.includes('application') ||
     lower.includes('shortlist') ||
@@ -583,13 +615,143 @@ function generateGroundedFallbackResponse(
     };
   }
 
-  // Default helpful overview
+  // 10. Essay & Writing Assistance
+  if (
+    lower.includes('essay') ||
+    lower.includes('personal statement') ||
+    lower.includes('statement of purpose') ||
+    lower.includes('cover letter') ||
+    lower.includes('write') ||
+    lower.includes('draft') ||
+    lower.includes('hook')
+  ) {
+    return {
+      reply: `### Essay & Writing Coaching with Vona\n\n` +
+        `Writing a standout scholarship essay comes down to a clear narrative arc:\n\n` +
+        `1. **The Hook (Opening)**: Start in media res with a pivotal challenge, defining moment, or clear question that sparked your passion for **${ctx.profile.fieldOfStudy || 'your academic path'}**.\n` +
+        `2. **The Journey & Growth**: Connect your academic milestones, projects, or leadership experiences to the broader impact you want to create.\n` +
+        `3. **Why This Opportunity**: Specifically address the scholarship provider's mission and how their support enables your specific goals.\n` +
+        `4. **Future Vision**: Conclude with a confident, concrete vision for the future after graduation.\n\n` +
+        `💡 *Tip: You can paste your outline or draft right here in our chat, and I'll give you detailed feedback on clarity, structure, and impact!*`,
+      suggestedActions: [
+        { label: 'Document Vault', path: '/documents' },
+        { label: 'Find Scholarships', path: '/scholarships' }
+      ]
+    };
+  }
+
+  // 11. Career, Resume & Professional Advice
+  if (
+    lower.includes('resume') ||
+    lower.includes('cv') ||
+    lower.includes('career') ||
+    lower.includes('job') ||
+    lower.includes('interview') ||
+    lower.includes('internship') ||
+    lower.includes('linkedin')
+  ) {
+    return {
+      reply: `### Career & Professional Guidance\n\n` +
+        `Here are high-impact strategies tailored for students in **${ctx.profile.fieldOfStudy || 'higher education'}**:\n\n` +
+        `- **Action-Oriented Resume Bullets**: Use Google's formula: *"Accomplished [X] as measured by [Y], by doing [Z]"*. Highlight measurable outcomes over simple job duties.\n` +
+        `- **STAR Interview Method**: Structure answers to behavioral questions around **S**ituation, **T**ask, **A**ction, and **R**esult.\n` +
+        `- **Strategic Vault Storage**: Keep your resume and CV updated in your Document Vault so you can attach them to applications in one click.\n` +
+        `- **Networking & Mentorship**: Reach out to professors and industry alumni with a concise note explaining your project or interest.\n\n` +
+        `Would you like me to review a specific resume bullet point or help you practice an interview question?`,
+      suggestedActions: [
+        { label: 'Document Vault', path: '/documents' },
+        { label: 'Application Tracker', path: '/applications' }
+      ]
+    };
+  }
+
+  // 12. Programming, Technology & Computer Science
+  if (
+    lower.includes('code') ||
+    lower.includes('programming') ||
+    lower.includes('python') ||
+    lower.includes('javascript') ||
+    lower.includes('typescript') ||
+    lower.includes('react') ||
+    lower.includes('algorithm') ||
+    lower.includes('database') ||
+    lower.includes('sql') ||
+    lower.includes('git') ||
+    lower.includes('software')
+  ) {
+    return {
+      reply: `### Technology & Programming Insights\n\n` +
+        `I can help you break down technical concepts, debug code, design software architectures, or discuss computer science best practices.\n\n` +
+        `- **Clean Code Fundamentals**: Prioritize readability, modular components, explicit naming, and automated test coverage.\n` +
+        `- **Algorithm Optimization**: When analyzing time/space complexity, identify redundant work, leverage hash maps for $O(1)$ lookups, and use divide-and-conquer where applicable.\n` +
+        `- **Portfolio & GitHub**: Having clean, documented repositories with live demo links is one of the strongest assets for STEM & tech scholarships.\n\n` +
+        `Feel free to share a code snippet, architecture question, or bug you are debugging, and let's solve it together!`,
+      suggestedActions: [
+        { label: 'Find STEM Scholarships', path: '/scholarships' },
+        { label: 'Document Vault', path: '/documents' }
+      ]
+    };
+  }
+
+  // 13. Study Skills, Productivity & Education
+  if (
+    lower.includes('study') ||
+    lower.includes('productivity') ||
+    lower.includes('exam') ||
+    lower.includes('learn') ||
+    lower.includes('focus') ||
+    lower.includes('pomodoro') ||
+    lower.includes('feynman') ||
+    lower.includes('time management')
+  ) {
+    return {
+      reply: `### Evidence-Based Study & Productivity Methods\n\n` +
+        `Here are three proven learning techniques for high academic performance:\n\n` +
+        `1. **The Feynman Technique**: Explain a complex topic in simple terms as if teaching a beginner. Any point where you struggle to explain simply reveals a gap in understanding.\n` +
+        `2. **Active Recall & Spaced Repetition**: Test yourself frequently instead of passively re-reading notes. Review difficult material on increasing intervals ($1, 3, 7, 14$ days).\n` +
+        `3. **Pomodoro Sprints**: Work with undivided focus for 25–50 minutes, followed by a 5–10 minute break to preserve cognitive stamina.\n\n` +
+        `How is your study routine going right now? Let me know if you want a custom study schedule!`,
+      suggestedActions: [
+        { label: 'Check Upcoming Deadlines', path: '/scholarships' },
+        { label: 'Edit Academic Profile', path: '/profile' }
+      ]
+    };
+  }
+
+  // 14. Scholavon Platform Help & Navigation
+  if (
+    lower.includes('how does scholavon work') ||
+    lower.includes('how to use') ||
+    lower.includes('upgrade') ||
+    lower.includes('plus') ||
+    lower.includes('support') ||
+    lower.includes('pricing') ||
+    lower.includes('paystack')
+  ) {
+    return {
+      reply: `### Scholavon Platform Guide\n\n` +
+        `Here is a quick overview of how to get the most out of Scholavon:\n\n` +
+        `- 🔍 **Find Scholarships**: Search and filter hundreds of verified opportunities by degree, field, country, and funding type.\n` +
+        `- 🎯 **Match & Readiness Scores**: Our algorithms calculate your compatibility and highlight missing checklist items.\n` +
+        `- 📁 **Document Vault**: Store your transcripts, CVs, and essays securely in one place.\n` +
+        `- 💼 **Application Workspace**: Draft essays, organize required documents, and track milestone updates.\n` +
+        `- ⭐ **Scholavon Plus**: Get unlimited AI questions with Vona, priority scholarship matching, and unlimited workspaces.\n` +
+        `- 💬 **Human Support**: Need help from our human team? Contact **support@scholavon.com** anytime via the Contact Support option.\n\n` +
+        `Where would you like to go next?`,
+      suggestedActions: [
+        { label: 'Explore Scholarships', path: '/scholarships' },
+        { label: 'Document Vault', path: '/documents' },
+        { label: 'View Pricing & Plans', path: '/pricing' }
+      ]
+    };
+  }
+
+  // Default intelligent conversational fallback
   return {
-    reply: `I understand you are asking about: "${userMessage}".\n\nBased on your current profile (**${ctx.profile.educationLevel}** in **${ctx.profile.fieldOfStudy || 'your field'}**):\n` +
-      `- You have **${ctx.applications.length} tracked applications**.\n` +
-      `- You have **${ctx.documents.length} verified documents** in your vault.\n` +
-      `- There are **${ctx.matches.filter(m => m.lifecycle !== 'closed').length} active scholarships** available in Scholavon.\n\n` +
-      `Feel free to ask me to search specific scholarships, check your readiness, explain deadlines, or review your application outcomes!`,
+    reply: `I'm here to help you with that!\n\n` +
+      `Regarding *"**${userMessage}**"*:\n\n` +
+      `As your personal assistant, I can provide detailed guidance on this, walk you through relevant strategies, or connect it directly to your academic goals in **${ctx.profile.educationLevel}** (${ctx.profile.fieldOfStudy || 'General'}).\n\n` +
+      `You currently have **${ctx.applications.length} tracked applications** and **${ctx.documents.length} documents** in your vault. Let me know how you'd like to proceed, or ask me any follow-up question!`,
     suggestedActions: [
       { label: 'Find Scholarships', path: '/scholarships' },
       { label: 'My Applications', path: '/applications' },
@@ -622,7 +784,7 @@ export async function processAIChat(
       const contents: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }> = [];
       
       if (req.history && req.history.length > 0) {
-        req.history.slice(-6).forEach(h => {
+        req.history.slice(-8).forEach(h => {
           contents.push({
             role: h.role,
             parts: [{ text: h.content }]
@@ -642,7 +804,7 @@ export async function processAIChat(
           contents: contents as any,
           config: {
             systemInstruction,
-            temperature: 0.2, // Low temperature for high factual accuracy
+            temperature: 0.5, // Balanced temperature for natural, confident, and accurate conversation
           }
         });
       } catch (primaryErr: any) {
@@ -652,7 +814,7 @@ export async function processAIChat(
           contents: contents as any,
           config: {
             systemInstruction,
-            temperature: 0.2,
+            temperature: 0.5,
           }
         });
       }
@@ -672,10 +834,11 @@ export async function processAIChat(
         };
       }
     } catch (err: any) {
-      console.warn('Gemini API call encountered an issue, falling back to grounded Scholavon engine:', err?.message || err);
+      console.warn('Gemini API call encountered an issue, falling back to grounded Vona engine:', err?.message || err);
     }
   }
 
-  // Grounded Scholavon engine fallback
+  // Grounded Vona engine fallback
   return generateGroundedFallbackResponse(req.message, ctx);
 }
+
