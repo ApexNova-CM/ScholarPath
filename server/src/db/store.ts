@@ -37,7 +37,7 @@ export interface DatabaseState {
   verifications: Record<string, VerificationLogRecord>;
   adminUsers: Record<string, AdminUserRecord>;
   reminders: Record<string, ReminderRecord>;
-  aiPromptUsage?: Record<string, Record<string, number>>; // userId -> { "YYYY-MM": count }
+  aiPromptUsage?: Record<string, Record<string, number>>; // userId -> { "YYYY-MM-DD": dailyCount }
 }
 
 class Store {
@@ -485,20 +485,30 @@ class Store {
     return Object.values(this.state.profiles);
   }
 
-  // --- AI PROMPT TRACKING ---
-  public getMonthlyAiPromptCount(userId: string, monthKey: string): number {
+  // --- AI PROMPT TRACKING (FREE TIER: 5 PROMPTS PER UTC CALENDAR DAY) ---
+  public getDailyAiPromptCount(userId: string, dayKey: string): number {
     if (!this.state.aiPromptUsage) this.state.aiPromptUsage = {};
-    return this.state.aiPromptUsage[userId]?.[monthKey] || 0;
+    return this.state.aiPromptUsage[userId]?.[dayKey] || 0;
   }
 
-  public incrementMonthlyAiPromptCount(userId: string, monthKey: string): number {
+  public incrementDailyAiPromptCount(userId: string, dayKey: string): number {
     if (!this.state.aiPromptUsage) this.state.aiPromptUsage = {};
     if (!this.state.aiPromptUsage[userId]) this.state.aiPromptUsage[userId] = {};
-    const current = this.state.aiPromptUsage[userId][monthKey] || 0;
+    const current = this.state.aiPromptUsage[userId][dayKey] || 0;
     const next = current + 1;
-    this.state.aiPromptUsage[userId][monthKey] = next;
+    this.state.aiPromptUsage[userId][dayKey] = next;
     this.save();
     return next;
+  }
+
+  /** @deprecated Use getDailyAiPromptCount — kept for backwards-compat during migration */
+  public getMonthlyAiPromptCount(userId: string, monthKey: string): number {
+    return this.getDailyAiPromptCount(userId, monthKey);
+  }
+
+  /** @deprecated Use incrementDailyAiPromptCount — kept for backwards-compat during migration */
+  public incrementMonthlyAiPromptCount(userId: string, monthKey: string): number {
+    return this.incrementDailyAiPromptCount(userId, monthKey);
   }
 
   // --- ACCOUNT DELETION ---

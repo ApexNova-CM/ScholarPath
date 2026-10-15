@@ -41,8 +41,8 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const isLimitReached = !isPremium && promptUsage >= 3;
-  const remainingPrompts = Math.max(0, 3 - promptUsage);
+  const isLimitReached = !isPremium && promptUsage >= 5;
+  const remainingPrompts = Math.max(0, 5 - promptUsage);
 
   const activeScholarship = activeScholarshipId 
     ? scholarships.find(s => s.id === activeScholarshipId) 
@@ -91,7 +91,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
         {
           id: `msg-limit-${Date.now()}`,
           role: 'assistant',
-          content: `You have reached your limit of **3 free monthly prompts**. Upgrade to **Scholavon Plus** for unlimited AI assistance with Vona, essay drafting, and requirement reviews.`,
+          content: `You have reached your limit of **5 free daily prompts**. Upgrade to **Scholavon Plus** for unlimited AI assistance with Vona, essay drafting, and requirement reviews. Your quota resets at midnight UTC.`,
           timestamp: new Date().toISOString(),
           suggestedActions: [
             { label: 'Upgrade to Plus', path: '/pricing', type: 'primary' }
@@ -140,7 +140,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
           {
             id: `msg-limit-${Date.now()}`,
             role: 'assistant',
-            content: `You have reached your limit of **3 free monthly prompts**. Upgrade to **Scholavon Plus** for unlimited AI assistance with Vona, document drafting, and customized eligibility breakdowns.`,
+            content: `You have reached your limit of **5 free daily prompts**. Upgrade to **Scholavon Plus** for unlimited AI assistance with Vona, document drafting, and customized eligibility breakdowns. Your quota resets at midnight UTC.`,
             timestamp: new Date().toISOString(),
             suggestedActions: [
               { label: 'Upgrade to Scholavon Plus', path: '/pricing', type: 'primary' }
@@ -148,7 +148,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
           }
         ]);
         if (userProfile?.id) {
-          setPromptUsage(3);
+          setPromptUsage(5);
         }
       } else {
         setLastFailedMessage(query);
@@ -245,11 +245,11 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
                   </span>
                 ) : (
                   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-bold rounded-full border ${
-                    promptUsage >= 3 
+                    promptUsage >= 5 
                       ? 'bg-rose-50 text-rose-700 border-rose-200' 
                       : 'bg-indigo-50 text-indigo-700 border-indigo-200'
                   }`}>
-                    {promptUsage >= 3 ? '0/3 prompts left' : `${remainingPrompts}/3 free monthly prompts`}
+                    {promptUsage >= 5 ? '0/5 prompts left today' : `${remainingPrompts}/5 free daily prompts`}
                   </span>
                 )}
               </div>
@@ -260,7 +260,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {!isPremium && promptUsage >= 3 && (
+            {!isPremium && promptUsage >= 5 && (
               <button
                 onClick={() => onNavigate('/pricing')}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold transition-colors shadow-2xs cursor-pointer"
@@ -448,7 +448,7 @@ export const AiAssistantPage: React.FC<AiAssistantPageProps> = ({
             </div>
             <div>
               <h4 className="text-xs sm:text-sm font-bold text-slate-900">
-                Monthly AI Prompt Limit Reached (3 / 3 Used)
+                Daily AI Prompt Limit Reached (5 / 5 Used)
               </h4>
               <p className="text-[11px] text-slate-600">
                 Upgrade to <strong>Scholavon Plus</strong> for unlimited questions, essay coaching, and personalized guidance with Vona.

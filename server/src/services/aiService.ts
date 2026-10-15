@@ -254,7 +254,7 @@ You possess comprehensive expertise on Scholavon:
 4. Document Vault: Storage and verification for transcripts, CVs, personal statements, recommendation letters, readiness scoring.
 5. Profile Completeness: 100-point scoring framework.
 6. Deadlines & Alerts: Timelines, countdowns, closing soon notices.
-7. Subscriptions: Free tier (3 AI prompts/month) vs Scholavon Plus (unlimited AI prompts, priority matching, unlimited workspaces).
+7. Subscriptions: Free tier (5 AI prompts/day, resets at midnight UTC) vs Scholavon Plus (unlimited AI prompts, priority matching, unlimited workspaces).
 8. Support: Human support reachable at support@scholavon.com via Contact Support.
 
 === AUTHENTICATED STUDENT CONTEXT ===

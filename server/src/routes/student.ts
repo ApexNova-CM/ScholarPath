@@ -807,29 +807,27 @@ router.post('/ai/chat', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Enforce 3 free AI prompts per month for Free plan users
+    // Enforce 5 free AI prompts per UTC calendar day for Free plan users
     const subStatus = await getUserSubscriptionStatus(userId);
-    const currentMonth = new Date().toISOString().slice(0, 7); // e.g. '2026-10'
+    const today = new Date().toISOString().slice(0, 10); // e.g. '2026-10-09'
+    const DAILY_LIMIT = 5;
     let remainingPrompts = -1; // -1 means unlimited (Plus)
 
     if (subStatus !== 'premium') {
-      const usedCount = db.getMonthlyAiPromptCount(userId, currentMonth);
-      if (usedCount >= 3) {
+      const usedCount = db.getDailyAiPromptCount(userId, today);
+      if (usedCount >= DAILY_LIMIT) {
         res.status(403).json({
           success: false,
           error: {
             code: 'UPGRADE_REQUIRED',
-            message: 'You have reached your Free plan limit of 3 AI prompts this month. Upgrade to Scholavon Plus for unlimited AI scholarship assistance.',
+            message: `You have reached your Free plan limit of ${DAILY_LIMIT} AI prompts today. Your quota resets at midnight UTC. Upgrade to Scholavon Plus for unlimited AI assistance with Vona.`,
             upgradeUrl: '/pricing',
             promptsUsed: usedCount,
-            promptsLimit: 3
+            promptsLimit: DAILY_LIMIT
           }
         });
         return;
       }
-
-      const nextCount = db.incrementMonthlyAiPromptCount(userId, currentMonth);
-      remainingPrompts = Math.max(0, 3 - nextCount);
     }
 
     const aiResponse = await processAIChat(userId, {
@@ -840,6 +838,11 @@ router.post('/ai/chat', async (req: Request, res: Response): Promise<void> => {
       applications,
       documents
     });
+
+    if (subStatus !== 'premium') {
+      const nextCount = db.incrementDailyAiPromptCount(userId, today);
+      remainingPrompts = Math.max(0, DAILY_LIMIT - nextCount);
+    }
 
     res.json({
       success: true,

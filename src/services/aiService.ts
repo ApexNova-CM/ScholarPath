@@ -162,7 +162,7 @@ export async function sendStudentAIChat(
       err?.message?.includes('limit reached');
 
     if (isUpgradeRequired) {
-      const customErr: any = new Error(err?.response?.data?.error || err?.message || 'Monthly AI prompt limit reached. Upgrade to Scholavon Plus for unlimited AI assistance with Vona.');
+      const customErr: any = new Error(err?.response?.data?.error?.message || err?.response?.data?.error || err?.message || 'Daily AI prompt limit reached. Upgrade to Scholavon Plus for unlimited AI assistance with Vona.');
       customErr.code = 'UPGRADE_REQUIRED';
       throw customErr;
     }
@@ -201,8 +201,8 @@ function generateClientGroundedResponse(
 
   if (profile.subscriptionStatus !== 'premium') {
     const currentUsage = StorageService.getMonthlyAiPromptUsage(profile.id);
-    if (currentUsage.used >= 3) {
-      const quotaErr: any = new Error('Monthly AI assistant prompt limit reached (3 prompts/month on Free tier). Upgrade to Scholavon Plus for unlimited AI assistance with Vona.');
+    if (currentUsage.used >= 5) {
+      const quotaErr: any = new Error('Daily AI assistant prompt limit reached (5 prompts/day on Free tier). Your quota resets at midnight UTC. Upgrade to Scholavon Plus for unlimited AI assistance with Vona.');
       quotaErr.code = 'UPGRADE_REQUIRED';
       throw quotaErr;
     }

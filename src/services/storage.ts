@@ -1037,19 +1037,19 @@ export const StorageService = {
     return updated;
   },
 
-  // --- AI PROMPT USAGE (FREE TIER LIMIT: 3 PROMPTS / MONTH) ---
+  // --- AI PROMPT USAGE (FREE TIER LIMIT: 5 PROMPTS / DAY, RESETS AT MIDNIGHT UTC) ---
   getMonthlyAiPromptUsage(userId: string): { used: number; limit: number; remaining: number } {
-    const monthKey = new Date().toISOString().slice(0, 7);
-    const key = `scholavon_ai_prompts_${userId}_${monthKey}`;
+    const dayKey = new Date().toISOString().slice(0, 10);
+    const key = `scholavon_ai_prompts_${userId}_${dayKey}`;
     const used = read<number>(key, 0);
-    const limit = 3;
+    const limit = 5;
     const remaining = Math.max(0, limit - used);
     return { used, limit, remaining };
   },
 
   incrementMonthlyAiPromptUsage(userId: string): number {
-    const monthKey = new Date().toISOString().slice(0, 7);
-    const key = `scholavon_ai_prompts_${userId}_${monthKey}`;
+    const dayKey = new Date().toISOString().slice(0, 10);
+    const key = `scholavon_ai_prompts_${userId}_${dayKey}`;
     const current = read<number>(key, 0);
     const next = current + 1;
     write(key, next);
