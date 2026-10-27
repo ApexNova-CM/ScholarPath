@@ -22,10 +22,12 @@ import { ScholarshipsPage } from './pages/public/ScholarshipsPage';
 import { ScholarshipDetailPage } from './pages/public/ScholarshipDetailPage';
 import { HowItWorksPage } from './pages/public/HowItWorksPage';
 import { AboutPage } from './pages/public/AboutPage';
+import { ResourcesPage } from './pages/public/ResourcesPage';
 import { PrivacyPage, TermsPage } from './pages/public/PrivacyPage';
 import { LoginPage } from './pages/public/LoginPage';
 import { RegisterPage } from './pages/public/RegisterPage';
 import { ForgotPasswordPage } from './pages/public/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/public/ResetPasswordPage';
 
 // Student Pages
 import { StudentDashboardPage } from './pages/student/StudentDashboardPage';
@@ -85,7 +87,7 @@ function MainApp() {
 
   const [isDataLoading, setIsDataLoading] = useState(true);
 
-  // ── Load public data from Supabase on mount ────────────────────────────────
+  // â”€â”€ Load public data from Supabase on mount â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     let cancelled = false;
     setIsDataLoading(true);
@@ -107,7 +109,7 @@ function MainApp() {
     return () => { cancelled = true; };
   }, []);
 
-  // ── Load user-specific data from Supabase when user logs in/out ────────────
+  // â”€â”€ Load user-specific data from Supabase when user logs in/out â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (!user) {
       setSavedIds([]);
@@ -165,7 +167,7 @@ function MainApp() {
   // Toggle bookmark save
   const handleToggleSave = async (scholarshipId: string) => {
     if (!user) {
-      navigate('/login');
+      navigate(`/login?redirect=${encodeURIComponent(`/scholarships/${scholarshipId}`)}`);
       return;
     }
     try {
@@ -179,21 +181,70 @@ function MainApp() {
     setSavedIds(updated);
   };
 
-  // Start Application flow
-  const handleStartApplication = (scholarship: Scholarship) => {
+  // Start or resume Application Workspace flow
+  const handleStartApplication = async (scholarship: Scholarship) => {
     if (!user) {
-      navigate('/login');
+      navigate(`/login?redirect=${encodeURIComponent(`/scholarships/${scholarship.id}`)}`);
       return;
     }
     if (isScholarshipClosed(scholarship)) {
       alert('This scholarship is no longer accepting new applications.');
       return;
     }
-    setModalScholarship(scholarship);
-    setIsAppModalOpen(true);
+
+    // Check if application already exists for this scholarship
+    const existing = applications.find(a => a.scholarshipId === scholarship.id) ||
+      StorageService.getApplications(user.id).find(a => a.scholarshipId === scholarship.id);
+
+    if (existing) {
+      // Resume existing application draft directly
+      navigate(`/student/applications/${scholarship.id}/workspace`);
+      return;
+    }
+
+    // Check free plan quota (max 3 tracked applications)
+    if (user.subscriptionStatus !== 'premium' && applications.length >= 3) {
+      navigate('/pricing');
+      return;
+    }
+
+    try {
+      // Call server to create initial draft application
+      const res = await api.post<Application>('/student/applications', {
+        scholarshipId: scholarship.id,
+        notes: '',
+        status: 'Preparing',
+      });
+
+      if (res?.id) {
+        setApplications(prev => {
+          const idx = prev.findIndex(a => a.id === res.id);
+          if (idx >= 0) {
+            const copy = [...prev];
+            copy[idx] = res;
+            return copy;
+          }
+          return [res, ...prev];
+        });
+      }
+    } catch (err: any) {
+      if (err?.code === 'UPGRADE_REQUIRED' || err?.status === 403) {
+        navigate('/pricing');
+        return;
+      }
+      if (err?.code === 'SCHOLARSHIP_CLOSED') {
+        alert(err.message || 'This scholarship is closed.');
+        return;
+      }
+      // Fallback local creation if server sync had an offline/network error
+      const localApp = StorageService.getOrCreateApplication(user.id, scholarship);
+      setApplications(prev => [localApp, ...prev.filter(a => a.id !== localApp.id)]);
+    }
+
+    navigate(`/student/applications/${scholarship.id}/workspace`);
   };
 
-  // Admin actions — all use optimistic updates so UI responds instantly
+  // Admin actions â€” all use optimistic updates so UI responds instantly
   const handleVerifyScholarship = (id: string) => {
     const adminIdentity = user ? `${user.firstName} ${user.lastName} (${user.role})`.trim() : 'System Admin Operations';
     const updated = StorageService.verifyScholarship(id, adminIdentity, user?.email);
@@ -242,7 +293,7 @@ function MainApp() {
   };
 
   const handleDeleteScholarship = (id: string) => {
-    // Optimistic update — remove from UI instantly, no page refresh
+    // Optimistic update â€” remove from UI instantly, no page refresh
     setScholarships((prev) => prev.filter((s) => s.id !== id));
     // Persist to local storage
     StorageService.deleteScholarship(id);
@@ -266,7 +317,7 @@ function MainApp() {
         );
       }
       return (
-        <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+        <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
           <ApplicationWorkspacePage
             scholarshipId={id}
             scholarships={scholarships}
@@ -297,7 +348,7 @@ function MainApp() {
       const id = scholarshipMatch[1];
       if (isAuthenticated && role === 'student') {
         return (
-          <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+          <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
             <ScholarshipDetailPage
               scholarshipId={id}
               scholarships={scholarships}
@@ -392,7 +443,7 @@ function MainApp() {
         if (isAuthenticated && role === 'student' && user) {
           // Redirect authenticated students to their dashboard
           return (
-            <StudentLayout currentPath="/dashboard" onNavigate={navigate}>
+            <StudentLayout currentPath="/dashboard" onNavigate={navigate} savedCount={savedIds.length}>
               <StudentDashboardPage
                 userProfile={user}
                 scholarships={scholarships}
@@ -423,7 +474,7 @@ function MainApp() {
       case '/scholarships':
         if (isAuthenticated && role === 'student' && user) {
           return (
-            <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+            <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
               <ScholarshipsPage
                 scholarships={scholarships}
                 userProfile={user}
@@ -455,7 +506,7 @@ function MainApp() {
       case '/how-it-works':
         if (isAuthenticated && role === 'student') {
           return (
-            <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+            <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
               <HowItWorksPage onNavigate={navigate} />
             </StudentLayout>
           );
@@ -469,7 +520,7 @@ function MainApp() {
       case '/about':
         if (isAuthenticated && role === 'student') {
           return (
-            <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+            <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
               <AboutPage />
             </StudentLayout>
           );
@@ -480,10 +531,24 @@ function MainApp() {
           </PublicLayout>
         );
 
+      case '/resources':
+        if (isAuthenticated && role === 'student') {
+          return (
+            <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
+              <ResourcesPage onNavigate={navigate} />
+            </StudentLayout>
+          );
+        }
+        return (
+          <PublicLayout currentPath={currentPath} onNavigate={navigate}>
+            <ResourcesPage onNavigate={navigate} />
+          </PublicLayout>
+        );
+
       case '/privacy':
         if (isAuthenticated && role === 'student') {
           return (
-            <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+            <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
               <PrivacyPage />
             </StudentLayout>
           );
@@ -497,7 +562,7 @@ function MainApp() {
       case '/terms':
         if (isAuthenticated && role === 'student') {
           return (
-            <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+            <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
               <TermsPage />
             </StudentLayout>
           );
@@ -526,8 +591,13 @@ function MainApp() {
             );
           }
           if (role === 'student' && user) {
+            const redirectTarget = queryParams.get('redirect') || queryParams.get('returnTo');
+            if (redirectTarget && redirectTarget.startsWith('/') && !redirectTarget.startsWith('//')) {
+              navigate(redirectTarget);
+              return null;
+            }
             return (
-              <StudentLayout currentPath="/dashboard" onNavigate={navigate}>
+              <StudentLayout currentPath="/dashboard" onNavigate={navigate} savedCount={savedIds.length}>
                 <StudentDashboardPage
                   userProfile={user}
                   scholarships={scholarships}
@@ -550,8 +620,13 @@ function MainApp() {
 
       case '/register':
         if (isAuthenticated && role === 'student') {
+          const redirectTarget = queryParams.get('redirect') || queryParams.get('returnTo');
+          if (redirectTarget && redirectTarget.startsWith('/') && !redirectTarget.startsWith('//')) {
+            navigate(redirectTarget);
+            return null;
+          }
           return (
-            <StudentLayout currentPath="/dashboard" onNavigate={navigate}>
+            <StudentLayout currentPath="/dashboard" onNavigate={navigate} savedCount={savedIds.length}>
               <StudentDashboardPage
                 userProfile={user!}
                 scholarships={scholarships}
@@ -575,6 +650,13 @@ function MainApp() {
         return (
           <AuthLayout portal="student" onNavigate={navigate}>
             <ForgotPasswordPage onNavigate={navigate} />
+          </AuthLayout>
+        );
+
+      case '/reset-password':
+        return (
+          <AuthLayout portal="student" onNavigate={navigate}>
+            <ResetPasswordPage onNavigate={navigate} />
           </AuthLayout>
         );
 
@@ -605,7 +687,7 @@ function MainApp() {
           );
         }
         return (
-          <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+          <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
             <StudentDashboardPage
               userProfile={user}
               scholarships={scholarships}
@@ -644,7 +726,7 @@ function MainApp() {
           );
         }
         return (
-          <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+          <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
             <SavedScholarshipsPage
               scholarships={scholarships}
               userProfile={user}
@@ -665,7 +747,7 @@ function MainApp() {
           );
         }
         return (
-          <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+          <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
             <ApplicationsPage
               applications={applications}
               scholarships={scholarships}
@@ -686,7 +768,7 @@ function MainApp() {
           );
         }
         return (
-          <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+          <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
             <ProfilePage
               userProfile={user}
               onUpdateProfile={(updated) => {
@@ -705,7 +787,7 @@ function MainApp() {
           );
         }
         return (
-          <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+          <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
             <DocumentsPage
               userProfile={user}
               documents={documents}
@@ -724,7 +806,7 @@ function MainApp() {
           );
         }
         return (
-          <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+          <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
             <NotificationsPage
               userProfile={user}
               notifications={notifications}
@@ -743,7 +825,7 @@ function MainApp() {
           );
         }
         return (
-          <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+          <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
             <SettingsPage
               userProfile={user}
               onUpdateProfile={(updated) => updateUserProfile(updated)}
@@ -753,11 +835,11 @@ function MainApp() {
         );
 
       case '/pricing':
-        // Accessible to everyone — shows pricing plans.
+        // Accessible to everyone â€” shows pricing plans.
         // Authenticated students see their current plan status.
         if (isAuthenticated && role === 'student' && user) {
           return (
-            <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+            <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
               <PricingPage userProfile={user} onNavigate={navigate} />
             </StudentLayout>
           );
@@ -769,7 +851,7 @@ function MainApp() {
         );
 
       case '/payment/callback':
-        // Standalone callback page — no layout, full screen verification UI.
+        // Standalone callback page â€” no layout, full screen verification UI.
         // Any authenticated user can access (Paystack will include reference in URL).
         return <PaymentCallbackPage onNavigate={navigate} />;
 
@@ -782,7 +864,7 @@ function MainApp() {
           );
         }
         return (
-          <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+          <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
             <MyReportsPage onNavigate={navigate} />
           </StudentLayout>
         );
@@ -797,7 +879,7 @@ function MainApp() {
           );
         }
         return (
-          <StudentLayout currentPath={currentPath} onNavigate={navigate}>
+          <StudentLayout currentPath={currentPath} onNavigate={navigate} savedCount={savedIds.length}>
             <AiAssistantPage
               userProfile={user}
               scholarships={scholarships}
@@ -830,7 +912,7 @@ function MainApp() {
           }
           if (role === 'student' && user) {
             return (
-              <StudentLayout currentPath="/dashboard" onNavigate={navigate}>
+              <StudentLayout currentPath="/dashboard" onNavigate={navigate} savedCount={savedIds.length}>
                 <StudentDashboardPage
                   userProfile={user}
                   scholarships={scholarships}
@@ -855,7 +937,7 @@ function MainApp() {
       case '/admin/dashboard':
         if (isAuthenticated && role === 'student' && user) {
           return (
-            <StudentLayout currentPath="/dashboard" onNavigate={navigate}>
+            <StudentLayout currentPath="/dashboard" onNavigate={navigate} savedCount={savedIds.length}>
               <StudentDashboardPage
                 userProfile={user}
                 scholarships={scholarships}
@@ -1076,7 +1158,7 @@ function MainApp() {
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
                 <span className="font-bold text-slate-900 block">Active Administrator:</span>
                 <p className="text-slate-700">
-                  {user ? `${user.firstName} ${user.lastName} (${user.role}) • ${user.email}` : 'System Administrator • admin@scholavon.org'}
+                  {user ? `${user.firstName} ${user.lastName} (${user.role}) â€¢ ${user.email}` : 'System Administrator â€¢ admin@scholavon.org'}
                 </p>
                 <p className="text-emerald-700 font-semibold">Security Clearance: Enterprise Full Access</p>
               </div>

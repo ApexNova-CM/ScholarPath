@@ -94,6 +94,8 @@ app.use('/api/v1/payments', paymentsRouter);
 // Centralized error handler
 app.use(errorHandler);
 
+import { startReminderScheduler, stopReminderScheduler } from './services/reminderScheduler';
+
 // Bootstrap and listen
 export async function startServer(): Promise<void> {
   await db.init();
@@ -104,7 +106,22 @@ export async function startServer(): Promise<void> {
     console.log(` Environment: ${config.env}`);
     console.log(` Persistence: server/data/db.json & uploads/ (Persistent volume required in container hosting)`);
     console.log(`=========================================`);
+
+    // Start automated daily deadline reminder scheduler (08:00 UTC)
+    startReminderScheduler();
   });
+
+  const handleShutdown = () => {
+    console.log('Received termination signal. Shutting down gracefully...');
+    stopReminderScheduler();
+    server.close(() => {
+      console.log('Server HTTP listener closed.');
+    });
+  };
+
+  process.once('SIGTERM', handleShutdown);
+  process.once('SIGINT', handleShutdown);
+
   return new Promise((resolve) => server.on('listening', resolve));
 }
 

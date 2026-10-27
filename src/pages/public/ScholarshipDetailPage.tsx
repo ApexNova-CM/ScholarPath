@@ -16,6 +16,7 @@ import {
   Clock, Award, Layers, Check, Globe, HelpCircle, FileCheck, Coins
 } from 'lucide-react';
 import { ReportScholarshipModal } from '../../components/common/ReportScholarshipModal';
+import { ShareOpportunityModal } from '../../components/common/ShareOpportunityModal';
 
 import { formatScholarshipAmount, formatScholarshipDeadline } from '../../utils/formatters';
 
@@ -40,7 +41,7 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
   onNavigate,
   onStartApplication
 }) => {
-  const [copied, setCopied] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   const scholarship = scholarships.find(s => s.id === scholarshipId);
@@ -48,14 +49,15 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
   if (!scholarship) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center space-y-4">
-        <h2 className="text-xl font-bold text-slate-900">Scholarship Not Found</h2>
-        <p className="text-xs text-slate-500">The scholarship you are looking for may have been archived or removed.</p>
+        <h2 className="text-xl font-bold text-slate-900">Opportunity Not Found</h2>
+        <p className="text-xs text-slate-500">The opportunity you are looking for may have been archived, expired, or removed.</p>
         <button
+          id="btn-not-found-browse"
           onClick={() => onNavigate('/scholarships')}
           className="inline-flex items-center gap-2 text-xs font-semibold bg-indigo-600 text-white px-4 py-2 rounded-xl cursor-pointer"
         >
           <ArrowLeft size={14} />
-          <span>Browse All Scholarships</span>
+          <span>Browse All Opportunities</span>
         </button>
       </div>
     );
@@ -72,9 +74,7 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
   const formattedDeadline = formatScholarshipDeadline(scholarship.deadline);
 
   const handleShare = () => {
-    navigator.clipboard?.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setIsShareModalOpen(true);
   };
 
   // Structured Requirements fallback / unification
@@ -122,10 +122,11 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
           <button
             id="btn-detail-share"
             onClick={handleShare}
+            aria-label={`Share ${scholarship.title}`}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs min-h-[44px] cursor-pointer"
           >
             <Share2 size={13} />
-            <span>{copied ? 'Link Copied!' : 'Share'}</span>
+            <span>Share</span>
           </button>
 
           <button
@@ -804,6 +805,13 @@ export const ScholarshipDetailPage: React.FC<ScholarshipDetailPageProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Share Modal */}
+      <ShareOpportunityModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        scholarship={scholarship}
+      />
 
       {/* Report Modal */}
       <ReportScholarshipModal

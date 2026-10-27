@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { AdminSidebar } from '../common/AdminSidebar';
-import { MobileHeader } from '../common/MobileHeader';
+﻿import React, { useState, useEffect } from 'react';
+import { Navbar } from '../common/Navbar';
 import { api } from '../../lib/apiClient';
 import { StorageService } from '../../services/storage';
 
@@ -13,11 +12,9 @@ interface AdminLayoutProps {
 export const AdminLayout: React.FC<AdminLayoutProps> = ({
   children,
   currentPath,
-  onNavigate
+  onNavigate,
 }) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
-  const [pendingReportsCount, setPendingReportsCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,8 +28,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
     try {
       const reports = StorageService.getReports();
-      const activePending = reports.filter(r => r.status === 'Pending').length;
-      setPendingReportsCount(activePending);
+      // kept for potential future badge use
+      const _pending = reports.filter(r => r.status === 'Pending').length;
+      void _pending;
     } catch {
       // ignore
     }
@@ -41,30 +39,17 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   }, [currentPath]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row text-slate-900">
-      {/* Sidebar handles both desktop persistent navigation and mobile drawer */}
-      <AdminSidebar
+    <div className="min-h-screen flex flex-col bg-[#F6F8FC] text-slate-900">
+      <Navbar
+        portalType="admin"
         currentPath={currentPath}
         onNavigate={onNavigate}
-        pendingVerificationCount={pendingCount}
-        pendingReportsCount={pendingReportsCount}
-        isMobileOpen={isMobileMenuOpen}
-        onCloseMobile={() => setIsMobileMenuOpen(false)}
+        pendingCount={pendingCount}
       />
-      
-      <div className="flex-1 flex flex-col min-w-0 w-full overflow-y-auto">
-        {/* Global Mobile Header (visible on screens < md) */}
-        <MobileHeader
-          onOpenMenu={() => setIsMobileMenuOpen(true)}
-          onNavigate={onNavigate}
-          portalType="admin"
-          badge={pendingCount > 0 ? pendingCount : undefined}
-        />
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          {children}
-        </main>
-      </div>
+      <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        {children}
+      </main>
     </div>
   );
 };

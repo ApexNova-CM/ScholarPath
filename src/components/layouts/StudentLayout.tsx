@@ -1,25 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { Sidebar } from '../common/Sidebar';
-import { MobileHeader } from '../common/MobileHeader';
+﻿import React, { useState, useEffect } from 'react';
+import { Navbar } from '../common/Navbar';
 import { api } from '../../lib/apiClient';
 import { useAuth } from '../../context/AuthContext';
 import { NotificationItem } from '../../types';
-
 import { FloatingAiButton } from '../common/FloatingAiButton';
 
 interface StudentLayoutProps {
   children: React.ReactNode;
   currentPath: string;
   onNavigate: (path: string) => void;
+  savedCount?: number;
 }
 
 export const StudentLayout: React.FC<StudentLayoutProps> = ({
   children,
   currentPath,
-  onNavigate
+  onNavigate,
+  savedCount = 0,
 }) => {
   const { user } = useAuth();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -36,30 +35,18 @@ export const StudentLayout: React.FC<StudentLayoutProps> = ({
   }, [user, currentPath]);
 
   return (
-    <div className="h-screen overflow-hidden bg-slate-50 flex flex-col md:flex-row text-slate-900 relative">
-      {/* Sidebar handles both desktop persistent navigation and the mobile sliding drawer */}
-      <Sidebar
+    <div className="min-h-screen flex flex-col bg-[#F6F8FC] text-slate-900">
+      <Navbar
+        portalType="student"
         currentPath={currentPath}
         onNavigate={onNavigate}
-        unreadNotificationCount={unreadCount}
-        isMobileOpen={isMobileMenuOpen}
-        onCloseMobile={() => setIsMobileMenuOpen(false)}
+        unreadCount={unreadCount}
+        savedCount={savedCount}
       />
-      
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 w-full overflow-y-auto">
-        {/* Global Mobile Header (visible on screens < md) */}
-        <MobileHeader
-          onOpenMenu={() => setIsMobileMenuOpen(true)}
-          onNavigate={onNavigate}
-          portalType="student"
-          badge={unreadCount > 0 ? unreadCount : undefined}
-        />
 
-        <main className="flex-1 p-4 sm:p-6 md:p-8 lg:p-10 max-w-7xl w-full mx-auto">
-          {children}
-        </main>
-      </div>
+      <main className="flex-1 p-4 sm:p-6 md:p-8 lg:p-10 max-w-7xl w-full mx-auto">
+        {children}
+      </main>
 
       {/* Floating AI Assistant Trigger */}
       <FloatingAiButton currentPath={currentPath} onNavigate={onNavigate} />

@@ -171,6 +171,13 @@ router.post(
       shortDescription: body.shortDescription || body.description.slice(0, 140),
       category: body.category,
       scholarshipType: body.scholarshipType,
+      opportunityType: body.opportunityType || 'scholarship',
+      targetAudiences: body.targetAudiences || ['undergraduate'],
+      compensationType: body.compensationType,
+      duration: body.duration,
+      experienceLevel: body.experienceLevel,
+      skillsRequired: body.skillsRequired || [],
+      workplaceType: body.workplaceType || 'unspecified',
       tags: body.tags || [],
 
       // Award Details
@@ -350,6 +357,13 @@ router.post(
           verification_notes: newScholarship.verificationNotes,
           view_count: newScholarship.viewCount,
           save_count: newScholarship.saveCount,
+          opportunity_type: newScholarship.opportunityType,
+          target_audiences: newScholarship.targetAudiences,
+          compensation_type: newScholarship.compensationType,
+          duration: newScholarship.duration,
+          experience_level: newScholarship.experienceLevel,
+          skills_required: newScholarship.skillsRequired,
+          workplace_type: newScholarship.workplaceType,
         }, { onConflict: 'id' });
       } catch (err) {
         console.warn('[admin] error syncing new scholarship to Supabase:', err);
@@ -470,6 +484,13 @@ router.put('/scholarships/:id', async (req: Request, res: Response): Promise<voi
         verification_notes: updated.verificationNotes,
         view_count: updated.viewCount,
         save_count: updated.saveCount,
+        opportunity_type: updated.opportunityType,
+        target_audiences: updated.targetAudiences,
+        compensation_type: updated.compensationType,
+        duration: updated.duration,
+        experience_level: updated.experienceLevel,
+        skills_required: updated.skillsRequired,
+        workplace_type: updated.workplaceType,
       }, { onConflict: 'id' });
     } catch (err) {
       console.warn('[admin] error syncing updated scholarship to Supabase:', err);
@@ -591,7 +612,7 @@ router.get('/users', (req: Request, res: Response): void => {
 });
 
 // PUT /api/v1/admin/users/:id/role
-router.put('/users/:id/role', (req: Request, res: Response): void => {
+router.put('/users/:id/role', async (req: Request, res: Response): Promise<void> => {
   const { role, department } = req.body;
   if (!role || !['admin', 'student'].includes(role)) {
     res.status(400).json({
@@ -639,6 +660,18 @@ router.put('/users/:id/role', (req: Request, res: Response): void => {
     });
   } else {
     db.deleteAdminUser(user.id);
+  }
+
+  // Sync role update to Supabase public.users via service-role client if configured
+  if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+    try {
+      const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      await supabase.from('users').update({ role }).eq('id', user.id);
+    } catch (err) {
+      console.warn('[admin] Supabase role sync warning:', err);
+    }
   }
 
   res.json({

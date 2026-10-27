@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Scholarship, UserProfile, StoredDocument, Application, 
-  ApplicationStatus, ApplicationChecklistItem, ApplicationOutcomeDetails 
+  ApplicationStatus, ApplicationChecklistItem, ApplicationOutcomeDetails,
+  getApplicationDisplayStatus, OPPORTUNITY_TYPE_LABELS, APPLICANT_STAGE_LABELS
 } from '../../types';
 import { StorageService } from '../../services/storage';
+import { api } from '../../lib/apiClient';
 import { evaluateEligibility, getMatchCategory, getMatchCategoryColors } from '../../services/eligibility';
 import { 
   evaluateScholarshipReadiness, 
@@ -17,6 +19,7 @@ import { VerifiedBadge } from '../../components/common/VerifiedBadge';
 import { LifecycleBadge } from '../../components/common/LifecycleBadge';
 import { DeadlineBadge } from '../../components/common/DeadlineBadge';
 import { ReportScholarshipModal } from '../../components/common/ReportScholarshipModal';
+import { ShareOpportunityModal } from '../../components/common/ShareOpportunityModal';
 import { ApplicationOutcomeModal } from '../../components/common/ApplicationOutcomeModal';
 import { ApplicationHistoryTimeline } from '../../components/common/ApplicationHistoryTimeline';
 import { PremiumGate, isPremiumUser } from '../../components/common/PremiumGate';
@@ -24,7 +27,7 @@ import {
   ArrowLeft, Bookmark, ExternalLink, CheckCircle2, AlertCircle, 
   XCircle, Clock, FileText, Sparkles, Plus, Trash2, Save, 
   Flag, Share2, Shield, Calendar, Edit3, HelpCircle, Check, 
-  ChevronRight, Bell, ArrowUpRight, Lock, AlertTriangle, Trophy, History, Crown, Coins
+  ChevronRight, Bell, ArrowUpRight, Lock, AlertTriangle, Trophy, History, Crown, Coins, Info, Send
 } from 'lucide-react';
 
 interface ApplicationWorkspacePageProps {
@@ -75,9 +78,14 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
   const [saveStatusText, setSaveStatusText] = useState<string>('');
   const [isReportModalOpen, setIsReportModalOpen] = useState<boolean>(false);
   const [isOutcomeModalOpen, setIsOutcomeModalOpen] = useState<boolean>(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [activeReqCategory, setActiveReqCategory] = useState<string>('all');
+  const [showExternalConfirmModal, setShowExternalConfirmModal] = useState<boolean>(false);
+  const [isSavingDraft, setIsSavingDraft] = useState<boolean>(false);
+  // null = no message, 'synced' = backend confirmed, 'local_only' = backend failed, 'error' = user-visible error
+  const [saveOutcome, setSaveOutcome] = useState<'synced' | 'local_only' | 'error' | null>(null);
 
   // Sync application state if props/user changes
   useEffect(() => {
@@ -229,43 +237,111 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
     return trimmed ? trimmed.split(/\s+/).length : 0;
   }, [essayDraft]);
 
+  // Canonical Display Status (distinguishes Draft vs Ready to Submit vs Submitted Externally vs Confirmed)
+  const displayStatus = useMemo(() => {
+    if (!application) {
+      return {
+        label: 'Draft',
+        badgeClass: 'bg-amber-50 border-amber-200 text-amber-800',
+        description: 'Application preparation is in progress.',
+        stage: 'draft' as const,
+      };
+    }
+    return getApplicationDisplayStatus(application, progressMetrics.overall);
+  }, [application, progressMetrics.overall]);
+
   // Handlers for persistence
-  const handleToggleChecklistItem = (itemId: string) => {
+  const handleToggleChecklistItem = async (itemId: string) => {
     if (!application) return;
     const updated = StorageService.toggleApplicationChecklistItem(application.id, itemId);
     setApplication(updated);
     onUpdateApplication?.(updated);
+    try {
+      await api.patch(`/student/applications/${application.id}`, { checklist: updated.checklist });
+    } catch (e) {
+      console.warn('[Workspace] Checklist toggle backend sync failed (local save preserved):', e);
+    }
   };
 
-  const handleAddChecklistItem = (e: React.FormEvent) => {
+  const handleAddChecklistItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!application || !newChecklistLabel.trim()) return;
     const updated = StorageService.addApplicationChecklistItem(application.id, newChecklistLabel.trim());
     setApplication(updated);
     onUpdateApplication?.(updated);
     setNewChecklistLabel('');
+    try {
+      await api.patch(`/student/applications/${application.id}`, { checklist: updated.checklist });
+    } catch (e) {
+      console.warn('[Workspace] Checklist add backend sync failed (local save preserved):', e);
+    }
   };
 
-  const handleDeleteChecklistItem = (itemId: string) => {
+  const handleDeleteChecklistItem = async (itemId: string) => {
     if (!application) return;
     const updated = StorageService.deleteApplicationChecklistItem(application.id, itemId);
     setApplication(updated);
     onUpdateApplication?.(updated);
+    try {
+      await api.patch(`/student/applications/${application.id}`, { checklist: updated.checklist });
+    } catch (e) {
+      console.warn('[Workspace] Checklist delete backend sync failed (local save preserved):', e);
+    }
   };
 
-  const handleSaveWorkspaceDraft = () => {
+  const handleSaveWorkspaceDraft = async () => {
     if (!application) return;
-    const updated = StorageService.updateApplication(application.id, {
+    setIsSavingDraft(true);
+    setSaveOutcome(null);
+    const updates = {
       notes,
       essayDraft,
       essayStatus,
       essayNotes,
       workspaceLastSavedAt: new Date().toISOString(),
-    });
+    };
+    // Always save locally first — this is the authoritative draft store
+    const updated = StorageService.updateApplication(application.id, updates);
     setApplication(updated);
     onUpdateApplication?.(updated);
-    setSaveStatusText('All changes saved');
-    setTimeout(() => setSaveStatusText(''), 3000);
+    // Attempt backend sync and distinguish the outcome
+    let syncedToServer = false;
+    try {
+      await api.patch(`/student/applications/${application.id}`, updates);
+      syncedToServer = true;
+    } catch (e) {
+      console.warn('[Workspace] Backend draft sync failed (local save preserved):', e);
+    }
+    setIsSavingDraft(false);
+    setSaveOutcome(syncedToServer ? 'synced' : 'local_only');
+    // Use legacy saveStatusText for existing banner — message differs by outcome
+    setSaveStatusText(syncedToServer ? 'Saved & synced' : 'Saved locally (sync failed)');
+    setTimeout(() => { setSaveStatusText(''); setSaveOutcome(null); }, 4000);
+  };
+
+  /** Report that the user has submitted externally via the official provider portal. */
+  const handleReportExternalSubmission = async () => {
+    if (!application) return;
+    const updates = {
+      status: 'Applied' as const,
+      submissionMethod: 'external' as const,
+      externalSubmissionConfirmed: true,
+      externalPortalOpenedAt: application.externalPortalOpenedAt || new Date().toISOString(),
+      appliedAt: new Date().toISOString(),
+      notes,
+      workspaceLastSavedAt: new Date().toISOString(),
+    };
+    const updated = StorageService.updateApplication(application.id, updates);
+    setApplication(updated);
+    onUpdateApplication?.(updated);
+    try {
+      await api.patch(`/student/applications/${application.id}`, updates);
+    } catch (e) {
+      console.warn('[Workspace] Backend external submission sync failed (local save preserved):', e);
+    }
+    setShowExternalConfirmModal(false);
+    setSaveStatusText('External submission recorded honestly.');
+    setTimeout(() => setSaveStatusText(''), 4000);
   };
 
   const handleSaveOutcome = (
@@ -290,24 +366,23 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
     }
   };
 
-  const handleMarkAsApplied = () => {
-    if (!application) return;
-    const updated = StorageService.updateApplication(application.id, {
-      status: 'Applied',
-      appliedAt: new Date().toISOString(),
-      notes,
-      workspaceLastSavedAt: new Date().toISOString(),
-    });
-    setApplication(updated);
-    onUpdateApplication?.(updated);
-    setSaveStatusText('Marked as Applied! Tracker updated.');
-    setTimeout(() => setSaveStatusText(''), 4000);
-  };
+  /**
+   * TASK 1 — Native submission audit result:
+   * No genuine native submission endpoint exists in this codebase. There is no
+   * POST /applications/:id/submit route, no server-side required-field validation,
+   * and no server confirmation flow. The previous handleMarkAsApplied immediately
+   * wrote `Applied` to local storage before any server response, which falsely
+   * represented the application as submitted.
+   *
+   * Resolution: Native Scholavon submission is NOT YET AVAILABLE.
+   * The button is replaced with an honest "coming soon" notice. The external
+   * self-reported flow (handleReportExternalSubmission) remains intact.
+   * The status constraint and database are unchanged.
+   */
+  const NATIVE_SUBMISSION_AVAILABLE = false as const;
 
   const handleShare = () => {
-    navigator.clipboard?.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setIsShareModalOpen(true);
   };
 
   const filteredRequirements = useMemo(() => {
@@ -340,8 +415,16 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
 
         <div className="flex items-center gap-2">
           {saveStatusText && (
-            <span className="text-xs font-medium text-emerald-600 flex items-center gap-1 mr-2 animate-fade-in">
-              <Check size={14} />
+            <span className={`text-xs font-medium flex items-center gap-1 mr-2 animate-fade-in ${
+              saveOutcome === 'local_only'
+                ? 'text-amber-600'
+                : 'text-emerald-600'
+            }`}>
+              {saveOutcome === 'local_only' ? (
+                <AlertTriangle size={14} />
+              ) : (
+                <Check size={14} />
+              )}
               {saveStatusText}
             </span>
           )}
@@ -369,10 +452,11 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
             id="btn-workspace-share"
             onClick={handleShare}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer min-h-[44px]"
-            title="Share workspace link"
+            title="Share opportunity"
+            aria-label={`Share ${scholarship.title}`}
           >
             <Share2 size={13} />
-            <span>{copied ? 'Copied' : 'Share'}</span>
+            <span>Share</span>
           </button>
 
           <button
@@ -505,6 +589,46 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
               {daysLeft !== null && daysLeft >= 0 ? (daysLeft === 0 ? 'Due Today' : `${daysLeft} days remaining`) : 'Closed'}
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* ── 2A. Application Status Banner ───────────────────────────────── */}
+      <div className={`flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-2xl border ${displayStatus.badgeClass}`}>
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+          {displayStatus.stage === 'awarded' ? (
+            <Trophy size={18} className="shrink-0 text-emerald-600" />
+          ) : displayStatus.stage === 'draft' || displayStatus.stage === 'ready_to_submit' ? (
+            <Clock size={18} className="shrink-0" />
+          ) : displayStatus.stage === 'submitted_externally' ? (
+            <Info size={18} className="shrink-0" />
+          ) : displayStatus.stage === 'submitted' ? (
+            <CheckCircle2 size={18} className="shrink-0 text-emerald-700" />
+          ) : (
+            <AlertCircle size={18} className="shrink-0" />
+          )}
+          <div>
+            <span className="text-xs font-extrabold block">{displayStatus.label}</span>
+            <span className="text-[11px] opacity-80 leading-relaxed">{displayStatus.description}</span>
+            {displayStatus.stage === 'submitted_externally' && (
+              <span className="text-[11px] italic opacity-70 block mt-0.5">
+                Self-reported — Scholavon cannot verify external submissions. Only you know if you completed the provider's application form.
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`px-3 py-1 rounded-xl text-xs font-bold border ${displayStatus.badgeClass}`}>
+            {displayStatus.label}
+          </span>
+          {displayStatus.stage === 'draft' && !isSavingDraft && (
+            <button
+              onClick={handleSaveWorkspaceDraft}
+              className="px-3 py-1.5 rounded-xl bg-white/80 hover:bg-white border border-current text-xs font-semibold transition-colors cursor-pointer"
+            >
+              <Save size={12} className="inline mr-1" />
+              {isSavingDraft ? 'Saving…' : 'Save Draft'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -642,6 +766,44 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
             </span>
           </div>
         </div>
+      </div>
+
+      {/* ── 3B. Application Instructions & Provider Guidance ─────────────── */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4">
+        <div className="flex items-center gap-2">
+          <Info size={16} className="text-indigo-600 shrink-0" />
+          <h3 className="text-base font-bold text-slate-900">Application Instructions & Provider Guidance</h3>
+        </div>
+
+        {scholarship.applicationInstructions ? (
+          <div className="prose prose-sm max-w-none">
+            <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">
+              {scholarship.applicationInstructions}
+            </p>
+          </div>
+        ) : (
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200">
+            <p className="text-xs text-amber-800 font-medium">
+              No application instructions have been recorded for this opportunity. Visit the official provider website for full requirements.
+            </p>
+          </div>
+        )}
+
+        {(scholarship as any).applicationSteps && Array.isArray((scholarship as any).applicationSteps) && (scholarship as any).applicationSteps.length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-slate-100">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">Application Steps</span>
+            <ol className="space-y-2">
+              {((scholarship as any).applicationSteps as string[]).map((step, idx) => (
+                <li key={idx} className="flex items-start gap-3 text-xs text-slate-700">
+                  <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                    {idx + 1}
+                  </span>
+                  <span className="leading-relaxed">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
       </div>
 
       {/* ── 4. Match Score & Application Readiness Side-by-Side ───────────── */}
@@ -1107,7 +1269,9 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
               Official Provider Submission Portal
             </h3>
             <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
-              Scholavon guides your preparation and verifies criteria. External applications must be submitted directly through the official provider portal.
+              Scholavon guides your preparation, matches your profile, and keeps your workspace organised.
+              {' '}<strong className="text-white">Your actual application must be submitted directly via the provider's official website.</strong>{' '}
+              Clicking "Open Provider Website" does not submit your application.
             </p>
           </div>
 
@@ -1122,41 +1286,88 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
                 href={scholarship.applicationUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => {
+                  if (application) {
+                    const updated = StorageService.updateApplication(application.id, {
+                      externalPortalOpenedAt: new Date().toISOString(),
+                    });
+                    setApplication(updated);
+                    onUpdateApplication?.(updated);
+                  }
+                }}
                 className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-lg cursor-pointer"
               >
-                <span>Apply on Official Website</span>
+                <span>Open Provider Website</span>
                 <ExternalLink size={14} />
               </a>
             ) : (
               <div className="px-4 py-2.5 rounded-2xl bg-slate-800 text-slate-300 text-xs font-medium">
-                Application link unavailable
+                Application link unavailable — check provider website
               </div>
             )}
           </div>
         </div>
 
-        {/* Confirmation Card */}
-        <div className="pt-6 border-t border-indigo-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="text-xs text-slate-300">
-            {application?.status === 'Applied' || (application?.status && application.status !== 'Preparing' && application.status !== 'Interested') ? (
-              <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
-                <CheckCircle2 size={16} />
-                Application status is currently <strong>{application.status}</strong>
-              </span>
-            ) : (
-              <span>Have you submitted your application on the official website?</span>
+        {/* External Submission Reporting */}
+        <div className="pt-6 border-t border-indigo-800/80 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="text-xs text-slate-300 space-y-1">
+              {application?.status === 'Applied' ? (
+                <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                  <CheckCircle2 size={16} />
+                  {application.submissionMethod === 'external'
+                    ? 'External submission recorded. Scholavon cannot verify provider outcome — check your email for updates.'
+                    : `Application status recorded as: ${application.status}`}
+                </span>
+              ) : (
+                <>
+                  <span className="font-semibold text-white block">Have you submitted on the official website?</span>
+                  <span className="text-slate-400">
+                    Once you have completed and submitted the provider's form, record it here to keep your tracker accurate.
+                    This does not submit for you — it only updates your Scholavon record.
+                  </span>
+                </>
+              )}
+            </div>
+
+            {application?.status === 'Preparing' && !isInactive && (
+              <button
+                id="btn-workspace-report-external"
+                onClick={() => setShowExternalConfirmModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-slate-900 hover:bg-slate-100 text-xs font-bold transition-colors cursor-pointer self-start sm:self-auto shrink-0"
+              >
+                <Send size={14} className="text-indigo-600" />
+                <span>I've Submitted Externally</span>
+              </button>
             )}
           </div>
 
-          {application?.status === 'Preparing' && !isInactive && (
-            <button
-              id="btn-workspace-mark-applied"
-              onClick={handleMarkAsApplied}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-slate-900 hover:bg-slate-100 text-xs font-bold transition-colors cursor-pointer self-start sm:self-auto"
-            >
-              <Check size={14} className="text-emerald-600" />
-              <span>Mark as Applied</span>
-            </button>
+          {/* Legacy "Mark as Applied" fallback for native submissions */}
+          {application?.status === 'Preparing' && !isInactive && scholarship.applicationMethod === 'Scholavon Application' && (
+            NATIVE_SUBMISSION_AVAILABLE ? (
+              /* Future: call a genuine POST /applications/:id/submit endpoint and
+                 only mark Applied after server returns 200 with confirmed submission. */
+              <button
+                id="btn-workspace-mark-applied"
+                disabled
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-700 opacity-50 text-white text-xs font-bold cursor-not-allowed"
+              >
+                <Check size={14} />
+                <span>Confirm Scholavon Submission</span>
+              </button>
+            ) : (
+              <div className="p-4 rounded-2xl bg-indigo-800/60 border border-indigo-700 space-y-1">
+                <p className="text-xs font-bold text-indigo-200 flex items-center gap-2">
+                  <AlertCircle size={14} className="shrink-0" />
+                  Scholavon Native Submission — Coming Soon
+                </p>
+                <p className="text-[11px] text-indigo-300 leading-relaxed">
+                  Direct submission through Scholavon is not yet available for this opportunity.
+                  Please apply via the <strong className="text-white">official provider website</strong> above,
+                  then use <strong className="text-white">"I've Submitted Externally"</strong> to record it honestly in your tracker.
+                </p>
+              </div>
+            )
           )}
         </div>
       </div>
@@ -1181,7 +1392,13 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
         </p>
       </div>
 
-      {/* ── 12. Modals (Report & Outcome) ─────────────────────────────────── */}
+      {/* ── 12. Modals (Share, Report, Outcome & External Submission Confirm) ──────── */}
+      <ShareOpportunityModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        scholarship={scholarship}
+      />
+
       <ReportScholarshipModal
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
@@ -1197,6 +1414,53 @@ export const ApplicationWorkspacePage: React.FC<ApplicationWorkspacePageProps> =
           application={application}
           onSaveOutcome={handleSaveOutcome}
         />
+      )}
+
+      {/* External Submission Confirmation Dialog */}
+      {showExternalConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-2xl max-w-md w-full space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <Send size={22} />
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900">Confirm External Submission</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Recording your self-reported submission</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-2">
+              <p className="font-semibold">Please confirm the following:</p>
+              <ul className="space-y-1 list-disc list-inside text-amber-800">
+                <li>You have completed and submitted the application on the official provider website.</li>
+                <li>This action only updates your Scholavon record — it does not submit for you.</li>
+                <li>Scholavon cannot verify external submissions. You are solely responsible for ensuring your application reached the provider.</li>
+              </ul>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Your tracker will show <strong>"Submitted Externally"</strong> with a clear note that this is self-reported. 
+              Watch for email confirmation from <strong>{scholarship.providerName}</strong>.
+            </p>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setShowExternalConfirmModal(false)}
+                className="flex-1 px-4 py-3 rounded-2xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReportExternalSubmission}
+                className="flex-1 px-4 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 size={15} />
+                Yes, I've Submitted Externally
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

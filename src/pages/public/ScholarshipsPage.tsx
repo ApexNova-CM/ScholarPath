@@ -1,5 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Scholarship, UserProfile, EducationLevel, FundingType } from '../../types';
+import { 
+  Scholarship, UserProfile, EducationLevel, FundingType,
+  OpportunityType, ApplicantStage, OPPORTUNITY_TYPE_LABELS, APPLICANT_STAGE_LABELS 
+} from '../../types';
 import { ScholarshipCard } from '../../components/common/ScholarshipCard';
 import { evaluateEligibility } from '../../services/eligibility';
 import { StorageService } from '../../services/storage';
@@ -94,6 +97,8 @@ export const ScholarshipsPage: React.FC<ScholarshipsPageProps> = ({
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>(getInitialCategory());
+  const [selectedOpportunityType, setSelectedOpportunityType] = useState<string>('all');
+  const [selectedAudience, setSelectedAudience] = useState<string>('all');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<'open' | 'closing_soon' | 'closed' | 'all'>(getInitialStatus());
   const [selectedEducationLevel, setSelectedEducationLevel] = useState<string>('all');
   const [selectedFundingType, setSelectedFundingType] = useState<string>('all');
@@ -178,8 +183,31 @@ export const ScholarshipsPage: React.FC<ScholarshipsPageProps> = ({
         const matchesDesc = (sch.shortDescription || sch.description).toLowerCase().includes(q);
         const matchesField = sch.fieldsOfStudy.some(f => f.toLowerCase().includes(q));
         const matchesTag = sch.tags.some(t => t.toLowerCase().includes(q));
-        if (!matchesTitle && !matchesProvider && !matchesDesc && !matchesField && !matchesTag) {
+        const matchesOpType = (sch.opportunityType || '').toLowerCase().includes(q);
+        const matchesWorkplace = (sch.workplaceType || '').toLowerCase().includes(q);
+        const matchesSkills = (sch.skillsRequired || []).some(s => s.toLowerCase().includes(q));
+        if (!matchesTitle && !matchesProvider && !matchesDesc && !matchesField && !matchesTag && !matchesOpType && !matchesWorkplace && !matchesSkills) {
           return false;
+        }
+      }
+
+      // Opportunity Type Filter
+      if (selectedOpportunityType !== 'all') {
+        const opType = sch.opportunityType || 'scholarship';
+        if (opType !== selectedOpportunityType) return false;
+      }
+
+      // Target Audience Filter
+      if (selectedAudience !== 'all') {
+        if (sch.targetAudiences && sch.targetAudiences.length > 0) {
+          if (!sch.targetAudiences.includes(selectedAudience as any)) return false;
+        } else {
+          // Legacy scholarship without targetAudiences
+          if (selectedAudience === 'secondary' && !sch.educationLevels.includes('High School')) return false;
+          if (selectedAudience === 'undergraduate' && !sch.educationLevels.includes('Undergraduate')) return false;
+          if (selectedAudience === 'postgraduate' && !sch.educationLevels.some(l => l.includes('Postgraduate') || l.includes('Doctorate') || l.includes('Postdoctoral'))) return false;
+          if (selectedAudience === 'vocational' && !sch.educationLevels.includes('Vocational / Technical')) return false;
+          if (selectedAudience === 'early_career' && !sch.educationLevels.includes('Undergraduate')) return false;
         }
       }
 
@@ -312,6 +340,8 @@ export const ScholarshipsPage: React.FC<ScholarshipsPageProps> = ({
   const resetFilters = () => {
     setSearchQuery('');
     setSelectedCategory('all');
+    setSelectedOpportunityType('all');
+    setSelectedAudience('all');
     setSelectedEducationLevel('all');
     setSelectedFundingType('all');
     setSelectedCountry('all');
@@ -328,6 +358,8 @@ export const ScholarshipsPage: React.FC<ScholarshipsPageProps> = ({
   const hasActiveFilters = 
     searchQuery.trim() !== '' ||
     selectedCategory !== 'all' ||
+    selectedOpportunityType !== 'all' ||
+    selectedAudience !== 'all' ||
     selectedStatusFilter !== 'all' ||
     selectedEducationLevel !== 'all' ||
     selectedFundingType !== 'all' ||
@@ -630,9 +662,41 @@ export const ScholarshipsPage: React.FC<ScholarshipsPageProps> = ({
             )}
           </div>
 
+          {/* Opportunity Type */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-2">Opportunity Type</label>
+            <select
+              id="select-filter-opportunity-type"
+              value={selectedOpportunityType}
+              onChange={(e) => setSelectedOpportunityType(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:outline-hidden focus:border-indigo-500 min-h-[42px]"
+            >
+              <option value="all">All Opportunity Types</option>
+              {Object.entries(OPPORTUNITY_TYPE_LABELS).map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Target Audience */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-2">Target Audience</label>
+            <select
+              id="select-filter-audience"
+              value={selectedAudience}
+              onChange={(e) => setSelectedAudience(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 focus:outline-hidden focus:border-indigo-500 min-h-[42px]"
+            >
+              <option value="all">All Audiences & Pathways</option>
+              {Object.entries(APPLICANT_STAGE_LABELS).map(([val, label]) => (
+                <option key={val} value={val}>{label}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Category Dropdown */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-2">Scholarship Category</label>
+            <label className="block text-xs font-bold text-slate-700 mb-2">Opportunity Category</label>
             <select
               id="select-filter-category"
               value={selectedCategory}

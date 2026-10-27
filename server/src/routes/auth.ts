@@ -10,9 +10,13 @@ import {
   LoginSchema,
   UserRecord,
   StudentProfileRecord,
+  ForgotPasswordSchema,
+  ResetPasswordSchema,
+  PasswordResetTokenRecord,
 } from '../types';
 import { validateBody } from '../middleware/validate';
 import { authenticateToken, AuthPayload } from '../middleware/auth';
+import { emailService } from '../services/emailService';
 
 const router = Router();
 
@@ -44,6 +48,18 @@ router.post(
         firstName,
         lastName,
         country,
+        applicantStage,
+        secondarySchoolName,
+        secondaryGraduationYear,
+        targetMajor,
+        tradeSpecialization,
+        tradeCertifications,
+        yearsOfExperience,
+        targetIndustry,
+        skills,
+        portfolioUrl,
+        linkedinUrl,
+        githubUrl,
         educationLevel,
         institution,
         fieldOfStudy,
@@ -85,7 +101,19 @@ router.post(
         userId,
         firstName,
         lastName,
-        country,
+        country: country || 'International',
+        applicantStage,
+        secondarySchoolName,
+        secondaryGraduationYear,
+        targetMajor,
+        tradeSpecialization,
+        tradeCertifications: tradeCertifications || [],
+        yearsOfExperience,
+        targetIndustry,
+        skills: skills || [],
+        portfolioUrl,
+        linkedinUrl,
+        githubUrl,
         educationLevel,
         institution,
         fieldOfStudy,
@@ -107,6 +135,43 @@ router.post(
 
       const savedProfile = db.upsertProfile(profileRecord);
 
+      // Sync to Supabase users table if configured
+      if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+        try {
+          const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+            auth: { persistSession: false, autoRefreshToken: false },
+          });
+          await supabase.from('users').upsert({
+            id: userId,
+            email: userRecord.email,
+            role: 'student',
+            first_name: firstName,
+            last_name: lastName,
+            country: country || 'International',
+            applicant_stage: applicantStage || null,
+            secondary_school_name: secondarySchoolName || null,
+            secondary_graduation_year: secondaryGraduationYear || null,
+            target_major: targetMajor || null,
+            trade_specialization: tradeSpecialization || null,
+            trade_certifications: tradeCertifications || [],
+            years_of_experience: yearsOfExperience || 0,
+            target_industry: targetIndustry || null,
+            skills: skills || [],
+            portfolio_url: portfolioUrl || null,
+            linkedin_url: linkedinUrl || null,
+            github_url: githubUrl || null,
+            education_level: educationLevel || null,
+            institution: institution || null,
+            field_of_study: fieldOfStudy || null,
+            gpa: gpa !== undefined ? gpa : null,
+            gpa_scale: gpaScale !== undefined ? gpaScale : null,
+            profile_completion: 0,
+          }, { onConflict: 'id' });
+        } catch (err) {
+          console.warn('[auth] error syncing new user to Supabase:', err);
+        }
+      }
+
       // Create welcome notification
       db.createNotification({
         id: `notif-${crypto.randomUUID()}`,
@@ -116,6 +181,11 @@ router.post(
         type: 'announcement',
         read: false,
         createdAt: new Date().toISOString(),
+      });
+
+      // Send welcome email (non-critical — failure does not block registration)
+      emailService.sendWelcome(userRecord.email, firstName, userId).catch(() => {
+        // already logged inside sendWelcome
       });
 
       const tokenUser: AuthPayload = {
@@ -331,57 +401,115 @@ router.delete(
 );
 
 // POST /api/v1/auth/forgot-password
-router.post('/forgot-password', (req: Request, res: Response): void => {
-  const { email } = req.body;
-  if (!email) {
-    res.status(400).json({ success: false, error: { code: 'EMAIL_REQUIRED', message: 'Email is required.' } });
-    return;
-  }
+router.post(
+  '/forgot-password',
+  validateBody(ForgotPasswordSchema),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { email } = req.body as { email: string };
+      const normalizedEmail = email.trim().toLowerCase();
 
-  // Check if user exists (avoid user enumeration by returning success regardless)
-  const user = db.findUserByEmail(email);
-  if (user) {
-    // Generate secure password reset token in production
-    console.log(`[PASSWORD_RESET] Token dispatched to ${email}`);
-  }
+      // Always return 200 to prevent user enumeration
+      const successResponse = () =>
+        res.json({
+          success: true,
+          data: {
+            message:
+              'If an account with that email exists, a password-reset link has been sent. Please check your inbox (and spam folder).',
+          },
+        });
 
-  res.json({
-    success: true,
-    data: {
-      message: 'If an account matches that email, a password reset link has been dispatched.',
-    },
-  });
-});
+      const user = db.findUserByEmail(normalizedEmail);
+      if (!user) {
+        successResponse();
+        return;
+      }
+
+      // Retrieve first name from profile for the email greeting
+      const profile = db.getProfile(user.id);
+      const firstName = profile?.firstName || 'there';
+
+      // Generate a cryptographically secure random token (32 bytes = 64 hex chars)
+      const rawToken = crypto.randomBytes(32).toString('hex');
+
+      // Store only the SHA-256 hash — the raw token travels by email only
+      const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+      const ONE_HOUR_MS = 60 * 60 * 1000;
+      const tokenRecord: PasswordResetTokenRecord = {
+        tokenHash,
+        userId: user.id,
+        email: normalizedEmail,
+        expiresAt: new Date(Date.now() + ONE_HOUR_MS).toISOString(),
+        createdAt: new Date().toISOString(),
+      };
+
+      db.storePasswordResetToken(tokenRecord);
+
+      const resetUrl = `${config.appUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(normalizedEmail)}`;
+
+      const result = await emailService.sendPasswordReset(normalizedEmail, firstName, resetUrl, tokenHash);
+
+      if (!result.accepted) {
+        // Log provider failure server-side (without exposing sensitive tokens or credentials)
+        // while still returning 200 to client to avoid leaking account existence.
+        console.error(
+          `[auth] Password reset email not accepted for ${normalizedEmail}: ${result.statusMessage}`
+        );
+      }
+
+      successResponse();
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 // POST /api/v1/auth/reset-password
-router.post('/reset-password', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const { email, newPassword } = req.body;
-    if (!email || !newPassword || newPassword.length < 6) {
-      res.status(400).json({
-        success: false,
-        error: { code: 'INVALID_PAYLOAD', message: 'Email and newPassword (min 6 chars) required.' },
+router.post(
+  '/reset-password',
+  validateBody(ResetPasswordSchema),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { token, newPassword } = req.body as { token: string; newPassword: string };
+
+      // Hash the incoming token to compare with the stored hash
+      const tokenHash = crypto.createHash('sha256').update(token.trim()).digest('hex');
+      const record = db.consumePasswordResetToken(tokenHash);
+
+      if (!record) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_OR_EXPIRED_TOKEN',
+            message:
+              'This password-reset link is invalid or has expired. Please request a new one.',
+          },
+        });
+        return;
+      }
+
+      const user = db.findUserById(record.userId);
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          error: { code: 'USER_NOT_FOUND', message: 'Account not found.' },
+        });
+        return;
+      }
+
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+      db.updateUser(user.id, { passwordHash });
+
+      res.json({
+        success: true,
+        data: { message: 'Your password has been updated successfully. You can now log in.' },
       });
-      return;
+    } catch (err) {
+      next(err);
     }
-
-    const user = db.findUserByEmail(email);
-    if (!user) {
-      res.status(404).json({ success: false, error: { code: 'USER_NOT_FOUND', message: 'Account not found.' } });
-      return;
-    }
-
-    const passwordHash = await bcrypt.hash(newPassword, 10);
-    db.updateUser(user.id, { passwordHash });
-
-    res.json({
-      success: true,
-      data: { message: 'Password has been successfully updated. Please log in.' },
-    });
-  } catch (err) {
-    next(err);
   }
-});
+);
 
 
 export default router;

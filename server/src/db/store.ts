@@ -13,6 +13,7 @@ import {
   VerificationLogRecord,
   AdminUserRecord,
   ReminderRecord,
+  PasswordResetTokenRecord,
 } from '../types';
 import {
   SEED_CATEGORIES,
@@ -21,8 +22,11 @@ import {
   createInitialSeedUsers,
 } from './seed';
 
-const DATA_DIR = path.resolve(process.cwd(), 'server', 'data');
-const DB_FILE = path.resolve(DATA_DIR, 'db.json');
+const DB_FILE = process.env.SCHOLAVON_DB_FILE
+  ? path.resolve(process.env.SCHOLAVON_DB_FILE)
+  : path.resolve(process.cwd(), 'server', 'data', 'db.json');
+
+const DATA_DIR = path.dirname(DB_FILE);
 
 export interface DatabaseState {
   users: Record<string, UserRecord>;
@@ -56,6 +60,13 @@ class Store {
     reminders: {},
     aiPromptUsage: {},
   };
+
+  /**
+   * In-memory token store — deliberately NOT persisted to disk.
+   * Tokens expire after 1 hour and are consumed (marked used) on first use.
+   * Keyed by tokenHash (SHA-256 hex) for O(1) lookup.
+   */
+  private passwordResetTokens: Map<string, PasswordResetTokenRecord> = new Map();
 
   private initialized = false;
 
@@ -121,6 +132,14 @@ class Store {
   }
 
   // --- USERS ---
+  public getAllUsers(): UserRecord[] {
+    return Object.values(this.state.users);
+  }
+
+  public getUsers(): UserRecord[] {
+    return Object.values(this.state.users);
+  }
+
   public findUserById(id: string): UserRecord | undefined {
     return this.state.users[id];
   }
@@ -597,6 +616,52 @@ class Store {
 
   public deleteUserData(userId: string): void {
     this.deleteUserAccount(userId);
+  }
+
+  // ─── Password Reset Token Methods ──────────────────────────────────────────
+
+  /**
+   * Store a hashed password reset token (in-memory only, not persisted).
+   * Any previous token for the same email is replaced to prevent token pile-up.
+   */
+  public storePasswordResetToken(record: PasswordResetTokenRecord): void {
+    // Remove any existing token for this email first
+    for (const [hash, rec] of this.passwordResetTokens.entries()) {
+      if (rec.email === record.email) {
+        this.passwordResetTokens.delete(hash);
+      }
+    }
+    this.passwordResetTokens.set(record.tokenHash, record);
+  }
+
+  /**
+   * Look up and consume a hashed token.
+   * Returns the record if the token is valid, unexpired, and unused.
+   * Marks the token as used so it cannot be replayed.
+   */
+  public consumePasswordResetToken(
+    tokenHash: string
+  ): PasswordResetTokenRecord | null {
+    this.purgeExpiredPasswordResetTokens();
+    const record = this.passwordResetTokens.get(tokenHash);
+    if (!record) return null;
+    if (record.usedAt) return null; // already consumed
+    if (new Date(record.expiresAt) < new Date()) return null; // expired
+
+    // Mark as used (single-use token)
+    record.usedAt = new Date().toISOString();
+    this.passwordResetTokens.set(tokenHash, record);
+    return record;
+  }
+
+  /** Prune expired tokens to prevent unbounded memory growth. */
+  private purgeExpiredPasswordResetTokens(): void {
+    const now = new Date();
+    for (const [hash, rec] of this.passwordResetTokens.entries()) {
+      if (new Date(rec.expiresAt) < now) {
+        this.passwordResetTokens.delete(hash);
+      }
+    }
   }
 }
 

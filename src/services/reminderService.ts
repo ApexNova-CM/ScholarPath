@@ -183,6 +183,19 @@ export async function processDueScholarshipReminders(
     for (const scholarship of relevantScholarships) {
       processedCount++;
 
+      // 0. Verify if application is already completed or ineligible
+      const userApplications = StorageService.getApplications(user.id);
+      const appRecord = userApplications.find(a => a.scholarshipId === scholarship.id);
+      if (
+        appRecord &&
+        ['Applied', 'Successful', 'Awarded', 'Unsuccessful', 'Withdrawn', 'Not Selected'].includes(
+          appRecord.status
+        )
+      ) {
+        skippedCount++;
+        continue;
+      }
+
       // 1. Verify scholarship lifecycle eligibility
       if (!isScholarshipEligibleForReminders(scholarship, currentDate)) {
         skippedCount++;

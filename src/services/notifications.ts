@@ -39,31 +39,17 @@ export class InAppNotificationProvider {
   }
 }
 
-// Email Provider with real configuration check (no faking)
+// Email Provider — client-side stub only.
+// Real email dispatch happens server-side via emailService.ts.
+// This class exists so the NotificationService dispatch() interface is uniform,
+// but email is NEVER sent from the browser. The server handles it.
 export class EmailNotificationProvider {
-  private isConfigured: boolean;
-
-  constructor() {
-    this.isConfigured = Boolean(
-      (typeof process !== 'undefined' && process.env?.EMAIL_PROVIDER_API_KEY) ||
-      (typeof import.meta !== 'undefined' && import.meta.env?.VITE_EMAIL_PROVIDER_API_KEY)
-    );
-  }
-
-  async send(recipientEmail: string, payload: NotificationPayload): Promise<ChannelSendResult> {
-    if (!this.isConfigured) {
-      return {
-        channel: 'email',
-        delivered: false,
-        statusMessage: 'Email provider not configured (set EMAIL_PROVIDER_API_KEY in environment to activate SMTP/SendGrid/SES dispatch)'
-      };
-    }
-    // Production dispatch logic when configured
-    console.log(`[EmailProvider] Sent to ${recipientEmail}: ${payload.title}`);
+  async send(_recipientEmail: string, _payload: NotificationPayload): Promise<ChannelSendResult> {
     return {
       channel: 'email',
-      delivered: true,
-      statusMessage: `Email successfully dispatched to ${recipientEmail}`
+      delivered: false,
+      statusMessage:
+        'Email delivery is handled server-side. This client-side stub is intentionally inactive.',
     };
   }
 }
@@ -150,7 +136,9 @@ export class NotificationService {
       results.push(res);
     }
 
-    // 2. Email channel
+    // 2. Email channel — delivery is handled server-side (emailService.ts).
+    // The client-side stub is intentionally inactive; this branch is kept so
+    // the ChannelSendResult shape remains consistent for callers that inspect it.
     if (userProfile.notificationPreferences?.email && userProfile.email) {
       const res = await this.emailProvider.send(userProfile.email, payload);
       results.push(res);

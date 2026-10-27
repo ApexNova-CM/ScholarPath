@@ -10,6 +10,14 @@ let pendingScholarshipId = '';
 
 beforeAll(async () => {
   await db.init();
+
+  // Keep the application-limit fixture active as time passes.
+  // This only affects the isolated test database.
+  await db.updateScholarship('sch-004', {
+    deadline: '2099-12-31T23:59:59Z',
+    status: 'verified',
+    verificationStatus: 'verified',
+  });
 });
 
 describe('Phase 4: Authentication System', () => {

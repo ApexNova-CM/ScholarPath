@@ -1,8 +1,9 @@
-import React from 'react';
-import { Scholarship, UserProfile } from '../../types';
-import { Bookmark, MapPin, GraduationCap, ArrowUpRight, Coins, Target, Calendar } from 'lucide-react';
+import React, { useState } from 'react';
+import { Scholarship, UserProfile, OPPORTUNITY_TYPE_LABELS, APPLICANT_STAGE_LABELS } from '../../types';
+import { Bookmark, MapPin, GraduationCap, ArrowUpRight, Coins, Target, Calendar, Share2 } from 'lucide-react';
 import { getMatchCategory, getMatchCategoryColors } from '../../services/eligibility';
 import { LifecycleBadge } from './LifecycleBadge';
+import { ShareOpportunityModal } from './ShareOpportunityModal';
 import { computeLifecycleStatus } from '../../services/scholarshipFilters';
 import { formatScholarshipAmount, formatScholarshipDeadline } from '../../utils/formatters';
 
@@ -13,6 +14,7 @@ interface ScholarshipCardProps {
   onToggleSave?: (scholarshipId: string) => void;
   onViewDetails?: (scholarshipId: string) => void;
   onStartApplication?: (scholarship: Scholarship) => void;
+  onShare?: (scholarship: Scholarship) => void;
   /** When true, renders a match score badge using the score value below */
   showMatchScore?: boolean;
   /** Pre-computed match score (0–100). Only rendered when showMatchScore=true */
@@ -26,9 +28,11 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
   onToggleSave,
   onViewDetails,
   onStartApplication,
+  onShare,
   showMatchScore = false,
   matchScore
 }) => {
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const formattedAmount = formatScholarshipAmount(scholarship);
   const formattedDeadline = formatScholarshipDeadline(scholarship.deadline, { short: true });
 
@@ -36,6 +40,18 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
     !scholarship.eligibleCountries || scholarship.eligibleCountries.length === 0 || scholarship.eligibleCountries.includes('All')
       ? 'Global / All Countries'
       : scholarship.eligibleCountries.slice(0, 2).join(', ') + (scholarship.eligibleCountries.length > 2 ? ` +${scholarship.eligibleCountries.length - 2}` : '');
+
+  const audienceOrLevelText = React.useMemo(() => {
+    if (scholarship.targetAudiences && scholarship.targetAudiences.length > 0) {
+      const firstStage = scholarship.targetAudiences[0];
+      const label = APPLICANT_STAGE_LABELS[firstStage] || firstStage;
+      return scholarship.targetAudiences.length > 1 ? `${label} +${scholarship.targetAudiences.length - 1}` : label;
+    }
+    if (scholarship.educationLevels && scholarship.educationLevels.length > 0) {
+      return scholarship.educationLevels.slice(0, 2).join(', ');
+    }
+    return 'All Audiences';
+  }, [scholarship.targetAudiences, scholarship.educationLevels]);
 
   // Match score badge rendering
   const shouldShowBadge = showMatchScore && matchScore !== undefined && matchScore >= 50;
@@ -70,28 +86,53 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
             </p>
           </div>
 
-          {onToggleSave && (
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
-              id={`btn-save-${scholarship.id}`}
+              id={`btn-share-${scholarship.id}`}
               onClick={(e) => {
                 e.stopPropagation();
-                onToggleSave(scholarship.id);
+                if (onShare) {
+                  onShare(scholarship);
+                } else {
+                  setIsShareModalOpen(true);
+                }
               }}
-              title={isSaved ? 'Remove from saved' : 'Save scholarship'}
-              className={`p-1.5 rounded-lg border transition-colors shrink-0 ${
-                isSaved 
-                  ? 'bg-indigo-50 border-indigo-200 text-indigo-600' 
-                  : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300'
-              }`}
+              title="Share opportunity"
+              aria-label={`Share ${scholarship.title}`}
+              className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-indigo-600 hover:border-slate-300 transition-colors cursor-pointer"
             >
-              <Bookmark size={16} className={isSaved ? 'fill-indigo-600' : ''} />
+              <Share2 size={16} />
             </button>
-          )}
+
+            {onToggleSave && (
+              <button
+                id={`btn-save-${scholarship.id}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleSave(scholarship.id);
+                }}
+                title={isSaved ? 'Remove from saved' : 'Save scholarship'}
+                className={`p-1.5 rounded-lg border transition-colors shrink-0 cursor-pointer ${
+                  isSaved 
+                    ? 'bg-indigo-50 border-indigo-200 text-indigo-600' 
+                    : 'bg-white border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300'
+                }`}
+              >
+                <Bookmark size={16} className={isSaved ? 'fill-indigo-600' : ''} />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Badges Bar: Match Score & Visible Lifecycle Status Badge */}
+        {/* Badges Bar: Match Score, Opportunity Type & Visible Lifecycle Status Badge */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <LifecycleBadge scholarship={scholarship} size="sm" />
+
+          {scholarship.opportunityType && scholarship.opportunityType !== 'scholarship' && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+              {OPPORTUNITY_TYPE_LABELS[scholarship.opportunityType] || scholarship.opportunityType}
+            </span>
+          )}
 
           {shouldShowBadge && matchColors && matchLabel && (
             <span
@@ -121,7 +162,7 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
 
           <div className="flex items-center gap-1.5 text-slate-600">
             <GraduationCap size={14} className="text-indigo-500 shrink-0" />
-            <span className="truncate">{scholarship.educationLevels[0] || 'Undergraduate'}</span>
+            <span className="truncate">{audienceOrLevelText}</span>
           </div>
 
           <div className="flex items-center gap-1.5 text-slate-600">
@@ -165,6 +206,12 @@ export const ScholarshipCard: React.FC<ScholarshipCardProps> = ({
           )
         )}
       </div>
+
+      <ShareOpportunityModal
+        scholarship={scholarship}
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+      />
     </div>
   );
 };

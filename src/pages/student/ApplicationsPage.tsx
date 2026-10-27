@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Application, ApplicationStatus, ApplicationOutcomeDetails, Scholarship, SubmittedDocumentSnapshot } from '../../types';
+import { Application, ApplicationStatus, ApplicationOutcomeDetails, Scholarship, SubmittedDocumentSnapshot, getApplicationDisplayStatus } from '../../types';
 import { StorageService } from '../../services/storage';
 import { api } from '../../lib/apiClient';
 import { fetchApplicationDocuments, evaluateScholarshipReadiness } from '../../services/documentService';
@@ -235,18 +235,18 @@ export const ApplicationsPage: React.FC<ApplicationsPageProps> = ({
                       );
                     })()}
                     
-                    {/* Status Badge */}
-                    <span className={`px-2.5 py-1 text-xs font-bold rounded-lg border ${
-                      app.status === 'Awarded' || app.status === 'Successful' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
-                      app.status === 'Shortlisted' ? 'bg-indigo-50 border-indigo-200 text-indigo-800' :
-                      app.status === 'Interview' ? 'bg-purple-50 border-purple-200 text-purple-800' :
-                      app.status === 'Under Review' ? 'bg-amber-50 border-amber-200 text-amber-800' :
-                      app.status === 'Applied' ? 'bg-blue-50 border-blue-200 text-blue-800' :
-                      app.status === 'Not Selected' || app.status === 'Unsuccessful' ? 'bg-rose-50 border-rose-200 text-rose-800' :
-                      'bg-slate-100 border-slate-200 text-slate-700'
-                    }`}>
-                      {app.status}
-                    </span>
+                    {/* Status Badge — uses getApplicationDisplayStatus for accurate Draft/Ready/Submitted/Externally labels */}
+                    {(() => {
+                      const ds = getApplicationDisplayStatus(app);
+                      return (
+                        <span
+                          title={ds.description}
+                          className={`px-2.5 py-1 text-xs font-bold rounded-lg border ${ds.badgeClass}`}
+                        >
+                          {ds.label}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
 
