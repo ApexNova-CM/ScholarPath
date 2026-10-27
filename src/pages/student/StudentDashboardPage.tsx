@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { UserProfile, Scholarship, Application, InAppNotification } from '../../types';
+import { UserProfile, Scholarship, Application, InAppNotification, APPLICANT_STAGE_LABELS } from '../../types';
 import { ScholarshipCard } from '../../components/common/ScholarshipCard';
 import { DeadlineBadge } from '../../components/common/DeadlineBadge';
 import { evaluateEligibility } from '../../services/eligibility';
@@ -92,112 +92,203 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
   const completion = userProfile.profileCompletion || 0;
   const isProfileLow = completion < 60;
 
-  return (
-    <div className="space-y-8">
-      {/* Header matching Admin Portal UI */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-indigo-600 mb-1">
-            <GraduationCap size={14} />
-            <span>Student Portal</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Welcome back, {userProfile.firstName}!
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
-            Personalized scholarship matches, active application tracking, and verified deadlines in {userProfile.fieldOfStudy}.
-          </p>
-        </div>
+  const stageBadge = userProfile.applicantStage 
+    ? APPLICANT_STAGE_LABELS[userProfile.applicantStage] 
+    : 'Verified Scholar Profile';
 
-        <div className="flex items-center gap-2.5">
-          <button
-            id="student-btn-ask-ai"
-            onClick={() => onNavigate('/ai-assistant')}
-            className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-gradient-to-r from-indigo-50 to-purple-50 hover:from-indigo-100 hover:to-purple-100 text-indigo-700 border border-indigo-200/80 text-xs font-semibold rounded-xl shadow-2xs transition-colors cursor-pointer"
-          >
-            <Sparkles size={14} className="text-indigo-600 animate-pulse" />
-            <span>Ask AI Assistant</span>
-          </button>
-          <button
-            id="student-btn-quick-explore"
-            onClick={() => onNavigate('/scholarships')}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
-          >
-            <Search size={15} />
-            <span>Find Scholarships</span>
-          </button>
+  const profileSubtitle = React.useMemo(() => {
+    const parts: React.ReactNode[] = [];
+    
+    if (userProfile.applicantStage === 'secondary') {
+      if (userProfile.secondarySchoolName) {
+        parts.push(<span key="school" className="font-medium text-[#0B1F46]">{userProfile.secondarySchoolName}</span>);
+      }
+      parts.push(<span key="stage">Secondary School</span>);
+      if (userProfile.targetMajor || userProfile.fieldOfStudy) {
+        parts.push(<span key="target">Focus: {userProfile.targetMajor || userProfile.fieldOfStudy}</span>);
+      }
+      if (userProfile.secondaryGraduationYear) {
+        parts.push(<span key="grad">Class of {userProfile.secondaryGraduationYear}</span>);
+      }
+    } else if (userProfile.applicantStage === 'vocational') {
+      if (userProfile.institution) {
+        parts.push(<span key="inst" className="font-medium text-[#0B1F46]">{userProfile.institution}</span>);
+      }
+      parts.push(<span key="stage">Vocational & Technical</span>);
+      if (userProfile.tradeSpecialization) {
+        parts.push(<span key="spec">Trade: {userProfile.tradeSpecialization}</span>);
+      }
+    } else if (userProfile.applicantStage === 'early_career') {
+      if (userProfile.institution) {
+        parts.push(<span key="inst" className="font-medium text-[#0B1F46]">{userProfile.institution}</span>);
+      }
+      parts.push(<span key="stage">Early Career / Graduate</span>);
+      if (userProfile.targetIndustry) {
+        parts.push(<span key="ind">Industry: {userProfile.targetIndustry}</span>);
+      }
+      if (userProfile.yearsOfExperience !== undefined && userProfile.yearsOfExperience !== null) {
+        parts.push(<span key="yoe">{userProfile.yearsOfExperience} yr{userProfile.yearsOfExperience === 1 ? '' : 's'} exp</span>);
+      }
+    } else {
+      // Undergraduate / Postgraduate / Legacy
+      if (userProfile.institution) {
+        parts.push(<span key="inst" className="font-medium text-[#0B1F46]">{userProfile.institution}</span>);
+      }
+      if (userProfile.educationLevel) {
+        parts.push(<span key="lvl">{userProfile.educationLevel}</span>);
+      }
+      if (userProfile.fieldOfStudy) {
+        parts.push(<span key="field">{userProfile.fieldOfStudy}</span>);
+      }
+    }
+    
+    if (userProfile.gpa) {
+      parts.push(<span key="gpa" className="text-[#155EEF] font-semibold">GPA {userProfile.gpa}</span>);
+    }
+    
+    return parts;
+  }, [userProfile]);
+
+  // Dynamically set layout background to match the deep navy dashboard theme on mount, restore on unmount
+  useEffect(() => {
+    const main = document.querySelector('main');
+    const layoutContainer = main?.parentElement;
+    const originalBg = layoutContainer?.style.backgroundColor;
+    if (layoutContainer) {
+      layoutContainer.style.backgroundColor = '#0B1F46';
+    }
+    return () => {
+      if (layoutContainer) {
+        layoutContainer.style.backgroundColor = originalBg || '';
+      }
+    };
+  }, []);
+
+  return (
+    <div className="-m-4 sm:-m-6 md:-m-8 lg:-m-10 p-4 sm:p-6 md:p-8 lg:p-10 bg-[#0B1F46] min-h-[calc(100vh-4rem)] space-y-8">
+      {/* 1. WELCOME BANNER - Soft Cool Off-White Card (#F1F5F9) */}
+      <div className="bg-[#F1F5F9] rounded-3xl p-6 sm:p-8 text-[#0B1F46] shadow-sm border border-[#E2E8F0] relative overflow-hidden">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4 sm:gap-5">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#E2E8F0] text-[#155EEF] border border-[#CBD5E1] flex items-center justify-center font-extrabold text-xl shrink-0">
+              {userProfile.firstName?.[0]}{userProfile.lastName?.[0]}
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-[#155EEF]">
+                  {stageBadge}
+                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-xs text-emerald-700 font-medium">Active Cycle</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0B1F46] leading-tight">
+                Welcome back, {userProfile.firstName} {userProfile.lastName}
+              </h1>
+              <p className="text-xs sm:text-sm text-[#475569] flex flex-wrap items-center gap-2 font-normal leading-relaxed">
+                {profileSubtitle.length > 0 ? (
+                  profileSubtitle.map((item, idx) => (
+                    <React.Fragment key={idx}>
+                      {idx > 0 && <span className="text-[#CBD5E1]">·</span>}
+                      {item}
+                    </React.Fragment>
+                  ))
+                ) : (
+                  <span>Opportunities Within Reach</span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              id="student-btn-ask-ai"
+              onClick={() => onNavigate('/ai-assistant')}
+              className="px-4 py-2.5 bg-white hover:bg-slate-50 text-[#0B1F46] rounded-xl text-xs font-semibold transition-colors flex items-center gap-2 cursor-pointer border border-[#E2E8F0] shadow-xs"
+            >
+              <Sparkles className="w-4 h-4 text-[#155EEF]" />
+              <span>Ask AI Assistant</span>
+            </button>
+            <button
+              id="student-btn-quick-explore"
+              onClick={() => onNavigate('/scholarships')}
+              className="px-5 py-2.5 bg-[#155EEF] hover:bg-[#1048C7] text-white rounded-xl text-xs font-semibold shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
+            >
+              <Search className="w-4 h-4" />
+              <span>Find Opportunities</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Metrics Row matching Admin UI */}
+      {/* 2. STATISTICS - Soft Off-White Cards (#F1F5F9) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         <div 
           onClick={() => onNavigate('/scholarships')}
-          className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all cursor-pointer group"
+          className="p-4 rounded-2xl bg-[#F1F5F9] border border-[#E2E8F0] shadow-xs hover:border-[#155EEF] transition-all cursor-pointer group"
         >
-          <span className="text-[11px] font-semibold text-slate-500 block group-hover:text-indigo-600">Top Matches</span>
-          <div className="text-2xl font-extrabold text-slate-900 mt-1">{topMatches.length}</div>
-          <span className="text-[10px] text-slate-400">50%+ compatibility</span>
+          <span className="text-[11px] font-bold text-[#0B1F46] block group-hover:text-[#155EEF]">Top Matches</span>
+          <div className="text-2xl font-extrabold text-[#155EEF] mt-1">{topMatches.length}</div>
+          <span className="text-[10px] text-[#475569] font-medium">50%+ compatibility</span>
         </div>
 
         <div 
           onClick={() => onNavigate('/saved')}
-          className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all cursor-pointer group"
+          className="p-4 rounded-2xl bg-[#F1F5F9] border border-[#E2E8F0] shadow-xs hover:border-[#155EEF] transition-all cursor-pointer group"
         >
-          <span className="text-[11px] font-semibold text-indigo-600 block">Saved Grants</span>
-          <div className="text-2xl font-extrabold text-indigo-600 mt-1">{savedScholarshipIds.length}</div>
-          <span className="text-[10px] text-slate-400">Shortlisted</span>
+          <span className="text-[11px] font-bold text-[#0B1F46] block group-hover:text-[#155EEF]">Saved Opportunities</span>
+          <div className="text-2xl font-extrabold text-[#155EEF] mt-1">{savedScholarshipIds.length}</div>
+          <span className="text-[10px] text-[#475569] font-medium">Shortlisted</span>
         </div>
 
         <div 
           onClick={() => onNavigate('/applications')}
-          className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:border-amber-300 hover:shadow-xs transition-all cursor-pointer group"
+          className="p-4 rounded-2xl bg-[#F1F5F9] border border-[#E2E8F0] shadow-xs hover:border-amber-400 transition-all cursor-pointer group"
         >
-          <span className="text-[11px] font-semibold text-amber-600 block">Preparing</span>
+          <span className="text-[11px] font-bold text-[#0B1F46] block group-hover:text-amber-600">Preparing</span>
           <div className="text-2xl font-extrabold text-amber-600 mt-1">{appCounts.preparing}</div>
-          <span className="text-[10px] text-slate-400">In drafting</span>
+          <span className="text-[10px] text-[#475569] font-medium">In drafting</span>
         </div>
 
         <div 
           onClick={() => onNavigate('/applications')}
-          className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:border-indigo-300 hover:shadow-xs transition-all cursor-pointer group"
+          className="p-4 rounded-2xl bg-[#F1F5F9] border border-[#E2E8F0] shadow-xs hover:border-indigo-400 transition-all cursor-pointer group"
         >
-          <span className="text-[11px] font-semibold text-slate-600 block group-hover:text-indigo-600">Applied</span>
-          <div className="text-2xl font-extrabold text-slate-900 mt-1">{appCounts.applied}</div>
-          <span className="text-[10px] text-slate-400">Submissions</span>
+          <span className="text-[11px] font-bold text-[#0B1F46] block group-hover:text-indigo-600">Applied</span>
+          <div className="text-2xl font-extrabold text-[#0B1F46] mt-1">{appCounts.applied}</div>
+          <span className="text-[10px] text-[#475569] font-medium">Submissions</span>
         </div>
 
         <div 
           onClick={() => onNavigate('/applications')}
-          className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:border-purple-300 hover:shadow-xs transition-all cursor-pointer group"
+          className="p-4 rounded-2xl bg-[#F1F5F9] border border-[#E2E8F0] shadow-xs hover:border-purple-400 transition-all cursor-pointer group"
         >
-          <span className="text-[11px] font-semibold text-purple-600 block">In Review</span>
+          <span className="text-[11px] font-bold text-[#0B1F46] block group-hover:text-purple-600">In Review</span>
           <div className="text-2xl font-extrabold text-purple-600 mt-1">{appCounts.underReview + appCounts.shortlisted + appCounts.interview}</div>
-          <span className="text-[10px] text-slate-400">Review & Shortlist</span>
+          <span className="text-[10px] text-[#475569] font-medium">Review & Shortlist</span>
         </div>
 
         <div 
           onClick={() => onNavigate('/applications')}
-          className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs hover:border-emerald-300 hover:shadow-xs transition-all cursor-pointer group"
+          className="p-4 rounded-2xl bg-[#F1F5F9] border border-[#E2E8F0] shadow-xs hover:border-emerald-400 transition-all cursor-pointer group"
         >
-          <span className="text-[11px] font-semibold text-emerald-600 block">Awarded</span>
+          <span className="text-[11px] font-bold text-[#0B1F46] block group-hover:text-emerald-600">Awarded</span>
           <div className="text-2xl font-extrabold text-emerald-600 mt-1">{appCounts.awarded}</div>
-          <span className="text-[10px] text-slate-400">Won grants</span>
+          <span className="text-[10px] text-[#475569] font-medium">Won grants</span>
         </div>
       </div>
 
       {/* Main Content Grid: Top Matches + Sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left 2 Cols: Recommended For You */}
+        {/* Left 2 Cols: Recommended For You - Surrounding Blue with Soft Off-White Cards */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-              <Target size={16} className="text-indigo-600" />
+            <h2 className="text-sm font-bold uppercase tracking-wider text-[#F8FAFC] flex items-center gap-2">
+              <Target size={17} className="text-[#93C5FD]" />
               <span>Recommended for You</span>
             </h2>
             <button
               onClick={() => onNavigate('/scholarships')}
-              className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+              className="text-xs font-semibold text-[#F8FAFC] hover:text-white bg-white/10 hover:bg-white/15 px-3 py-1.5 rounded-lg border border-white/15 transition-colors cursor-pointer"
             >
               Explore All ({scholarships.length})
             </button>
@@ -205,32 +296,32 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
 
           {/* Profile completion nudge — shown when profile < 60% */}
           {isProfileLow && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200/80 text-xs">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#F1F5F9] border border-[#E2E8F0] text-xs shadow-xs">
               <div className="flex items-start gap-2.5">
                 <UserCheck size={16} className="text-amber-600 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold text-amber-900">Complete your profile to improve your matches</p>
-                  <p className="text-amber-700 mt-0.5 leading-relaxed">
-                    Your profile is {completion}% complete. Adding your field of study, GPA, and location helps us find scholarships that truly fit you.
+                  <p className="font-bold text-[#0B1F46]">Complete your profile to improve your matches</p>
+                  <p className="text-[#475569] mt-0.5 leading-relaxed font-normal">
+                    Your profile is {completion}% complete. Adding your education or pathway details, interests, and location helps us find opportunities that truly fit you.
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => onNavigate('/profile')}
-                className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors"
+                className="shrink-0 px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors cursor-pointer"
               >
                 Complete Profile
               </button>
             </div>
           )}
 
-          {/* Recommendation disclaimer */}
-          <p className="text-[11px] text-slate-400 leading-relaxed">
+          {/* Recommendation disclaimer on navy */}
+          <p className="text-[11px] text-slate-300 leading-relaxed font-normal">
             Based on your profile · Scores reflect compatibility, not guaranteed eligibility. Always check full requirements before applying.
           </p>
 
           {topMatchesWithScores.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 [&>div]:!bg-[#F1F5F9] [&>div]:!border-[#E2E8F0] [&_div.bg-slate-50\/80]:!bg-[#E2E8F0]/60">
               {topMatchesWithScores.map(({ scholarship: sch, eligibility }) => (
                 <ScholarshipCard
                   key={sch.id}
@@ -246,27 +337,27 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-8 text-center space-y-4 shadow-2xs">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-400 mx-auto flex items-center justify-center">
+            <div className="bg-[#F1F5F9] rounded-2xl border border-[#E2E8F0] p-8 text-center space-y-4 shadow-xs">
+              <div className="w-12 h-12 rounded-2xl bg-[#E2E8F0] text-[#155EEF] mx-auto flex items-center justify-center">
                 <Target size={24} />
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-bold text-slate-800">No strong matches yet</p>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-                  Complete more of your profile to discover scholarships that fit you — especially your field of study, education level, and location.
+                <p className="text-sm font-bold text-[#0B1F46]">No strong matches yet</p>
+                <p className="text-xs text-[#475569] max-w-sm mx-auto leading-relaxed">
+                  Complete more of your profile to discover opportunities that fit you — especially your pathway, field or trade, and location.
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <button
                   onClick={() => onNavigate('/profile')}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors shadow-2xs"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#155EEF] hover:bg-[#1048C7] text-white text-xs font-semibold transition-colors shadow-xs cursor-pointer"
                 >
                   <UserCheck size={13} />
                   <span>Complete Profile</span>
                 </button>
                 <button
                   onClick={() => onNavigate('/scholarships')}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 hover:border-slate-300 text-slate-700 text-xs font-semibold transition-colors shadow-2xs"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-[#0B1F46] border border-[#E2E8F0] text-xs font-semibold transition-colors cursor-pointer"
                 >
                   <Search size={13} />
                   <span>Browse All Scholarships</span>
@@ -276,32 +367,31 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
           )}
         </div>
 
-        {/* Right Col: AI Advisor + Deadlines & Notifications & Documents */}
+        {/* Right Col: Soft Off-White Cards & Panels (#F1F5F9) */}
         <div className="space-y-6">
-          {/* AI Advisor Card */}
-          <div className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-purple-950 text-white rounded-2xl p-5 shadow-sm space-y-3 relative overflow-hidden border border-indigo-800/40">
-            <div className="absolute top-0 right-0 -mt-2 -mr-2 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl pointer-events-none" />
+          {/* AI Advisor Card - Soft Cool Off-White */}
+          <div className="bg-[#F1F5F9] text-[#0B1F46] rounded-2xl p-5 shadow-xs space-y-3 relative overflow-hidden border border-[#E2E8F0]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 flex items-center justify-center">
-                  <Sparkles size={14} className="animate-pulse text-indigo-200" />
+                <div className="w-7 h-7 rounded-lg bg-[#E2E8F0] text-[#155EEF] border border-[#CBD5E1] flex items-center justify-center">
+                  <Sparkles size={14} className="text-[#155EEF]" />
                 </div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-100">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#0B1F46]">
                   Vona AI Assistant
                 </h3>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-200 border border-indigo-400/30">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
                 Ready
               </span>
             </div>
-            <p className="text-xs text-indigo-200/90 leading-relaxed">
+            <p className="text-xs text-[#475569] leading-relaxed font-normal">
               Ask Vona about personalized matches, readiness gaps, essay drafts, career tips, or platform guidance.
             </p>
             <div className="pt-1">
               <button
                 id="dashboard-ai-card-btn"
                 onClick={() => onNavigate('/ai-assistant')}
-                className="w-full py-2 px-3 bg-white hover:bg-indigo-50 text-indigo-950 text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-2.5 px-3 bg-[#155EEF] hover:bg-[#1048C7] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <span>Chat with Vona</span>
                 <ArrowRight size={13} />
@@ -309,10 +399,10 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
             </div>
           </div>
 
-          {/* Upcoming Deadlines */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+          {/* Upcoming Deadlines - Soft Cool Off-White Card */}
+          <div className="bg-[#F1F5F9] rounded-2xl border border-[#E2E8F0] p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#0B1F46] flex items-center gap-1.5">
                 <Clock size={14} className="text-amber-500" />
                 <span>Closing Soon (Next 45 Days)</span>
               </h3>
@@ -324,34 +414,34 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                   <div 
                     key={sch.id}
                     onClick={() => onNavigate(`/scholarships/${sch.id}`)}
-                    className="p-3 rounded-xl border border-slate-100 hover:border-indigo-300 bg-slate-50/70 hover:bg-white cursor-pointer transition-all space-y-1.5 shadow-2xs"
+                    className="p-3 rounded-xl border border-[#E2E8F0] hover:border-[#155EEF]/50 bg-white hover:bg-slate-50 cursor-pointer transition-all space-y-1.5 shadow-2xs"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-bold text-slate-900 line-clamp-1">{sch.title}</span>
+                      <span className="text-xs font-bold text-[#0B1F46] line-clamp-1">{sch.title}</span>
                       <DeadlineBadge deadline={sch.deadline} size="sm" />
                     </div>
-                    <div className="flex items-center justify-between text-[11px] text-slate-500">
+                    <div className="flex items-center justify-between text-[11px] text-[#475569]">
                       <span>{sch.providerName}</span>
-                      <span className="font-semibold text-slate-700">{formatScholarshipAmount(sch)}</span>
+                      <span className="font-semibold text-[#0B1F46]">{formatScholarshipAmount(sch)}</span>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-400 py-2 text-center">No immediate deadlines closing.</p>
+              <p className="text-xs text-[#475569] py-2 text-center">No immediate deadlines closing.</p>
             )}
           </div>
 
-          {/* Quick Notifications */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                <Bell size={14} className="text-indigo-600" />
+          {/* Quick Notifications - Soft Cool Off-White Card */}
+          <div className="bg-[#F1F5F9] rounded-2xl border border-[#E2E8F0] p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#0B1F46] flex items-center gap-1.5">
+                <Bell size={14} className="text-[#155EEF]" />
                 <span>Recent Updates</span>
               </h3>
               <button
                 onClick={() => onNavigate('/notifications')}
-                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer"
+                className="text-xs text-[#155EEF] hover:text-[#1048C7] font-semibold cursor-pointer"
               >
                 View All
               </button>
@@ -366,78 +456,78 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                       const target = n.link || (n.relatedScholarshipId ? `/scholarships/${n.relatedScholarshipId}` : '/notifications');
                       onNavigate(target);
                     }}
-                    className="p-2.5 rounded-xl bg-indigo-50/40 hover:bg-indigo-50/80 border border-indigo-100/60 text-xs space-y-1 cursor-pointer transition-colors"
+                    className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-[#E2E8F0] text-xs space-y-1 cursor-pointer transition-colors"
                   >
-                    <span className="font-semibold text-slate-900 block">{n.title}</span>
-                    <p className="text-[11px] text-slate-600 leading-relaxed">{n.body || n.message}</p>
+                    <span className="font-semibold text-[#0B1F46] block">{n.title}</span>
+                    <p className="text-[11px] text-[#475569] leading-relaxed font-normal">{n.body || n.message}</p>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-400 py-2 text-center">All caught up! No unread notifications.</p>
+              <p className="text-xs text-[#475569] py-2 text-center">All caught up! No unread notifications.</p>
             )}
           </div>
 
-          {/* Document & Profile Readiness Widget */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-4">
+          {/* Document & Profile Readiness Widget - Soft Cool Off-White Card */}
+          <div className="bg-[#F1F5F9] rounded-2xl border border-[#E2E8F0] p-5 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
-                <FileText size={15} className="text-indigo-600" />
+              <div className="flex items-center gap-2 text-xs font-bold text-[#0B1F46]">
+                <FileText size={15} className="text-[#155EEF]" />
                 <span>Application Readiness</span>
               </div>
-              <span className="text-xs font-bold text-indigo-600">{userProfile.profileCompletion || 0}%</span>
+              <span className="text-xs font-bold text-[#155EEF]">{userProfile.profileCompletion || 0}%</span>
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between text-[11px] font-semibold text-slate-600">
+              <div className="flex justify-between text-[11px] font-semibold text-[#475569]">
                 <span>Profile Completion</span>
                 <span>{userProfile.profileCompletion || 0}%</span>
               </div>
-              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-[#E2E8F0] rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full"
+                  className="h-full bg-[#155EEF] rounded-full transition-all duration-500"
                   style={{ width: `${userProfile.profileCompletion || 0}%` }}
                 />
               </div>
             </div>
 
-            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between text-xs">
-              <span className="text-slate-600">Vault Documents</span>
-              <span className="font-bold text-slate-900">{documents?.length || 0} File{(documents?.length || 0) === 1 ? '' : 's'}</span>
+            <div className="p-3 bg-white border border-[#E2E8F0] rounded-xl flex items-center justify-between text-xs">
+              <span className="text-[#475569] font-medium">Vault Documents</span>
+              <span className="font-bold text-[#0B1F46]">{documents?.length || 0} File{(documents?.length || 0) === 1 ? '' : 's'}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button
                 onClick={() => onNavigate('/profile')}
-                className="py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-semibold transition-colors cursor-pointer text-center"
+                className="py-2 bg-white hover:bg-slate-50 text-[#0B1F46] border border-[#E2E8F0] rounded-xl text-xs font-semibold transition-colors cursor-pointer text-center"
               >
                 Edit Profile
               </button>
               <button
                 onClick={() => onNavigate('/documents')}
-                className="py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer text-center"
+                className="py-2 bg-[#155EEF] hover:bg-[#1048C7] text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer text-center shadow-2xs"
               >
                 Document Vault
               </button>
             </div>
           </div>
 
-          {/* Help & Support Card */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-2xs space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-900">
-              <HelpCircle size={15} className="text-indigo-600" />
+          {/* Help & Support Card - Soft Cool Off-White Card */}
+          <div className="bg-[#F1F5F9] rounded-2xl border border-[#E2E8F0] p-5 shadow-xs space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-[#0B1F46]">
+              <HelpCircle size={15} className="text-[#155EEF]" />
               <span>Need Help or Support?</span>
             </div>
-            <p className="text-xs text-slate-500 leading-relaxed">
+            <p className="text-xs text-[#475569] leading-relaxed font-normal">
               Have questions or feedback? Contact our support desk at{' '}
-              <a href="mailto:support@scholavon.com" className="font-semibold text-indigo-600 hover:underline">
+              <a href="mailto:support@scholavon.com" className="font-semibold text-[#155EEF] hover:underline">
                 support@scholavon.com
               </a>.
             </p>
             <div className="pt-1">
               <button
                 onClick={() => setIsSupportModalOpen(true)}
-                className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/60 rounded-xl text-xs font-semibold transition-colors cursor-pointer text-center"
+                className="w-full py-2 bg-white hover:bg-slate-50 text-[#0B1F46] border border-[#E2E8F0] rounded-xl text-xs font-semibold transition-colors cursor-pointer text-center"
               >
                 Contact Human Support
               </button>

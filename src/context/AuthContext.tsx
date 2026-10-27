@@ -72,35 +72,10 @@ async function fetchProfileFromSupabase(sbUser: SupabaseUser): Promise<UserProfi
     }
   }
 
-  // 3. If still no profile row exists, check if user is recorded in admin_users or user_metadata
-  let detectedRole: UserRole = 'student';
-  let defaultDepartment = '';
-
-  if (!data && sbUser.email) {
-    try {
-      const cleanEmail = sbUser.email.trim().toLowerCase();
-      const { data: adminEntry } = await supabase
-        .from('admin_users')
-        .select('*')
-        .ilike('email', cleanEmail)
-        .maybeSingle();
-
-      if (adminEntry && adminEntry.status === 'Active') {
-        detectedRole = 'admin';
-        defaultDepartment = adminEntry.assigned_department || 'Platform Operations';
-      }
-    } catch {
-      // admin_users table is optional
-    }
-  }
-
-  const meta = sbUser.user_metadata || {};
-  if (!data && (meta.role === 'admin' || sbUser.app_metadata?.role === 'admin')) {
-    detectedRole = 'admin';
-  }
-
+  // 3. Fallback: If no profile row exists, provision safe default 'student' profile
+  // Client-controlled metadata (user_metadata, app_metadata) is NEVER trusted for role escalation.
   if (error || !data) {
-    // Provision missing profile row with detected role
+    const meta = sbUser.user_metadata || {};
     const fullName: string = meta.full_name || meta.name || '';
     const [firstName = 'User', ...rest] = fullName.split(' ');
     const lastName = rest.join(' ') || '';
@@ -108,11 +83,11 @@ async function fetchProfileFromSupabase(sbUser: SupabaseUser): Promise<UserProfi
     return createProfileInSupabase(sbUser, {
       firstName: meta.first_name || firstName,
       lastName: meta.last_name || lastName,
-      role: detectedRole,
+      role: 'student',
       country: 'International',
       educationLevel: 'Undergraduate',
-      institution: detectedRole === 'admin' ? 'Scholavon Foundation' : '',
-      fieldOfStudy: meta.assigned_department || defaultDepartment,
+      institution: '',
+      fieldOfStudy: meta.assigned_department || '',
     });
   }
 
@@ -130,24 +105,50 @@ async function createProfileInSupabase(
     role: UserRole;
     country?: string;
     educationLevel?: string;
+    applicantStage?: string;
+    secondarySchoolName?: string;
+    secondaryGraduationYear?: number;
+    targetMajor?: string;
+    tradeSpecialization?: string;
+    tradeCertifications?: string[];
+    yearsOfExperience?: number;
+    targetIndustry?: string;
+    skills?: string[];
+    portfolioUrl?: string;
+    linkedinUrl?: string;
+    githubUrl?: string;
     institution?: string;
     fieldOfStudy?: string;
+    gpa?: number;
+    gpaScale?: number;
   }
 ): Promise<UserProfile | null> {
   if (!isSupabaseConfigured) return null;
 
-  const row = {
+  const row: Record<string, unknown> = {
     id: sbUser.id,
     email: (sbUser.email ?? '').trim().toLowerCase(),
     role: extra.role,
     first_name: extra.firstName,
     last_name: extra.lastName,
     country: extra.country ?? 'International',
-    education_level: extra.educationLevel ?? 'Undergraduate',
+    education_level: extra.educationLevel ?? null,
+    applicant_stage: extra.applicantStage ?? null,
+    secondary_school_name: extra.secondarySchoolName ?? null,
+    secondary_graduation_year: extra.secondaryGraduationYear ?? null,
+    target_major: extra.targetMajor ?? null,
+    trade_specialization: extra.tradeSpecialization ?? null,
+    trade_certifications: extra.tradeCertifications ?? [],
+    years_of_experience: extra.yearsOfExperience ?? 0,
+    target_industry: extra.targetIndustry ?? null,
+    skills: extra.skills ?? [],
+    portfolio_url: extra.portfolioUrl ?? null,
+    linkedin_url: extra.linkedinUrl ?? null,
+    github_url: extra.githubUrl ?? null,
     institution: extra.institution ?? (extra.role === 'admin' ? 'Scholavon Foundation' : ''),
     field_of_study: extra.fieldOfStudy ?? '',
-    gpa: 0.0,
-    gpa_scale: 4.0,
+    gpa: extra.gpa !== undefined ? extra.gpa : null,
+    gpa_scale: extra.gpaScale !== undefined ? extra.gpaScale : null,
     profile_completion: 0,
   };
 
@@ -163,6 +164,34 @@ async function createProfileInSupabase(
   }
 
   return mapSupabaseRowToProfile(data);
+}
+
+// ─── Frontend Staging Plus Test Override Guard ────────────────────────────────
+function checkFrontendStagingPlusOverride(email: string): boolean {
+  if (import.meta.env.VITE_ALLOW_STAGING_PLUS_OVERRIDE !== 'true') {
+    return false;
+  }
+
+  if (typeof window !== 'undefined' && window.location) {
+    const host = window.location.hostname.toLowerCase();
+    if (
+      host === 'scholavon.com' ||
+      host === 'www.scholavon.com' ||
+      host === 'scholavon.org' ||
+      host === 'www.scholavon.org'
+    ) {
+      return false;
+    }
+  }
+
+  const authorizedEmail = (
+    import.meta.env.VITE_STAGING_PLUS_OVERRIDE_EMAIL || 'apexnovacm@gmail.com'
+  ).toLowerCase().trim();
+  if (authorizedEmail !== 'apexnovacm@gmail.com') {
+    return false;
+  }
+
+  return (email || '').toLowerCase().trim() === 'apexnovacm@gmail.com';
 }
 
 // ─── Map a Supabase DB row → UserProfile ──────────────────────────────────────
@@ -181,14 +210,26 @@ function mapSupabaseRowToProfile(row: Record<string, unknown>): UserProfile {
     dateOfBirth: row.date_of_birth as string | undefined,
     state: row.state as string | undefined,
     city: row.city as string | undefined,
-    educationLevel: ((row.education_level as string) || 'Undergraduate') as UserProfile['educationLevel'],
+    educationLevel: (row.education_level as UserProfile['educationLevel']) || undefined,
+    applicantStage: (row.applicant_stage as UserProfile['applicantStage']) || undefined,
+    secondarySchoolName: (row.secondary_school_name as string) || undefined,
+    secondaryGraduationYear: (row.secondary_graduation_year as number) || undefined,
+    targetMajor: (row.target_major as string) || undefined,
+    tradeSpecialization: (row.trade_specialization as string) || undefined,
+    tradeCertifications: (row.trade_certifications as string[]) || [],
+    yearsOfExperience: (row.years_of_experience as number) || undefined,
+    targetIndustry: (row.target_industry as string) || undefined,
+    skills: (row.skills as string[]) || [],
+    portfolioUrl: (row.portfolio_url as string) || undefined,
+    linkedinUrl: (row.linkedin_url as string) || undefined,
+    githubUrl: (row.github_url as string) || undefined,
     institution: (row.institution as string) ?? '',
     fieldOfStudy: (row.field_of_study as string) ?? '',
     course: row.course as string | undefined,
     yearLevel: row.year_level as string | undefined,
     graduationYear: row.graduation_year as number | undefined,
-    gpa: (row.gpa as number) ?? 0,
-    gpaScale: (row.gpa_scale as number) ?? 4.0,
+    gpa: row.gpa !== null && row.gpa !== undefined ? Number(row.gpa) : undefined,
+    gpaScale: row.gpa_scale !== null && row.gpa_scale !== undefined ? Number(row.gpa_scale) : undefined,
     financialNeed: (row.financial_need as boolean) ?? false,
     gender: row.gender as UserProfile['gender'],
     awards: (row.awards as string[]) ?? [],
@@ -204,9 +245,15 @@ function mapSupabaseRowToProfile(row: Record<string, unknown>): UserProfile {
     // Written by server webhook only — never trusted from client.
     // Falls back to 'free' for users who haven't subscribed or before migration v4.
     subscriptionStatus: ((row.subscription_status as string) || 'free') as UserProfile['subscriptionStatus'],
+    isTestOverride: false,
     createdAt: (row.created_at as string) ?? new Date().toISOString(),
     updatedAt: (row.updated_at as string) ?? new Date().toISOString(),
   };
+
+  if (checkFrontendStagingPlusOverride(profile.email)) {
+    profile.subscriptionStatus = 'premium';
+    profile.isTestOverride = true;
+  }
 
   profile.profileCompletion = calculateProfileCompletion(profile);
   return profile;
@@ -395,8 +442,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: 'student',
         country: profileData.country,
         educationLevel: profileData.educationLevel,
+        applicantStage: profileData.applicantStage,
+        secondarySchoolName: profileData.secondarySchoolName,
+        secondaryGraduationYear: profileData.secondaryGraduationYear,
+        targetMajor: profileData.targetMajor,
+        tradeSpecialization: profileData.tradeSpecialization,
+        tradeCertifications: profileData.tradeCertifications,
+        yearsOfExperience: profileData.yearsOfExperience,
+        targetIndustry: profileData.targetIndustry,
+        skills: profileData.skills,
+        portfolioUrl: profileData.portfolioUrl,
+        linkedinUrl: profileData.linkedinUrl,
+        githubUrl: profileData.githubUrl,
         institution: profileData.institution,
         fieldOfStudy: profileData.fieldOfStudy,
+        gpa: profileData.gpa,
+        gpaScale: profileData.gpaScale,
       });
 
       // If Supabase email confirmation is enabled, session will be null after signUp.
@@ -433,12 +494,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const sendPasswordReset = async (
     email: string
   ): Promise<{ success: boolean; error?: string }> => {
-    if (!isSupabaseConfigured) return { success: true };
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/login`,
-    });
-    if (error) return { success: false, error: error.message };
-    return { success: true };
+    // For Supabase OAuth users: delegate to Supabase Auth
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    }
+
+    // For email+password users: call our own server endpoint
+    try {
+      const res = await api.post<{ message: string }>('/auth/forgot-password', {
+        email: email.trim().toLowerCase(),
+      });
+      if (res?.message) return { success: true };
+      return { success: true };
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.error?.message ||
+        err?.message ||
+        'Something went wrong. Please try again.';
+      return { success: false, error: msg };
+    }
   };
 
   // ── Update profile ────────────────────────────────────────────────────────
@@ -459,6 +537,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         country: sanitized.country,
         state: sanitized.state,
         city: sanitized.city,
+        applicant_stage: sanitized.applicantStage,
+        secondary_school_name: sanitized.secondarySchoolName,
+        secondary_graduation_year: sanitized.secondaryGraduationYear,
+        target_major: sanitized.targetMajor,
+        trade_specialization: sanitized.tradeSpecialization,
+        trade_certifications: sanitized.tradeCertifications,
+        years_of_experience: sanitized.yearsOfExperience,
+        target_industry: sanitized.targetIndustry,
+        skills: sanitized.skills,
+        portfolio_url: sanitized.portfolioUrl,
+        linkedin_url: sanitized.linkedinUrl,
+        github_url: sanitized.githubUrl,
         education_level: sanitized.educationLevel,
         institution: sanitized.institution,
         field_of_study: sanitized.fieldOfStudy,

@@ -73,6 +73,44 @@ function extractTokenIdentity(decoded: any): { id: string; email: string } {
   };
 }
 
+// ─── Authenticate and verify identity from token ────────────────────────────
+// Dual-path verification:
+// 1. Verify custom-issued token using config.jwtSecret with HS256 algorithm.
+// 2. If not custom, verify Supabase access token via Supabase Auth API (getUser).
+// Unverified token decoding (jwt.decode) is strictly prohibited.
+async function verifyTokenIdentity(token: string): Promise<{ id: string; email: string } | null> {
+  // ── Path 1: verify with Railway JWT_SECRET (custom-issued tokens) ──────────
+  if (config.jwtSecret) {
+    try {
+      const decoded = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] });
+      const identity = extractTokenIdentity(decoded);
+      if (identity.id) {
+        return identity;
+      }
+    } catch {
+      // Not a valid custom JWT or signature mismatch/expired, proceed to Path 2
+    }
+  }
+
+  // ── Path 2: Supabase JWT — verify with Supabase Auth API ──────────────────
+  try {
+    const supabase = getSupabaseAdminClient();
+    if (supabase) {
+      const { data, error } = await supabase.auth.getUser(token);
+      if (!error && data && data.user && data.user.id) {
+        return {
+          id: data.user.id,
+          email: data.user.email || '',
+        };
+      }
+    }
+  } catch {
+    // Supabase validation failed or service unavailable
+  }
+
+  return null;
+}
+
 // ─── authenticateToken ────────────────────────────────────────────────────────
 // Validates the bearer token, then resolves the application role from
 // public.users. Any authenticated user without a DB row defaults to 'student'.
@@ -96,23 +134,7 @@ export async function authenticateToken(
     return;
   }
 
-  let identity: { id: string; email: string } | null = null;
-
-  // ── Path 1: verify with Railway JWT_SECRET (custom-issued tokens) ──────────
-  try {
-    const decoded = jwt.verify(token, config.jwtSecret);
-    identity = extractTokenIdentity(decoded);
-  } catch {
-    // ── Path 2: Supabase JWT — decode without verification ─────────────────
-    try {
-      const decoded: any = jwt.decode(token);
-      if (decoded && (decoded.sub || decoded.id || decoded.email)) {
-        identity = extractTokenIdentity(decoded);
-      }
-    } catch {
-      // ignore
-    }
-  }
+  const identity = await verifyTokenIdentity(token);
 
   if (!identity || !identity.id) {
     res.status(401).json({
@@ -147,21 +169,7 @@ export async function optionalAuthenticateToken(
   }
 
   if (token) {
-    let identity: { id: string; email: string } | null = null;
-
-    try {
-      const decoded = jwt.verify(token, config.jwtSecret);
-      identity = extractTokenIdentity(decoded);
-    } catch {
-      try {
-        const decoded: any = jwt.decode(token);
-        if (decoded && (decoded.sub || decoded.id || decoded.email)) {
-          identity = extractTokenIdentity(decoded);
-        }
-      } catch {
-        // Ignore invalid token for optional auth
-      }
-    }
+    const identity = await verifyTokenIdentity(token);
 
     if (identity && identity.id) {
       const role = await resolveRoleFromDatabase(identity.id);

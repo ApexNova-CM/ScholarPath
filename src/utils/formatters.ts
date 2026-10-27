@@ -262,23 +262,47 @@ export function calculateProfileCompletion(profile?: Partial<UserProfile> | null
   if (validCountry) points += 8;
   if (profile.state?.trim() || profile.city?.trim()) points += 7;
 
-  // 3. Academic Profile (35 pts)
-  if (profile.institution?.trim() && profile.institution.trim() !== 'Scholavon Foundation') points += 10;
-  if (profile.educationLevel?.trim()) points += 7;
-  if (profile.fieldOfStudy?.trim() && profile.fieldOfStudy.trim() !== 'Platform Operations' && profile.fieldOfStudy.trim() !== 'Platform Administration') points += 8;
-  if (profile.gpa !== undefined && profile.gpa !== null && Number(profile.gpa) > 0) points += 10;
+  // 3. Stage & Academic / Career Profile (35 pts)
+  const stage = profile.applicantStage;
+  if (stage === 'secondary') {
+    if (profile.secondarySchoolName?.trim() || (profile.institution?.trim() && profile.institution.trim() !== 'Scholavon Foundation')) points += 10;
+    if (profile.educationLevel?.trim() || stage) points += 7;
+    if (profile.targetMajor?.trim() || profile.fieldOfStudy?.trim()) points += 8;
+    if (profile.secondaryGraduationYear || (profile.gpa !== undefined && profile.gpa !== null && Number(profile.gpa) > 0)) points += 10;
+  } else if (stage === 'vocational') {
+    if (profile.tradeSpecialization?.trim()) points += 10;
+    if (profile.educationLevel?.trim() || stage) points += 7;
+    if (profile.skills && profile.skills.length > 0) points += 8;
+    if ((profile.tradeCertifications && profile.tradeCertifications.length > 0) || (profile.institution?.trim() && profile.institution.trim() !== 'Scholavon Foundation')) points += 10;
+  } else if (stage === 'early_career') {
+    if (profile.targetIndustry?.trim()) points += 10;
+    if (profile.yearsOfExperience !== undefined || profile.graduationYear || profile.educationLevel?.trim()) points += 7;
+    if (profile.skills && profile.skills.length > 0) points += 8;
+    if (profile.portfolioUrl?.trim() || profile.linkedinUrl?.trim() || profile.githubUrl?.trim() || (profile.institution?.trim() && profile.institution.trim() !== 'Scholavon Foundation')) points += 10;
+  } else {
+    // Undergraduate, postgraduate, or legacy profile
+    if (profile.institution?.trim() && profile.institution.trim() !== 'Scholavon Foundation') points += 10;
+    if (profile.educationLevel?.trim()) points += 7;
+    if (profile.fieldOfStudy?.trim() && profile.fieldOfStudy.trim() !== 'Platform Operations' && profile.fieldOfStudy.trim() !== 'Platform Administration') points += 8;
+    if (profile.gpa !== undefined && profile.gpa !== null && Number(profile.gpa) > 0) {
+      points += 10;
+    } else if (profile.expectedGraduationDate || profile.graduationYear) {
+      points += 10;
+    }
+  }
 
-  // 4. Scholarship Profile & Readiness (25 pts)
+  // 4. Scholarship & Professional Readiness (25 pts)
   if (profile.careerGoals?.trim()) points += 7;
   if (profile.personalStatement?.trim()) points += 8;
-  const hasAwards = (profile.achievements && profile.achievements.length > 0) || (profile.awards && profile.awards.length > 0);
+  const hasAwards = (profile.achievements && profile.achievements.length > 0) || (profile.awards && profile.awards.length > 0) || (profile.tradeCertifications && profile.tradeCertifications.length > 0);
   if (hasAwards) points += 5;
   const hasActivities =
     (profile.extracurriculars && profile.extracurriculars.length > 0) ||
     (profile.leadership && profile.leadership.length > 0) ||
     (profile.workExperience && profile.workExperience.length > 0) ||
     (profile.volunteering && profile.volunteering.length > 0) ||
-    (profile.certifications && profile.certifications.length > 0);
+    (profile.certifications && profile.certifications.length > 0) ||
+    (profile.skills && profile.skills.length > 0);
   if (hasActivities) points += 5;
 
   return Math.min(100, points);

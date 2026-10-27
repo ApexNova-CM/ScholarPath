@@ -7,39 +7,16 @@ import { createClient } from '@supabase/supabase-js';
 import { db } from '../db/store';
 import { authenticateToken, requireRole } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
-import { UpdateProfileSchema, ApplicationRecord, StoredDocumentRecord, SubscriptionStatus } from '../types';
+import { UpdateProfileSchema, ApplicationRecord, StoredDocumentRecord, SubscriptionStatus, ApplicationStatus } from '../types';
 import { config } from '../config';
+import { emailService } from '../services/emailService';
 import { processAIChat } from '../services/aiService';
+import { isStagingPlusOverrideActive } from '../utils/stagingGuard';
+
+import { getUserSubscriptionStatus, processDueRemindersForUser } from '../services/reminderScheduler';
+export { getUserSubscriptionStatus };
 
 const router = Router();
-
-// Helper to determine authoritative subscription status from Supabase (or flat file fallback)
-async function getUserSubscriptionStatus(userId: string): Promise<SubscriptionStatus> {
-  if (config.supabaseUrl && config.supabaseServiceRoleKey) {
-    try {
-      const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
-      const { data } = await supabase
-        .from('users')
-        .select('subscription_status')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (data?.subscription_status === 'premium') {
-        return 'premium';
-      }
-      if (data?.subscription_status === 'past_due' || data?.subscription_status === 'cancelled') {
-        return data.subscription_status as SubscriptionStatus;
-      }
-    } catch (err) {
-      console.warn('[student] subscription status check warning:', err);
-    }
-  }
-
-  const user = db.findUserById(userId);
-  return (user as any)?.subscriptionStatus || 'free';
-}
 
 // Ensure upload directory exists
 const uploadDir = path.resolve(process.cwd(), 'uploads');
@@ -137,7 +114,7 @@ router.get('/profile', (req: Request, res: Response): void => {
 });
 
 // PUT /api/v1/student/profile
-router.put('/profile', validateBody(UpdateProfileSchema), (req: Request, res: Response): void => {
+router.put('/profile', validateBody(UpdateProfileSchema), async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
   const existing = db.getProfile(userId);
 
@@ -147,17 +124,46 @@ router.put('/profile', validateBody(UpdateProfileSchema), (req: Request, res: Re
       firstName: '',
       lastName: '',
       country: 'International',
-      educationLevel: 'Undergraduate',
-      institution: '',
-      fieldOfStudy: '',
-      gpa: 0,
-      gpaScale: 4.0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }),
     ...req.body,
     userId,
   });
+
+  if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+    try {
+      const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const updateData: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+      };
+      if (req.body.firstName !== undefined) updateData.first_name = req.body.firstName;
+      if (req.body.lastName !== undefined) updateData.last_name = req.body.lastName;
+      if (req.body.country !== undefined) updateData.country = req.body.country;
+      if (req.body.applicantStage !== undefined) updateData.applicant_stage = req.body.applicantStage;
+      if (req.body.secondarySchoolName !== undefined) updateData.secondary_school_name = req.body.secondarySchoolName;
+      if (req.body.secondaryGraduationYear !== undefined) updateData.secondary_graduation_year = req.body.secondaryGraduationYear;
+      if (req.body.targetMajor !== undefined) updateData.target_major = req.body.targetMajor;
+      if (req.body.tradeSpecialization !== undefined) updateData.trade_specialization = req.body.tradeSpecialization;
+      if (req.body.tradeCertifications !== undefined) updateData.trade_certifications = req.body.tradeCertifications;
+      if (req.body.yearsOfExperience !== undefined) updateData.years_of_experience = req.body.yearsOfExperience;
+      if (req.body.targetIndustry !== undefined) updateData.target_industry = req.body.targetIndustry;
+      if (req.body.skills !== undefined) updateData.skills = req.body.skills;
+      if (req.body.portfolioUrl !== undefined) updateData.portfolio_url = req.body.portfolioUrl;
+      if (req.body.linkedinUrl !== undefined) updateData.linkedin_url = req.body.linkedinUrl;
+      if (req.body.githubUrl !== undefined) updateData.github_url = req.body.githubUrl;
+      if (req.body.educationLevel !== undefined) updateData.education_level = req.body.educationLevel;
+      if (req.body.institution !== undefined) updateData.institution = req.body.institution;
+      if (req.body.fieldOfStudy !== undefined) updateData.field_of_study = req.body.fieldOfStudy;
+      if (req.body.gpa !== undefined) updateData.gpa = req.body.gpa;
+      if (req.body.gpaScale !== undefined) updateData.gpa_scale = req.body.gpaScale;
+      await supabase.from('users').update(updateData).eq('id', userId);
+    } catch (err) {
+      console.warn('[student] error syncing profile update to Supabase:', err);
+    }
+  }
 
   res.json({
     success: true,
@@ -251,6 +257,55 @@ router.get('/applications', async (req: Request, res: Response): Promise<void> =
   });
 });
 
+// GET /api/v1/student/applications/:id
+router.get('/applications/:id', async (req: Request, res: Response): Promise<void> => {
+  const userId = req.user!.id;
+  const appId = req.params.id;
+  const app = db.findApplicationById(appId);
+
+  if (!app) {
+    if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+      try {
+        const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+        const { data } = await supabase.from('applications').select('*').eq('id', appId).maybeSingle();
+        if (data) {
+          if (data.user_id !== userId && req.user!.role !== 'admin') {
+            res.status(403).json({
+              success: false,
+              error: { code: 'FORBIDDEN', message: 'You cannot access another student’s application.' },
+            });
+            return;
+          }
+          res.json({ success: true, data });
+          return;
+        }
+      } catch (err) {
+        console.warn('[student] error querying application from Supabase:', err);
+      }
+    }
+    res.status(404).json({
+      success: false,
+      error: { code: 'APPLICATION_NOT_FOUND', message: 'Application not found.' },
+    });
+    return;
+  }
+
+  if (app.userId !== userId && req.user!.role !== 'admin') {
+    res.status(403).json({
+      success: false,
+      error: { code: 'FORBIDDEN', message: 'You cannot access another student’s application.' },
+    });
+    return;
+  }
+
+  res.json({
+    success: true,
+    data: app,
+  });
+});
+
 // POST /api/v1/student/applications
 router.post('/applications', async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
@@ -317,7 +372,7 @@ router.post('/applications', async (req: Request, res: Response): Promise<void> 
   }
 
   // Enforce Free plan limit of 3 active applications
-  const subStatus = await getUserSubscriptionStatus(userId);
+  const subStatus = await getUserSubscriptionStatus(userId, req.user?.email);
   if (subStatus !== 'premium' && existingApps.length >= 3) {
     res.status(403).json({
       success: false,
@@ -339,6 +394,15 @@ router.post('/applications', async (req: Request, res: Response): Promise<void> 
     required: true,
   }));
 
+  const requestedStatus = req.body.status;
+  const status: ApplicationStatus = 
+    requestedStatus && ['Preparing', 'Interested', 'Applied'].includes(requestedStatus)
+      ? requestedStatus
+      : 'Preparing';
+
+  const isScholavonNative = scholarship.applicationMethod === 'Scholavon Application';
+  const submissionMethod: 'native' | 'external' = isScholavonNative ? 'native' : 'external';
+
   const newApp: ApplicationRecord = {
     id: `app-${crypto.randomUUID()}`,
     userId,
@@ -348,7 +412,9 @@ router.post('/applications', async (req: Request, res: Response): Promise<void> 
     deadline: scholarship.deadline,
     amount: scholarship.amount,
     currency: scholarship.currency,
-    status: 'Interested',
+    status,
+    submissionMethod,
+    submissionStage: 'draft',
     notes: notes || '',
     checklist,
     createdAt: new Date().toISOString(),
@@ -393,14 +459,31 @@ router.post('/applications', async (req: Request, res: Response): Promise<void> 
     createdAt: new Date().toISOString(),
   });
 
+  // Send application started email if user preference allows it (non-blocking)
+  const studentProfile = db.getProfile(userId);
+  const studentUser = db.findUserById(userId);
+  const emailRecipient = studentUser?.email || req.user?.email;
+  if (studentProfile?.notificationPreferences?.email !== false && emailRecipient) {
+    emailService
+      .sendApplicationStarted(
+        emailRecipient,
+        studentProfile?.firstName || 'Student',
+        scholarship.title,
+        scholarship.deadline,
+        newApp.id,
+        scholarship.providerName
+      )
+      .catch(() => {});
+  }
+
   res.status(201).json({
     success: true,
     data: newApp,
   });
 });
 
-// PATCH /api/v1/student/applications/:id
-router.patch('/applications/:id', (req: Request, res: Response): void => {
+// PATCH & PUT /api/v1/student/applications/:id
+async function handleUpdateApplication(req: Request, res: Response): Promise<void> {
   const userId = req.user!.id;
   const app = db.findApplicationById(req.params.id);
 
@@ -420,17 +503,68 @@ router.patch('/applications/:id', (req: Request, res: Response): void => {
     return;
   }
 
-  const updates = req.body;
+  const updates = { ...req.body };
+  const oldStatus = app.status;
+  const statusChanged = updates.status && updates.status !== oldStatus;
+
   if (updates.status && updates.status === 'Applied' && !app.appliedAt) {
     updates.appliedAt = new Date().toISOString();
   }
+  if (updates.status === 'Applied' && updates.submissionMethod === 'external') {
+    updates.externalSubmissionConfirmed = true;
+    if (!updates.statusSource) updates.statusSource = 'student_updated';
+  }
 
   const updated = db.updateApplication(app.id, updates);
+
+  // Send status change email if a meaningful status transition occurred (never on minor draft saves or checklist edits)
+  if (statusChanged) {
+    const studentProfile = db.getProfile(app.userId);
+    const studentUser = db.findUserById(app.userId);
+    const emailRecipient = studentUser?.email || (app.userId === userId ? req.user?.email : undefined);
+
+    if (studentProfile?.notificationPreferences?.email !== false && emailRecipient) {
+      emailService
+        .sendApplicationStatusChange(
+          emailRecipient,
+          studentProfile?.firstName || 'Student',
+          app.scholarshipTitle,
+          oldStatus,
+          updates.status,
+          app.id,
+          app.providerName
+        )
+        .catch(() => {});
+    }
+  }
+
+  // Sync update to Supabase if configured
+  if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+    try {
+      const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const sbUpdates: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+      };
+      if (updates.status) sbUpdates.status = updates.status;
+      if (updates.notes !== undefined) sbUpdates.notes = updates.notes;
+      if (updates.checklist) sbUpdates.checklist = updates.checklist;
+      if (updates.appliedAt) sbUpdates.applied_at = updates.appliedAt;
+      await supabase.from('applications').update(sbUpdates).eq('id', app.id);
+    } catch (err) {
+      console.warn('[student] error syncing updated application to Supabase:', err);
+    }
+  }
+
   res.json({
     success: true,
     data: updated,
   });
-});
+}
+
+router.patch('/applications/:id', handleUpdateApplication);
+router.put('/applications/:id', handleUpdateApplication);
 
 // PUT /api/v1/student/applications/:id/checklist
 router.put('/applications/:id/checklist', (req: Request, res: Response): void => {
@@ -565,7 +699,7 @@ router.post('/documents/upload', upload.single('file'), async (req: Request, res
   }
 
   // Enforce Free plan limit of 3 stored documents
-  const subStatus = await getUserSubscriptionStatus(userId);
+  const subStatus = await getUserSubscriptionStatus(userId, req.user?.email);
   const existingDocs = db.getDocumentsByUser(userId);
   if (subStatus !== 'premium' && existingDocs.length >= 3) {
     // If file was uploaded to disk by multer, clean it up
@@ -681,114 +815,16 @@ router.get('/reminders', (req: Request, res: Response): void => {
 // POST /api/v1/student/reminders/process
 router.post('/reminders/process', async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
-  const profile = db.getProfile(userId);
-  const subStatus = await getUserSubscriptionStatus(userId);
+  const currentDate = req.body.currentDate ? new Date(req.body.currentDate) : undefined;
 
-  // Process reminders for the student
-  const savedIds = db.getSavedIdsByUser(userId);
-  const applications = db.getApplicationsByUser(userId);
-  const appSchIds = applications.map((a) => a.scholarshipId);
-  const relevantIds = new Set([...savedIds, ...appSchIds]);
-
-  const allScholarships = db.getScholarships();
-  const currentDate = req.body.currentDate ? new Date(req.body.currentDate) : new Date();
-
-  // Free users receive standard 7-day and 1-day reminders. Plus users receive full intervals (30d, 14d, 7d, 3d, 1d, 0).
-  const allowedIntervals = subStatus === 'premium'
-    ? (profile?.notificationPreferences?.deadlineDays ?? [30, 14, 7, 3, 1, 0])
-    : [7, 1];
-
-  const deadlineAlertsEnabled = profile?.notificationPreferences?.deadlineAlerts !== false;
-
-  const generatedReminders: any[] = [];
-
-  if (deadlineAlertsEnabled) {
-    for (const sch of allScholarships) {
-      if (!relevantIds.has(sch.id)) continue;
-      if (sch.status === 'archived' || sch.status === 'closed' || sch.manuallyClosed) continue;
-      if (!sch.deadline) continue;
-
-      const deadline = new Date(sch.deadline);
-      if (isNaN(deadline.getTime())) continue;
-
-      const deadlineUtc = Date.UTC(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
-      const currentUtc = Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
-      const daysLeft = Math.round((deadlineUtc - currentUtc) / (1000 * 60 * 60 * 24));
-
-      if (daysLeft < 0) continue;
-
-      let reminderType: string | null = null;
-      if (daysLeft === 30 && allowedIntervals.includes(30)) reminderType = '30_day';
-      else if (daysLeft === 14 && allowedIntervals.includes(14)) reminderType = '14_day';
-      else if (daysLeft === 7 && allowedIntervals.includes(7)) reminderType = '7_day';
-      else if (daysLeft === 3 && allowedIntervals.includes(3)) reminderType = '3_day';
-      else if (daysLeft === 1 && allowedIntervals.includes(1)) reminderType = '1_day';
-      else if (daysLeft === 0 && allowedIntervals.includes(0)) reminderType = 'deadline_day';
-
-      if (!reminderType) continue;
-
-      const alreadySent = db.hasSentReminder(userId, sch.id, reminderType, sch.deadline);
-      if (alreadySent) continue;
-
-      const titleMap: Record<string, string> = {
-        '30_day': '⏰ Deadline in 30 days',
-        '14_day': '⏰ Deadline in 14 days',
-        '7_day': '⏰ Deadline in 7 days',
-        '3_day': '⏰ Deadline in 3 days',
-        '1_day': '🚨 Deadline tomorrow',
-        'deadline_day': '🚨 Deadline today',
-      };
-      const bodyMap: Record<string, string> = {
-        '30_day': `${sch.title} closes in 30 days. Begin preparing your required application materials.`,
-        '14_day': `${sch.title} closes in 14 days. Review your essays and request recommendations.`,
-        '7_day': `${sch.title} closes in 7 days. You still have time to complete your application.`,
-        '3_day': `${sch.title} closes in 3 days. Make sure your required documents are ready.`,
-        '1_day': `${sch.title} closes tomorrow. Complete your application before the deadline.`,
-        'deadline_day': `${sch.title} closes today. If you plan to apply, submit before the deadline.`,
-      };
-
-      const remId = `rem-${crypto.randomUUID()}`;
-      const notifId = `notif-${crypto.randomUUID()}`;
-      const nowIso = new Date().toISOString();
-
-      const reminderRecord = {
-        id: remId,
-        userId,
-        scholarshipId: sch.id,
-        scholarshipTitle: sch.title,
-        reminderType: reminderType as any,
-        deadlineAt: sch.deadline,
-        scheduledFor: currentDate.toISOString(),
-        sentAt: nowIso,
-        channel: 'inApp' as const,
-        status: 'sent' as const,
-        createdAt: nowIso,
-      };
-
-      db.createReminder(reminderRecord);
-      db.createNotification({
-        id: notifId,
-        userId,
-        title: titleMap[reminderType] || '⏰ Scholarship Reminder',
-        message: bodyMap[reminderType] || `${sch.title} deadline is approaching.`,
-        body: bodyMap[reminderType] || `${sch.title} deadline is approaching.`,
-        type: 'deadline_alert',
-        read: false,
-        link: `/scholarships/${sch.id}`,
-        relatedScholarshipId: sch.id,
-        createdAt: nowIso,
-      });
-
-      generatedReminders.push(reminderRecord);
-    }
-  }
+  const result = await processDueRemindersForUser(userId, currentDate);
 
   res.json({
     success: true,
     data: {
-      processedCount: relevantIds.size,
-      sentCount: generatedReminders.length,
-      reminders: generatedReminders,
+      processedCount: result.processedCount,
+      sentCount: result.sentCount,
+      reminders: result.reminders,
     },
   });
 });
@@ -808,7 +844,7 @@ router.post('/ai/chat', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Enforce 5 free AI prompts per UTC calendar day for Free plan users
-    const subStatus = await getUserSubscriptionStatus(userId);
+    const subStatus = await getUserSubscriptionStatus(userId, req.user?.email);
     const today = new Date().toISOString().slice(0, 10); // e.g. '2026-10-09'
     const DAILY_LIMIT = 5;
     let remainingPrompts = -1; // -1 means unlimited (Plus)

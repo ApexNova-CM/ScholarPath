@@ -16,6 +16,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const getRedirectTarget = (): string | null => {
+    try {
+      const search = typeof window !== 'undefined' ? window.location.search : '';
+      const params = new URLSearchParams(search);
+      const target = params.get('redirect') || params.get('returnTo');
+      if (target && target.startsWith('/') && !target.startsWith('//')) {
+        return target;
+      }
+    } catch {}
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -28,7 +40,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
         if (res.role === 'admin') {
           onNavigate('/admin/dashboard');
         } else {
-          onNavigate('/dashboard');
+          const target = getRedirectTarget();
+          onNavigate(target || '/dashboard');
         }
       } else {
         setError(res.error || 'Invalid credentials. Please check your email and password.');
@@ -48,7 +61,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
         if (res.role === 'admin') {
           onNavigate('/admin/dashboard');
         } else {
-          onNavigate('/dashboard');
+          const target = getRedirectTarget();
+          onNavigate(target || '/dashboard');
         }
       } else {
         setError(res.error || 'Google login failed.');
@@ -98,7 +112,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email address"
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-2xs"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-[#155EEF] focus:ring-1 focus:ring-[#155EEF] shadow-2xs"
             />
           </div>
         </div>
@@ -109,7 +123,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
             <button
               type="button"
               onClick={() => onNavigate('/forgot-password')}
-              className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800"
+              className="text-[11px] font-semibold text-[#155EEF] hover:text-[#124bbf]"
             >
               Forgot password?
             </button>
@@ -123,7 +137,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-2xs"
+              className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 focus:outline-hidden focus:border-[#155EEF] focus:ring-1 focus:ring-[#155EEF] shadow-2xs"
             />
             <button
               type="button"
@@ -140,7 +154,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
           id="btn-login-submit"
           type="submit"
           disabled={isLoading}
-          className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-2.5 rounded-xl bg-[#155EEF] hover:bg-[#124bbf] text-white font-semibold text-xs transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
         >
           {isLoading ? (
             <span>Signing in...</span>
@@ -185,7 +199,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate }) => {
           <button
             id="btn-nav-register"
             onClick={() => onNavigate('/register')}
-            className="font-bold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+            className="font-bold text-[#155EEF] hover:text-[#124bbf] cursor-pointer"
           >
             Create Account
           </button>

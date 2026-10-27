@@ -349,11 +349,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ userProfile, onUpdat
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold text-slate-900">Scholavon Plus</span>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 border border-amber-200 text-amber-800 text-[10px] font-bold rounded-full">
-                    <Crown size={9} /> Active
+                    <Crown size={9} /> {userProfile.isTestOverride ? 'Staging Test Mode' : 'Active'}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Your Plus subscription is active. All premium features are enabled.
+                  {userProfile.isTestOverride
+                    ? 'Your test override is active in staging. All premium features are unlocked.'
+                    : 'Your Plus subscription is active. All premium features are enabled.'}
                 </p>
               </>
             ) : userProfile.subscriptionStatus === 'past_due' ? (

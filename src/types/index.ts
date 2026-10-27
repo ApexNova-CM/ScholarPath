@@ -7,6 +7,54 @@ export type SubscriptionStatus = 'free' | 'premium' | 'cancelled' | 'past_due';
 
 /** Our internal plan IDs — match the server-side PLAN_DEFINITIONS. */
 export type SubscriptionPlanId = 'premium_monthly' | 'premium_annual';
+export type ApplicantStage = 
+  | 'secondary'
+  | 'undergraduate'
+  | 'postgraduate'
+  | 'vocational'
+  | 'early_career';
+
+export const APPLICANT_STAGE_LABELS: Record<ApplicantStage, string> = {
+  secondary: 'Secondary School',
+  undergraduate: 'Undergraduate',
+  postgraduate: 'Postgraduate & Research',
+  vocational: 'Vocational & Technical',
+  early_career: 'Early-Career & Graduate',
+};
+
+export type OpportunityType = 
+  | 'scholarship'
+  | 'grant'
+  | 'fellowship'
+  | 'internship'
+  | 'apprenticeship'
+  | 'competition'
+  | 'exchange';
+
+export const OPPORTUNITY_TYPE_LABELS: Record<OpportunityType, string> = {
+  scholarship: 'Scholarship',
+  grant: 'Grant & Bursary',
+  fellowship: 'Fellowship',
+  internship: 'Internship',
+  apprenticeship: 'Apprenticeship',
+  competition: 'Competition & Programme',
+  exchange: 'Exchange Opportunity',
+};
+
+export type CompensationType = 
+  | 'tuition_covered'
+  | 'stipend'
+  | 'salary'
+  | 'hourly'
+  | 'cash_prize'
+  | 'travel_grant'
+  | 'equipment'
+  | 'unpaid'
+  | 'other';
+
+export type WorkplaceType = 'remote' | 'on_site' | 'hybrid' | 'unspecified';
+
+export type ExperienceLevel = 'no_experience' | 'entry_level' | 'mid_level' | 'any';
 
 export type EducationLevel = 
   | 'High School'
@@ -140,6 +188,113 @@ export type ApplicationStatus =
 
 export type ApplicationStatusSource = 'student_updated' | 'admin_updated' | 'provider_confirmed';
 
+export type SubmissionMethod = 'native' | 'external';
+export type SubmissionStage = 'draft' | 'ready_to_submit' | 'submitted_externally' | 'submitted';
+
+export interface ApplicationDisplayStatus {
+  label: string;
+  badgeClass: string;
+  description: string;
+  stage: SubmissionStage | 'under_review' | 'shortlisted' | 'interview' | 'awarded' | 'not_selected' | 'withdrawn';
+}
+
+export function getApplicationDisplayStatus(app: Application, progressPercentage: number = 0): ApplicationDisplayStatus {
+  if (app.status === 'Preparing' || app.status === 'Interested') {
+    if (progressPercentage >= 100) {
+      return {
+        label: 'Ready to Submit',
+        badgeClass: 'bg-indigo-50 border-indigo-200 text-indigo-700',
+        description: 'All preparation steps and required documents are complete. Ready for submission.',
+        stage: 'ready_to_submit',
+      };
+    }
+    return {
+      label: 'Draft',
+      badgeClass: 'bg-amber-50 border-amber-200 text-amber-800',
+      description: 'Application preparation is in progress.',
+      stage: 'draft',
+    };
+  }
+
+  if (app.status === 'Applied') {
+    if (app.submissionMethod === 'external' || (app.statusSource === 'student_updated' && !app.submittedProfileSnapshot)) {
+      return {
+        label: 'Submitted Externally',
+        badgeClass: 'bg-blue-50 border-blue-200 text-blue-700',
+        description: 'Self-reported submission on provider website. Scholavon has no external provider verification.',
+        stage: 'submitted_externally',
+      };
+    }
+    return {
+      label: 'Submitted',
+      badgeClass: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+      description: 'Submission confirmed with official snapshot.',
+      stage: 'submitted',
+    };
+  }
+
+  if (app.status === 'Under Review') {
+    return {
+      label: 'Under Review',
+      badgeClass: 'bg-amber-50 border-amber-200 text-amber-800',
+      description: 'Application is being reviewed by the scholarship committee.',
+      stage: 'under_review',
+    };
+  }
+
+  if (app.status === 'Shortlisted') {
+    return {
+      label: 'Shortlisted',
+      badgeClass: 'bg-indigo-50 border-indigo-200 text-indigo-800',
+      description: 'Application has advanced to the shortlist stage.',
+      stage: 'shortlisted',
+    };
+  }
+
+  if (app.status === 'Interview') {
+    return {
+      label: 'Interview Scheduled',
+      badgeClass: 'bg-purple-50 border-purple-200 text-purple-800',
+      description: 'Candidate selected for an interview or assessment.',
+      stage: 'interview',
+    };
+  }
+
+  if (app.status === 'Awarded' || app.status === 'Successful') {
+    return {
+      label: 'Awarded',
+      badgeClass: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+      description: 'Congratulations! This scholarship or opportunity was awarded.',
+      stage: 'awarded',
+    };
+  }
+
+  if (app.status === 'Not Selected' || app.status === 'Unsuccessful') {
+    return {
+      label: 'Not Selected',
+      badgeClass: 'bg-rose-50 border-rose-200 text-rose-800',
+      description: 'Application was not selected for this award cycle.',
+      stage: 'not_selected',
+    };
+  }
+
+  if (app.status === 'Withdrawn') {
+    return {
+      label: 'Withdrawn',
+      badgeClass: 'bg-slate-100 border-slate-200 text-slate-700',
+      description: 'Application was withdrawn by the applicant.',
+      stage: 'withdrawn',
+    };
+  }
+
+  return {
+    label: app.status || 'Draft',
+    badgeClass: 'bg-slate-100 border-slate-200 text-slate-700',
+    description: 'Application record.',
+    stage: 'draft',
+  };
+}
+
 export interface ApplicationStatusHistoryItem {
   id: string;
   status: ApplicationStatus;
@@ -187,16 +342,28 @@ export interface UserProfile {
   country: string;
   state?: string;
   city?: string;
-  educationLevel: EducationLevel;
-  institution: string;
+  educationLevel?: EducationLevel;
+  applicantStage?: ApplicantStage;
+  secondarySchoolName?: string;
+  secondaryGraduationYear?: number;
+  targetMajor?: string;
+  tradeSpecialization?: string;
+  tradeCertifications?: string[];
+  yearsOfExperience?: number;
+  targetIndustry?: string;
+  skills?: string[];
+  portfolioUrl?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
+  institution?: string;
   course?: string;
-  fieldOfStudy: string;
+  fieldOfStudy?: string;
   yearLevel?: string;
   graduationYear?: number;
   expectedGraduationDate?: string;
   previousInstitution?: string;
-  gpa: number;
-  gpaScale: number; // e.g. 4.0 or 5.0
+  gpa?: number;
+  gpaScale?: number;
   financialNeed?: boolean;
   gender?: 'Male' | 'Female' | 'Non-Binary' | 'Prefer not to say';
   awards?: string[];
@@ -225,6 +392,8 @@ export interface UserProfile {
   /** Subscription status from public.users.subscription_status.
    *  Only updated by server webhook. Never trust client-set values. */
   subscriptionStatus?: SubscriptionStatus;
+  /** Staging test override flag: true only when safely active in staging/dev */
+  isTestOverride?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -254,6 +423,13 @@ export interface Scholarship {
   shortDescription: string;
   category: string;
   scholarshipType?: string;
+  opportunityType?: OpportunityType;
+  targetAudiences?: ApplicantStage[];
+  compensationType?: CompensationType | string;
+  duration?: string;
+  experienceLevel?: ExperienceLevel | string;
+  skillsRequired?: string[];
+  workplaceType?: WorkplaceType | string;
   tags: string[];
 
   // Award Details
@@ -351,6 +527,9 @@ export interface Scholarship {
   updatedAt: string;
 }
 
+/** Semantic alias for Scholarship during the multi-audience expansion */
+export type Opportunity = Scholarship;
+
 export interface ApplicationChecklistItem {
   id: string;
   label: string;
@@ -383,6 +562,10 @@ export interface Application {
   statusHistory?: ApplicationStatusHistoryItem[];
   outcomeDetails?: ApplicationOutcomeDetails;
   statusSource?: ApplicationStatusSource;
+  submissionMethod?: SubmissionMethod;
+  submissionStage?: SubmissionStage;
+  externalSubmissionConfirmed?: boolean;
+  externalPortalOpenedAt?: string;
   // Submission snapshot — frozen at time of submission, never mutated
   submittedProfileSnapshot?: Record<string, unknown>;
   submittedDocuments?: SubmittedDocumentSnapshot[];
@@ -560,7 +743,7 @@ export interface VerificationRecord {
 }
 
 export interface EligibilityCriterion {
-  factor: 'Education Level' | 'Field of Study' | 'Location' | 'GPA' | 'Age' | 'Financial Need' | 'Gender';
+  factor: 'Education Level' | 'Field of Study' | 'Location' | 'GPA' | 'Age' | 'Financial Need' | 'Gender' | 'Target Audience' | 'Field / Specialization' | 'Skills & Capabilities';
   label: string;
   met: boolean;
   isHardRequirement: boolean;

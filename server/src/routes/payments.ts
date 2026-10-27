@@ -25,6 +25,7 @@ import {
   verifyWebhookSignature,
   resolvePlanIdFromPaystack,
 } from '../services/paystackService';
+import { isStagingPlusOverrideActive } from '../utils/stagingGuard';
 
 const router = Router();
 
@@ -524,6 +525,33 @@ router.get(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = req.user!.id;
+      const email = req.user?.email;
+
+      // Fail-closed staging-only test override check
+      if (isStagingPlusOverrideActive(userId, email)) {
+        res.json({
+          success: true,
+          data: {
+            planId: 'staging_test_override',
+            status: 'active',
+            isTestOverride: true,
+            currentPeriodEnd: null,
+            nextPaymentDate: null,
+            cancelledAt: null,
+          },
+        });
+        return;
+      }
+
+      // If Supabase service role is not configured (e.g. test or local dev), return free
+      if (!config.supabaseUrl || !config.supabaseServiceRoleKey) {
+        res.json({
+          success: true,
+          data: { status: 'free' },
+        });
+        return;
+      }
+
       const supabase = getServiceClient();
 
       const { data, error } = await supabase

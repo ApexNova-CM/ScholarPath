@@ -32,4 +32,13 @@ export const config = {
 
   // ── App/Frontend URL (used to build Paystack callback_url) ───────────────
   appUrl: process.env.APP_URL || 'http://localhost:3000',
+
+  // ── Email (Resend) — server-side ONLY, never expose via VITE_ vars ─────────
+  // Set EMAIL_PROVIDER_API_KEY to your Resend API key (re_xxxxxxxx) to
+  // activate transactional email (password reset, welcome email, reminders).
+  emailProviderApiKey: process.env.EMAIL_PROVIDER_API_KEY || '',
+
+  // ── Staging Plus Test Override (FAIL-CLOSED: disabled by default) ─────────
+  allowStagingPlusOverride: process.env.ALLOW_STAGING_PLUS_OVERRIDE === 'true',
+  stagingPlusOverrideEmail: (process.env.STAGING_PLUS_OVERRIDE_EMAIL || '').trim().toLowerCase(),
 };

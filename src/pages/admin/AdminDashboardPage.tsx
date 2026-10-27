@@ -51,14 +51,17 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-600 mb-1">
-            <ShieldCheck size={14} />
-            <span>Admin Console</span>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-semibold text-[#155EEF] bg-blue-50 px-2.5 py-0.5 rounded-md">
+              Institutional Admin Console
+            </span>
+            <span className="text-xs text-slate-300">·</span>
+            <span className="text-xs text-emerald-700 font-medium">Endowment Governance</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#0B1F46] tracking-tight">
             Administrator Dashboard
           </h1>
-          <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl leading-relaxed">
             Audit scholarship opportunities, verify official provider credentials, and monitor platform activity.
           </p>
         </div>
@@ -67,7 +70,7 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({
           <button
             id="admin-btn-quick-add"
             onClick={() => onNavigate('/admin/scholarships/new')}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#155EEF] hover:bg-[#124bbf] text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
           >
             <PlusCircle size={15} />
             <span>Add Scholarship</span>

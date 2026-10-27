@@ -99,9 +99,13 @@ export const PricingPage: React.FC<PricingPageProps> = ({ userProfile, onNavigat
             <Crown size={20} className="text-emerald-600" />
           </div>
           <div>
-            <p className="text-sm font-bold text-emerald-800">You have Scholavon Plus ✓</p>
+            <p className="text-sm font-bold text-emerald-800">
+              You have Scholavon Plus {userProfile?.isTestOverride ? '(Staging Test Mode)' : '✓'}
+            </p>
             <p className="text-xs text-emerald-700 mt-0.5">
-              All Plus features are active on your account. Thank you for supporting Scholavon.
+              {userProfile?.isTestOverride
+                ? 'Staging test override is active for testing Plus features. Real Paystack payment is disabled in this mode.'
+                : 'All Plus features are active on your account. Thank you for supporting Scholavon.'}
             </p>
           </div>
           <button

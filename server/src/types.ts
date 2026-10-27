@@ -2,6 +2,55 @@ import { z } from 'zod';
 
 export type UserRole = 'student' | 'admin';
 
+export type ApplicantStage = 
+  | 'secondary'
+  | 'undergraduate'
+  | 'postgraduate'
+  | 'vocational'
+  | 'early_career';
+
+export const APPLICANT_STAGE_LABELS: Record<ApplicantStage, string> = {
+  secondary: 'Secondary School',
+  undergraduate: 'Undergraduate',
+  postgraduate: 'Postgraduate & Research',
+  vocational: 'Vocational & Technical',
+  early_career: 'Early-Career & Graduate',
+};
+
+export type OpportunityType = 
+  | 'scholarship'
+  | 'grant'
+  | 'fellowship'
+  | 'internship'
+  | 'apprenticeship'
+  | 'competition'
+  | 'exchange';
+
+export const OPPORTUNITY_TYPE_LABELS: Record<OpportunityType, string> = {
+  scholarship: 'Scholarship',
+  grant: 'Grant & Bursary',
+  fellowship: 'Fellowship',
+  internship: 'Internship',
+  apprenticeship: 'Apprenticeship',
+  competition: 'Competition & Programme',
+  exchange: 'Exchange Opportunity',
+};
+
+export type CompensationType = 
+  | 'tuition_covered'
+  | 'stipend'
+  | 'salary'
+  | 'hourly'
+  | 'cash_prize'
+  | 'travel_grant'
+  | 'equipment'
+  | 'unpaid'
+  | 'other';
+
+export type WorkplaceType = 'remote' | 'on_site' | 'hybrid' | 'unspecified';
+
+export type ExperienceLevel = 'no_experience' | 'entry_level' | 'mid_level' | 'any';
+
 export type EducationLevel =
   | 'High School'
   | 'Undergraduate'
@@ -131,6 +180,9 @@ export type ApplicationStatus =
 
 export type ApplicationStatusSource = 'student_updated' | 'admin_updated' | 'provider_confirmed';
 
+export type SubmissionMethod = 'native' | 'external';
+export type SubmissionStage = 'draft' | 'ready_to_submit' | 'submitted_externally' | 'submitted';
+
 export interface ApplicationStatusHistoryItem {
   id: string;
   status: ApplicationStatus;
@@ -182,14 +234,26 @@ export interface StudentProfileRecord {
   country: string;
   state?: string;
   city?: string;
-  educationLevel: EducationLevel;
-  institution: string;
+  educationLevel?: EducationLevel;
+  applicantStage?: ApplicantStage;
+  secondarySchoolName?: string;
+  secondaryGraduationYear?: number;
+  targetMajor?: string;
+  tradeSpecialization?: string;
+  tradeCertifications?: string[];
+  yearsOfExperience?: number;
+  targetIndustry?: string;
+  skills?: string[];
+  portfolioUrl?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
+  institution?: string;
   course?: string;
-  fieldOfStudy: string;
+  fieldOfStudy?: string;
   yearLevel?: string;
   graduationYear?: number;
-  gpa: number;
-  gpaScale: number;
+  gpa?: number;
+  gpaScale?: number;
   financialNeed?: boolean;
   gender?: 'Male' | 'Female' | 'Non-Binary' | 'Prefer not to say';
   awards?: string[];
@@ -249,6 +313,13 @@ export interface ScholarshipRecord {
   shortDescription: string;
   category: string;
   scholarshipType?: string;
+  opportunityType?: OpportunityType;
+  targetAudiences?: ApplicantStage[];
+  compensationType?: CompensationType | string;
+  duration?: string;
+  experienceLevel?: ExperienceLevel | string;
+  skillsRequired?: string[];
+  workplaceType?: WorkplaceType | string;
   tags: string[];
 
   // Award Details
@@ -374,6 +445,10 @@ export interface ApplicationRecord {
   statusHistory?: ApplicationStatusHistoryItem[];
   outcomeDetails?: ApplicationOutcomeDetails;
   statusSource?: ApplicationStatusSource;
+  submissionMethod?: SubmissionMethod;
+  submissionStage?: SubmissionStage;
+  externalSubmissionConfirmed?: boolean;
+  externalPortalOpenedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -411,7 +486,13 @@ export interface NotificationRecord {
   createdAt: string;
 }
 
-export type ReminderType = '7_day' | '3_day' | '1_day' | 'deadline_day';
+export type ReminderType =
+  | '30_day'
+  | '14_day'
+  | '7_day'
+  | '3_day'
+  | '1_day'
+  | 'deadline_day';
 export type ReminderStatus = 'scheduled' | 'sent' | 'failed' | 'cancelled';
 export type ReminderChannel = 'inApp' | 'email' | 'push' | 'whatsapp';
 
@@ -462,6 +543,33 @@ export const RegisterSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
   country: z.string().default('International'),
+  applicantStage: z.enum([
+    'secondary',
+    'undergraduate',
+    'postgraduate',
+    'vocational',
+    'early_career',
+  ]).optional(),
+  secondarySchoolName: z.string().optional(),
+  secondaryGraduationYear: z.number().int().min(1900).max(2100).optional(),
+  targetMajor: z.string().optional(),
+  tradeSpecialization: z.string().optional(),
+  tradeCertifications: z.array(z.string()).optional(),
+  yearsOfExperience: z.number().int().min(0).optional(),
+  targetIndustry: z.string().optional(),
+  skills: z.array(z.string()).optional(),
+  portfolioUrl: z.string().optional().refine(
+    (v) => v === undefined || v === '' || /^https?:\/\/.+/.test(v),
+    { message: 'portfolioUrl must be a valid URL (https://...) or empty' }
+  ),
+  linkedinUrl: z.string().optional().refine(
+    (v) => v === undefined || v === '' || /^https?:\/\/.+/.test(v),
+    { message: 'linkedinUrl must be a valid URL (https://...) or empty' }
+  ),
+  githubUrl: z.string().optional().refine(
+    (v) => v === undefined || v === '' || /^https?:\/\/.+/.test(v),
+    { message: 'githubUrl must be a valid URL (https://...) or empty' }
+  ),
   educationLevel: z.enum([
     'High School',
     'Undergraduate',
@@ -469,11 +577,11 @@ export const RegisterSchema = z.object({
     'Doctorate (PhD)',
     'Vocational / Technical',
     'Postdoctoral'
-  ]).default('Undergraduate'),
-  institution: z.string().default(''),
-  fieldOfStudy: z.string().default(''),
-  gpa: z.number().min(0).max(100).default(0),
-  gpaScale: z.number().default(4.0),
+  ]).optional(),
+  institution: z.string().optional(),
+  fieldOfStudy: z.string().optional(),
+  gpa: z.number().min(0).max(100).optional(),
+  gpaScale: z.number().optional(),
   phone: z.string().optional(),
   dateOfBirth: z.string().optional(),
   gender: z.enum(['Male', 'Female', 'Non-Binary', 'Prefer not to say']).optional(),
@@ -500,6 +608,35 @@ export const UpdateProfileSchema = z.object({
     'Vocational / Technical',
     'Postdoctoral'
   ]).optional(),
+  applicantStage: z.enum([
+    'secondary',
+    'undergraduate',
+    'postgraduate',
+    'vocational',
+    'early_career',
+  ]).optional(),
+  secondarySchoolName: z.string().optional(),
+  secondaryGraduationYear: z.number().int().min(1900).max(2100).optional(),
+  targetMajor: z.string().optional(),
+  tradeSpecialization: z.string().optional(),
+  tradeCertifications: z.array(z.string()).optional(),
+  yearsOfExperience: z.number().int().min(0).optional(),
+  targetIndustry: z.string().optional(),
+  skills: z.array(z.string()).optional(),
+  // URL fields: validate as URL when a non-empty string is supplied, but allow
+  // omission (undefined) and empty string ('') for backward compatibility.
+  portfolioUrl: z.string().optional().refine(
+    (v) => v === undefined || v === '' || /^https?:\/\/.+/.test(v),
+    { message: 'portfolioUrl must be a valid URL (https://...) or empty' }
+  ),
+  linkedinUrl: z.string().optional().refine(
+    (v) => v === undefined || v === '' || /^https?:\/\/.+/.test(v),
+    { message: 'linkedinUrl must be a valid URL (https://...) or empty' }
+  ),
+  githubUrl: z.string().optional().refine(
+    (v) => v === undefined || v === '' || /^https?:\/\/.+/.test(v),
+    { message: 'githubUrl must be a valid URL (https://...) or empty' }
+  ),
   institution: z.string().optional(),
   course: z.string().optional(),
   fieldOfStudy: z.string().optional(),
@@ -529,6 +666,27 @@ export const CreateScholarshipSchema = z.object({
   shortDescription: z.string().default(''),
   category: z.string().min(1),
   scholarshipType: z.string().optional(),
+  opportunityType: z.enum([
+    'scholarship',
+    'grant',
+    'fellowship',
+    'internship',
+    'apprenticeship',
+    'competition',
+    'exchange',
+  ]).default('scholarship'),
+  targetAudiences: z.array(z.enum([
+    'secondary',
+    'undergraduate',
+    'postgraduate',
+    'vocational',
+    'early_career',
+  ])).default(['undergraduate']),
+  compensationType: z.string().optional(),
+  duration: z.string().optional(),
+  experienceLevel: z.string().optional(),
+  skillsRequired: z.array(z.string()).default([]),
+  workplaceType: z.string().default('unspecified'),
   tags: z.array(z.string()).default([]),
 
   // Award Details
@@ -703,5 +861,31 @@ export const PLAN_DEFINITIONS: Record<SubscriptionPlanId, PlanDefinition> = {
 /** Zod schema for POST /api/v1/payments/initialize — only planId accepted from client. */
 export const InitializePaymentSchema = z.object({
   planId: z.enum(['premium_monthly', 'premium_annual']),
+});
+
+// ─── Password Reset Tokens ─────────────────────────────────────────────────
+
+/**
+ * Short-lived server-side token for password resets.
+ * Stored in memory (flat-file db) and expires after 1 hour.
+ * The raw token is NEVER stored — only the SHA-256 hash.
+ */
+export interface PasswordResetTokenRecord {
+  /** SHA-256 hash of the raw token sent to the user */
+  tokenHash: string;
+  userId: string;
+  email: string;
+  expiresAt: string; // ISO-8601
+  usedAt?: string;   // set on consumption to prevent replay
+  createdAt: string;
+}
+
+export const ForgotPasswordSchema = z.object({
+  email: z.string().email('A valid email address is required.'),
+});
+
+export const ResetPasswordSchema = z.object({
+  token: z.string().min(1, 'Reset token is required.'),
+  newPassword: z.string().min(8, 'New password must be at least 8 characters.'),
 });
 
